@@ -94,6 +94,7 @@ androidComponents {
 
 dependencies {
     implementation(project(":layout-model"))
+    implementation(project(":layout-render"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)

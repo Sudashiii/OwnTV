@@ -24,6 +24,17 @@ Open **Launcher settings → Import layout** (long-press OK on any tile, or use 
 
 Every import shows a preview first. Applied layouts go into a history, so **Revert** always gets you back.
 
+## Previewing layouts in a browser
+
+The `web` module compiles the launcher's own renderer to WebAssembly, so a layout looks the same as on the TV without a TV. The page shows the layout on the left. On the right you pick an example or look, edit the JSON (autocomplete and hover docs come from the JSON Schema), and see the same validation errors the TV shows. If the JSON is broken, the last valid layout stays on screen. The **Metrics** toggle shows frame times, recompositions and how long parsing and validation took.
+
+```bash
+./gradlew :web:wasmJsBrowserDistribution
+python3 -m http.server 8088 --directory web/build/dist/wasmJs/productionExecutable
+```
+
+Then open http://localhost:8088. The preview uses made-up demo apps with drawn banners instead of your installed apps. Like the previews on the TV, it does not take focus. Fonts and the editor load from jsDelivr. Clock patterns support the common letters (`y M d E H h k K m s a`) with English names.
+
 ## Format
 
 - Reference: [docs/layout-spec.md](docs/layout-spec.md)
@@ -47,7 +58,7 @@ adb shell pm disable-user --user 0 com.google.android.apps.tv.launcherx
 ## Building
 
 ```bash
-./gradlew :layout-model:test :app:testDebugUnitTest :app:assembleDebug
+./gradlew :layout-model:test :app:testDebugUnitTest :app:assembleDebug :web:wasmJsBrowserDistribution
 ```
 
 See [CLAUDE.md](CLAUDE.md) for the project layout and development notes.
