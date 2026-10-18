@@ -45,6 +45,8 @@ fun OwnTvRoot(container: AppContainer, nav: Navigator) {
                 Screen.Settings -> SettingsScreen(container, nav, layoutState)
                 Screen.Import -> ImportScreen(container, nav)
                 Screen.Templates -> TemplatesScreen(container, nav)
+                Screen.Looks -> LooksScreen(container, nav)
+                is Screen.LookPreview -> LookPreviewScreen(container, nav, screen.fileName, layoutState, catalog)
                 Screen.History -> HistoryScreen(container, nav)
                 Screen.Help -> HelpScreen(container)
                 is Screen.Preview -> PreviewScreen(container, nav, screen.result, screen.source, catalog)

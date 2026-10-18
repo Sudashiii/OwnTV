@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 2,
+  "name": "Roku",
+  "description": "Roku style: a purple menu on the left and a three-column grid of channel tiles on the right.",
+  "theme": {
+    "colors": {
+      "background": "#2E0F4A",
+      "surface": "#3B1660",
+      "primary": "#B07FE0",
+      "text": "#FFFFFF",
+      "textMuted": "#D9C8EA",
+      "focus": "#FFFFFF",
+      "custom": { "menu": "#33114F" }
+    },
+    "cornerRadius": 10,
+    "focus": { "scale": 1.03, "borderWidth": 4, "glow": false }
+  },
+  "background": { "type": "gradient", "colors": ["#5B2A86", "#2E0F4A"], "angle": 135 },
+  "styles": {
+    "menu_item": {
+      "width": "fill",
+      "height": 44,
+      "color": "#00000000",
+      "tile": { "shape": "card", "cornerRadius": 8 }
+    }
+  },
+  "pages": [
+    {
+      "id": "home",
+      "initialFocus": "channels",
+      "root": {
+        "type": "row",
+        "id": "root",
+        "contentAlign": "top",
+        "children": [
+          {
+            "type": "column",
+            "id": "menu",
+            "width": 230,
+            "height": "fill",
+            "background": "@menu",
+            "padding": [18, 28],
+            "spacing": 6,
+            "focus": { "right": "channels" },
+            "children": [
+              { "type": "text", "id": "menu_time", "text": "{time:h:mm a}", "textStyle": "title", "bold": true, "padding": [10, 0, 0, 16] },
+              { "type": "shortcut", "id": "m_home", "label": "Home", "icon": "home", "style": "menu_item", "action": { "type": "go_to_page", "page": "home" } },
+              { "type": "shortcut", "id": "m_search", "label": "All apps", "icon": "search", "style": "menu_item", "action": { "type": "open_app_drawer" } },
+              { "type": "shortcut", "id": "m_settings", "label": "Settings", "icon": "settings", "style": "menu_item", "action": { "type": "open_system_settings" } },
+              { "type": "shortcut", "id": "m_launcher", "label": "Launcher", "icon": "menu", "style": "menu_item", "action": { "type": "open_launcher_settings" } }
+            ]
+          },
+          {
+            "type": "column",
+            "id": "content",
+            "weight": 1,
+            "height": "fill",
+            "scroll": true,
+            "padding": [28, 28, 28, 40],
+            "children": [
+              {
+                "type": "app_grid",
+                "id": "channels",
+                "source": { "type": "all" },
+                "columns": 3,
+                "spacing": 18,
+                "focus": { "left": "m_home" },
+                "tile": { "shape": "banner", "showLabel": "never" }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

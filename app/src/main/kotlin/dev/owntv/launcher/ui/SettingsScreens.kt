@@ -19,6 +19,7 @@ import androidx.tv.material3.Text
 import dev.owntv.launcher.AppContainer
 import dev.owntv.launcher.data.layout.HistoryEntry
 import dev.owntv.launcher.data.layout.LayoutState
+import dev.owntv.layout.model.CURRENT_SCHEMA_VERSION
 import dev.owntv.layout.validation.Severity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -41,6 +42,7 @@ fun SettingsScreen(container: AppContainer, nav: Navigator, state: LayoutState) 
                 "Paste JSON from your phone, load a URL or a file",
                 modifier = rememberInitialFocus(),
             ) { nav.push(Screen.Import) }
+            SettingsItem("Looks", "Google TV, Apple TV, Fire TV, Roku and more; use a whole look or only its style") { nav.push(Screen.Looks) }
             SettingsItem("Templates", "Start from a built-in layout") { nav.push(Screen.Templates) }
             SettingsItem(
                 "Current layout",
@@ -60,7 +62,7 @@ fun SettingsScreen(container: AppContainer, nav: Navigator, state: LayoutState) 
             SettingsItem("All apps", "Every installed app") { nav.push(Screen.AppDrawer) }
             SettingsItem("Make OwnTV your Home screen", "What to do on Google TV") { nav.push(Screen.Help) }
             SettingsItem("Android settings", "Open the TV's system settings") { container.actions.openSystemSettings() }
-            SettingsItem("About", "OwnTV $version, layout format v1") {}
+            SettingsItem("About", "OwnTV $version, layout format v$CURRENT_SCHEMA_VERSION") {}
         }
     }
 }
@@ -120,6 +122,8 @@ fun HelpScreen(container: AppContainer) {
             Code("adb shell pm enable com.google.android.apps.tv.launcherx")
             HelpText("Layout files can also be copied straight to the TV and opened from Import > Files:")
             Code("adb push my-layout.json ${container.files.adbPath}/")
+            HelpText("Rows with a \"recent\" source always include apps opened from OwnTV. To include apps opened any other way (voice search, notifications), grant usage access once:")
+            Code("adb shell appops set $pkg GET_USAGE_STATS allow")
             HelpText("Long-press OK on any tile to open this launcher's settings from any layout.")
         }
     }

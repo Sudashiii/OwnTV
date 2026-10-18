@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 2,
+  "name": "Android TV classic",
+  "description": "The Android TV 8-9 launcher: search orb, clock and settings at the top, then labeled rows of app banners and a settings row.",
+  "theme": {
+    "colors": {
+      "background": "#1D262B",
+      "surface": "#37474F",
+      "primary": "#4285F4",
+      "text": "#FFFFFF",
+      "textMuted": "#B0BEC5",
+      "focus": "#FFFFFF",
+      "custom": { "orb": "#4285F4", "round": "#455A64" }
+    },
+    "cornerRadius": 3,
+    "focus": { "scale": 1.15, "borderWidth": 0, "glow": true, "glowColor": "#99000000", "glowSize": 18 }
+  },
+  "background": { "type": "gradient", "colors": ["#263238", "#11181C"], "angle": 160 },
+  "defaults": {
+    "app_row": { "spacing": 20, "tile": { "shape": "banner", "size": "medium", "showLabel": "focused" } }
+  },
+  "styles": {
+    "round_button": {
+      "color": "@round",
+      "tile": { "shape": "icon", "size": "small", "cornerRadius": 28, "showLabel": "focused" }
+    },
+    "settings_button": { "style": "round_button", "tile": { "showLabel": "always" } }
+  },
+  "pages": [
+    {
+      "id": "home",
+      "initialFocus": "apps",
+      "root": {
+        "type": "column",
+        "id": "root",
+        "scroll": true,
+        "spacing": 14,
+        "padding": [48, 24, 48, 40],
+        "children": [
+          {
+            "type": "row",
+            "id": "top_bar",
+            "width": "fill",
+            "spacing": 16,
+            "children": [
+              {
+                "type": "shortcut",
+                "id": "search",
+                "label": "Search",
+                "icon": "search",
+                "style": "round_button",
+                "color": "@orb",
+                "action": { "type": "open_app_drawer" }
+              },
+              { "type": "spacer", "id": "top_gap", "weight": 1 },
+              { "type": "clock", "id": "clock", "format": "h:mm", "textStyle": "title", "color": "@textMuted" },
+              {
+                "type": "shortcut",
+                "id": "settings",
+                "label": "Settings",
+                "icon": "settings",
+                "style": "round_button",
+                "action": { "type": "open_system_settings" }
+              }
+            ]
+          },
+          { "type": "app_row", "id": "apps", "title": "Apps", "source": { "type": "category", "category": "apps" } },
+          { "type": "app_row", "id": "games", "title": "Games", "source": { "type": "category", "category": "games" } },
+          { "type": "text", "id": "settings_title", "text": "Settings", "textStyle": "title", "bold": true },
+          {
+            "type": "row",
+            "id": "settings_row",
+            "spacing": 28,
+            "padding": [8, 8],
+            "children": [
+              { "type": "shortcut", "id": "s_network", "label": "Network", "icon": "🛜", "style": "settings_button", "action": { "type": "open_system_settings", "screen": "network" } },
+              { "type": "shortcut", "id": "s_display", "label": "Display", "icon": "🖥", "style": "settings_button", "action": { "type": "open_system_settings", "screen": "display" } },
+              { "type": "shortcut", "id": "s_sound", "label": "Sound", "icon": "🔊", "style": "settings_button", "action": { "type": "open_system_settings", "screen": "sound" } },
+              { "type": "shortcut", "id": "s_apps", "label": "Apps", "icon": "apps", "style": "settings_button", "action": { "type": "open_system_settings", "screen": "apps" } },
+              { "type": "shortcut", "id": "s_launcher", "label": "Launcher", "icon": "menu", "style": "settings_button", "action": { "type": "open_launcher_settings" } }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

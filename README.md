@@ -4,6 +4,10 @@ A highly customizable launcher for Google TV / Android TV, written natively in K
 
 The entire home screen is described by one JSON document: rows, columns, grids and stacks containing app rows, app grids, tiles, shortcuts, text, clocks and images, plus a theme and focus style. Because the format is plain, documented JSON with a JSON Schema, you can write layouts by hand or ask any AI chat to design one.
 
+## Looks
+
+**Launcher settings → Looks** has recreations of popular TV home screens: Google TV, Android TV classic, Apple TV (Top Shelf hero over a dock and app grid), Fire TV, Roku and LG webOS. Use a whole look, or keep your layout and take only its colors, fonts, focus style and tile defaults. They live in [looks/](looks/) and are ordinary layouts, so they are good starting points for your own.
+
 ## Getting a layout onto the TV
 
 Open **Launcher settings → Import layout** (long-press OK on any tile, or use a Settings shortcut):
@@ -17,7 +21,7 @@ Every import shows a preview first. Applied layouts go into a history, so **Reve
 ## Format
 
 - Reference: [docs/layout-spec.md](docs/layout-spec.md)
-- JSON Schema: [schema/owntv-layout.v1.schema.json](schema/owntv-layout.v1.schema.json)
+- JSON Schema: [schema/owntv-layout.v2.schema.json](schema/owntv-layout.v2.schema.json)
 - Examples: [examples/](examples/)
 
 ## Making OwnTV the Home app on Google TV

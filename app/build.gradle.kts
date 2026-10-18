@@ -56,10 +56,13 @@ kotlin {
     }
 }
 
-/** Copies the example layouts and AI docs from the repo root into the APK's assets. */
+/** Copies the example layouts, built-in looks and AI docs from the repo root into the APK's assets. */
 abstract class BundleLayoutAssets : DefaultTask() {
     @get:InputFiles
     abstract val templates: ConfigurableFileCollection
+
+    @get:InputFiles
+    abstract val looks: ConfigurableFileCollection
 
     @get:InputFiles
     abstract val aiDocs: ConfigurableFileCollection
@@ -72,12 +75,14 @@ abstract class BundleLayoutAssets : DefaultTask() {
         val out = outputDir.get().asFile
         out.deleteRecursively()
         templates.files.forEach { it.copyTo(File(out, "templates/${it.name}"), overwrite = true) }
+        looks.files.forEach { it.copyTo(File(out, "looks/${it.name}"), overwrite = true) }
         aiDocs.files.forEach { it.copyTo(File(out, "ai/${it.name}"), overwrite = true) }
     }
 }
 
 val bundleLayoutAssets = tasks.register<BundleLayoutAssets>("bundleLayoutAssets") {
     templates.from(rootProject.fileTree("examples") { include("*.json") })
+    looks.from(rootProject.fileTree("looks") { include("*.json") })
     aiDocs.from(rootProject.file("docs/ai-prompt.md"), rootProject.file("docs/layout-spec.md"))
 }
 

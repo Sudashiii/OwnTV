@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 2,
+  "name": "Google TV",
+  "description": "Google TV style: tabs at the top, a featured carousel, then rows of apps that keep the focused tile at the left.",
+  "theme": {
+    "colors": {
+      "background": "#111318",
+      "surface": "#262A33",
+      "primary": "#8AB4F8",
+      "text": "#E8EAED",
+      "textMuted": "#9AA0A6",
+      "focus": "#FFFFFF"
+    },
+    "cornerRadius": 10,
+    "focus": { "scale": 1.08, "borderWidth": 3, "glow": true, "glowSize": 8 }
+  },
+  "background": { "type": "gradient", "colors": ["#1A1F2B", "#111318"], "angle": 180 },
+  "defaults": {
+    "app_row": { "spacing": 18, "scrollAlign": "start", "tile": { "shape": "banner", "size": "medium" } },
+    "app_grid": { "spacing": 22, "columns": 5, "tile": { "shape": "banner" } }
+  },
+  "pageTabs": true,
+  "pages": [
+    {
+      "id": "for_you",
+      "title": "For you",
+      "initialFocus": "your_apps",
+      "root": {
+        "type": "column",
+        "id": "for_you_root",
+        "scroll": true,
+        "scrollAlign": "start",
+        "scrollMargin": 8,
+        "spacing": 22,
+        "padding": [48, 10, 48, 40],
+        "children": [
+          {
+            "type": "hero",
+            "id": "featured",
+            "follow": "slides",
+            "height": 230,
+            "cornerRadius": 16,
+            "interval": 7,
+            "slides": [
+              {
+                "title": "Your TV, your layout",
+                "description": "Everything on this screen comes from one JSON file. Press OK to change the look.",
+                "background": { "type": "gradient", "colors": ["#1E3C72", "#2A5298"], "angle": 120 },
+                "action": { "type": "open_launcher_settings" }
+              },
+              {
+                "title": "All your apps",
+                "description": "Press OK to see every installed app.",
+                "background": { "type": "gradient", "colors": ["#42275A", "#734B6D"], "angle": 120 },
+                "action": { "type": "open_app_drawer" }
+              },
+              {
+                "title": "{greeting}",
+                "description": "Pick up where you left off in the rows below.",
+                "background": { "type": "gradient", "colors": ["#134E5E", "#2B8C6E"], "angle": 120 }
+              }
+            ]
+          },
+          { "type": "app_row", "id": "your_apps", "title": "Your apps", "source": { "type": "all" }, "limit": 12 },
+          { "type": "app_row", "id": "recent", "title": "Recently used", "source": { "type": "recent" }, "limit": 10 },
+          { "type": "app_row", "id": "games", "title": "Games", "source": { "type": "category", "category": "games" } }
+        ]
+      }
+    },
+    {
+      "id": "apps",
+      "title": "Apps",
+      "root": {
+        "type": "column",
+        "id": "apps_root",
+        "scroll": true,
+        "padding": [48, 10, 48, 40],
+        "children": [
+          { "type": "app_grid", "id": "apps_grid", "source": { "type": "all" } }
+        ]
+      }
+    }
+  ]
+}

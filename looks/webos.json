@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 2,
+  "name": "LG webOS",
+  "description": "LG webOS style: a launcher bar of app icons along the bottom over a colorful full-screen background.",
+  "theme": {
+    "colors": {
+      "background": "#101820",
+      "surface": "#33FFFFFF",
+      "primary": "#E5004F",
+      "text": "#FFFFFF",
+      "textMuted": "#DDE3EA",
+      "focus": "#FFFFFF"
+    },
+    "cornerRadius": 14,
+    "focus": { "scale": 1.18, "borderWidth": 0, "glow": true, "glowColor": "#99FFFFFF", "glowSize": 14 }
+  },
+  "background": { "type": "gradient", "colors": ["#C33764", "#1D2671"], "angle": 135 },
+  "pages": [
+    {
+      "id": "home",
+      "initialFocus": "ribbon",
+      "root": {
+        "type": "stack",
+        "id": "root",
+        "children": [
+          {
+            "type": "column",
+            "id": "time_block",
+            "align": "top_start",
+            "padding": [48, 36],
+            "children": [
+              { "type": "clock", "id": "clock", "format": "h:mm", "textStyle": "display", "bold": true },
+              { "type": "text", "id": "date", "text": "{date}", "textStyle": "title", "color": "@textMuted" }
+            ]
+          },
+          {
+            "type": "shortcut",
+            "id": "settings",
+            "label": "Settings",
+            "icon": "settings",
+            "align": "top_end",
+            "padding": [0, 40, 48, 0],
+            "tile": { "shape": "icon", "size": "small", "showLabel": "focused" },
+            "action": { "type": "open_launcher_settings" }
+          },
+          {
+            "type": "column",
+            "id": "launcher_bar",
+            "align": "bottom",
+            "width": "fill",
+            "background": "#8C000000",
+            "padding": [32, 16, 32, 8],
+            "children": [
+              {
+                "type": "app_row",
+                "id": "ribbon",
+                "source": { "type": "all" },
+                "spacing": 14,
+                "scrollAlign": "center",
+                "tile": { "shape": "icon", "size": "medium", "showLabel": "focused" }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

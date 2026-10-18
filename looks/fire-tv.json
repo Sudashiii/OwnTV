@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 2,
+  "name": "Fire TV",
+  "description": "Fire TV style: an icon menu in the top bar, a wide featured carousel and rows of app cards with a bold white outline.",
+  "theme": {
+    "colors": {
+      "background": "#0E141C",
+      "surface": "#1E2833",
+      "primary": "#00A8E1",
+      "text": "#FFFFFF",
+      "textMuted": "#AAB7C4",
+      "focus": "#FFFFFF"
+    },
+    "cornerRadius": 8,
+    "focus": { "scale": 1.05, "borderWidth": 4, "glow": false }
+  },
+  "background": "#0E141C",
+  "defaults": {
+    "app_row": { "spacing": 16, "scrollAlign": "start", "tile": { "shape": "banner", "width": 150, "showLabel": "never" } }
+  },
+  "styles": {
+    "menu_item": { "color": "#00000000", "tile": { "shape": "icon", "size": "small", "showLabel": "focused", "cornerRadius": 28 } }
+  },
+  "pages": [
+    {
+      "id": "home",
+      "initialFocus": "apps",
+      "root": {
+        "type": "column",
+        "id": "root",
+        "scroll": true,
+        "scrollAlign": "start",
+        "scrollMargin": 8,
+        "spacing": 18,
+        "padding": [40, 14, 40, 40],
+        "children": [
+          {
+            "type": "row",
+            "id": "menu",
+            "width": "fill",
+            "spacing": 10,
+            "children": [
+              { "type": "shortcut", "id": "m_home", "label": "Home", "icon": "home", "style": "menu_item", "action": { "type": "go_to_page", "page": "home" } },
+              { "type": "shortcut", "id": "m_find", "label": "Find", "icon": "search", "style": "menu_item", "action": { "type": "open_app_drawer" } },
+              { "type": "shortcut", "id": "m_settings", "label": "Settings", "icon": "settings", "style": "menu_item", "action": { "type": "open_system_settings" } },
+              { "type": "shortcut", "id": "m_launcher", "label": "Launcher", "icon": "menu", "style": "menu_item", "action": { "type": "open_launcher_settings" } },
+              { "type": "spacer", "id": "menu_gap", "weight": 1 },
+              { "type": "clock", "id": "clock", "format": "h:mm a", "textStyle": "body", "color": "@textMuted" }
+            ]
+          },
+          {
+            "type": "hero",
+            "id": "featured",
+            "follow": "slides",
+            "height": 240,
+            "cornerRadius": 10,
+            "contentAlign": "start",
+            "interval": 8,
+            "slides": [
+              {
+                "title": "Featured",
+                "description": "Rotating highlights. Point a slide at any app or page with its action.",
+                "background": { "type": "gradient", "colors": ["#0F2027", "#2C5364"], "angle": 90 },
+                "action": { "type": "open_app_drawer" }
+              },
+              {
+                "title": "Make it yours",
+                "description": "Press OK to import a layout or pick another look.",
+                "background": { "type": "gradient", "colors": ["#232526", "#414345"], "angle": 90 },
+                "action": { "type": "open_launcher_settings" }
+              }
+            ]
+          },
+          { "type": "app_row", "id": "apps", "title": "Your Apps & Games", "source": { "type": "all" } },
+          { "type": "app_row", "id": "recent", "title": "Recents", "source": { "type": "recent" }, "limit": 10 }
+        ]
+      }
+    }
+  ]
+}

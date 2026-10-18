@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 2,
+  "name": "Apple TV",
+  "description": "tvOS style: the Top Shelf shows the app focused in the dock, a five-column grid follows, and focus lifts tiles instead of outlining them.",
+  "theme": {
+    "colors": {
+      "background": "#0B0B0D",
+      "surface": "#2C2C2E",
+      "primary": "#0A84FF",
+      "text": "#F5F5F7",
+      "textMuted": "#98989D",
+      "focus": "#FFFFFF"
+    },
+    "cornerRadius": 14,
+    "focus": { "scale": 1.12, "borderWidth": 0, "glow": true, "glowColor": "#40FFFFFF", "glowSize": 20 }
+  },
+  "background": { "type": "gradient", "colors": ["#1C1C1E", "#0B0B0D"], "angle": 180 },
+  "defaults": {
+    "app_row": { "spacing": 30, "tile": { "shape": "banner", "width": 148, "aspectRatio": 1.6667, "showLabel": "focused" } },
+    "app_grid": { "spacing": 30, "columns": 5, "tile": { "shape": "banner", "aspectRatio": 1.6667, "showLabel": "focused" } },
+    "folder": {
+      "tile": { "shape": "banner", "aspectRatio": 1.6667, "showLabel": "focused" },
+      "itemTile": { "shape": "banner", "aspectRatio": 1.6667, "showLabel": "focused" }
+    }
+  },
+  "pages": [
+    {
+      "id": "home",
+      "initialFocus": "dock",
+      "root": {
+        "type": "column",
+        "id": "root",
+        "scroll": true,
+        "scrollAlign": "start",
+        "scrollMargin": 24,
+        "children": [
+          {
+            "type": "column",
+            "id": "shelf",
+            "width": "fill",
+            "revealOnFocus": true,
+            "children": [
+              {
+                "type": "hero",
+                "id": "top_shelf",
+                "target": "dock",
+                "height": 330,
+                "slides": [
+                  {
+                    "title": "Welcome",
+                    "description": "Focus an app in the top row to see it here. Give any app a backdrop and description in the layout's apps section.",
+                    "background": { "type": "gradient", "colors": ["#3A3A3C", "#1C1C1E"], "angle": 135 }
+                  }
+                ]
+              },
+              {
+                "type": "app_row",
+                "id": "dock",
+                "source": { "type": "all" },
+                "limit": 5,
+                "padding": [48, 14]
+              }
+            ]
+          },
+          {
+            "type": "app_grid",
+            "id": "grid",
+            "source": { "type": "all" },
+            "skip": 5,
+            "padding": [48, 8, 48, 48]
+          }
+        ]
+      }
+    }
+  ]
+}

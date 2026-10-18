@@ -13,6 +13,8 @@ sealed interface Screen {
     data object Settings : Screen
     data object Import : Screen
     data object Templates : Screen
+    data object Looks : Screen
+    data class LookPreview(val fileName: String) : Screen
     data object History : Screen
     data object Help : Screen
     data class Preview(val result: DecodeResult, val source: String) : Screen
