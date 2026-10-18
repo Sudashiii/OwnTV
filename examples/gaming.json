@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "name": "Gaming",
+  "theme": {
+    "colors": {
+      "background": "#07060D",
+      "surface": "#161327",
+      "primary": "#00F0FF",
+      "text": "#EDEBFF",
+      "textMuted": "#8B86B3",
+      "focus": "#00F0FF",
+      "custom": { "magenta": "#FF2BD6" }
+    },
+    "cornerRadius": 6,
+    "focus": { "scale": 1.12, "borderWidth": 3, "borderColor": "@primary", "glow": true }
+  },
+  "background": { "type": "gradient", "colors": ["#1B0A2E", "#07060D"], "angle": 135 },
+  "pages": [
+    {
+      "id": "home",
+      "initialFocus": "cloud",
+      "root": {
+        "type": "column",
+        "id": "root",
+        "width": "fill",
+        "height": "fill",
+        "padding": [48, 28],
+        "spacing": 22,
+        "scroll": true,
+        "children": [
+          {
+            "type": "row",
+            "id": "header",
+            "width": "fill",
+            "contentAlign": "bottom",
+            "children": [
+              { "type": "text", "id": "title", "text": "PLAYER ONE", "style": "headline", "bold": true, "color": "@magenta" },
+              { "type": "spacer", "id": "gap", "weight": 1 },
+              { "type": "clock", "id": "clock", "format": "HH:mm", "style": "title", "color": "@primary" }
+            ]
+          },
+          {
+            "type": "app_row",
+            "id": "cloud",
+            "title": "Cloud & streaming",
+            "source": {
+              "type": "packages",
+              "packages": ["com.nvidia.geforcenow", "com.valvesoftware.steamlink", "com.limelight", "tv.twitch.android.app"]
+            },
+            "tile": { "style": "card", "size": "large" }
+          },
+          {
+            "type": "app_grid",
+            "id": "games",
+            "title": "Installed games",
+            "columns": 6,
+            "source": { "type": "category", "category": "games" },
+            "tile": { "style": "banner", "size": "small" }
+          },
+          {
+            "type": "app_row",
+            "id": "other_apps",
+            "title": "Everything else",
+            "source": { "type": "category", "category": "apps" },
+            "tile": { "style": "icon", "size": "small" }
+          }
+        ]
+      }
+    }
+  ]
+}

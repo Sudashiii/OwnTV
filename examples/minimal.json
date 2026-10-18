@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "name": "Minimal",
+  "theme": {
+    "colors": { "background": "#000000", "surface": "#141414", "primary": "#FFFFFF", "text": "#F5F5F5", "textMuted": "#8A8A8A", "focus": "#FFFFFF" },
+    "focus": { "scale": 1.05, "borderWidth": 2, "glow": false }
+  },
+  "pages": [
+    {
+      "id": "home",
+      "root": {
+        "type": "column",
+        "id": "root",
+        "width": "fill",
+        "height": "fill",
+        "padding": [64, 48],
+        "contentAlign": "center",
+        "arrange": "space_between",
+        "children": [
+          { "type": "clock", "id": "clock", "format": "HH:mm", "style": "display", "bold": true },
+          {
+            "type": "app_row",
+            "id": "apps",
+            "source": { "type": "all", "sort": "alphabetical" },
+            "tile": { "style": "icon", "size": "medium" }
+          }
+        ]
+      }
+    }
+  ]
+}

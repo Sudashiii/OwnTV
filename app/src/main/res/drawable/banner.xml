@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 320x180 TV banner: a screen outline with an "O" and a layout grid. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp"
+    android:height="180dp"
+    android:viewportWidth="320"
+    android:viewportHeight="180">
+    <path android:fillColor="#0E0F13" android:pathData="M0,0h320v180h-320z" />
+    <path android:fillColor="#7AA2F7" android:pathData="M60,90m-34,0a34,34 0,1 1,68 0a34,34 0,1 1,-68 0zM60,90m-20,0a20,20 0,1 0,40 0a20,20 0,1 0,-40 0z" />
+    <path android:fillColor="#ECEDEF" android:pathData="M120,56h68v30h-68zM196,56h40v30h-40zM244,56h40v30h-40zM120,94h40v30h-40zM168,94h116v30h-116z" />
+</vector>

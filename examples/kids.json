@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "name": "Kids",
+  "theme": {
+    "colors": {
+      "background": "#14213D",
+      "surface": "#26375E",
+      "primary": "#FFD23F",
+      "text": "#FFFFFF",
+      "textMuted": "#C9D3EA",
+      "focus": "#FFD23F",
+      "custom": { "pink": "#EE4266", "green": "#3BCEAC", "orange": "#FF8C42", "violet": "#7B5CFA" }
+    },
+    "cornerRadius": 24,
+    "fontScale": 1.15,
+    "focus": { "scale": 1.1, "borderWidth": 5, "glow": true }
+  },
+  "pages": [
+    {
+      "id": "home",
+      "initialFocus": "kids_grid",
+      "root": {
+        "type": "column",
+        "id": "root",
+        "width": "fill",
+        "height": "fill",
+        "padding": [64, 36],
+        "spacing": 28,
+        "contentAlign": "center",
+        "children": [
+          { "type": "text", "id": "hello", "text": "Hi there! What do you want to watch?", "style": "headline", "bold": true, "textAlign": "center" },
+          {
+            "type": "grid",
+            "id": "kids_grid",
+            "columns": 4,
+            "spacing": 24,
+            "width": 800,
+            "children": [
+              {
+                "type": "shortcut",
+                "id": "yt_kids",
+                "label": "YouTube Kids",
+                "icon": "📺",
+                "color": "@pink",
+                "action": { "type": "launch_app", "package": "com.google.android.youtube.tvkids" },
+                "tile": { "style": "card", "size": "large" }
+              },
+              {
+                "type": "shortcut",
+                "id": "disney",
+                "label": "Disney+",
+                "icon": "🏰",
+                "color": "@violet",
+                "action": { "type": "launch_app", "package": "com.disney.disneyplus" },
+                "tile": { "style": "card", "size": "large" }
+              },
+              {
+                "type": "shortcut",
+                "id": "netflix_kids",
+                "label": "Netflix",
+                "icon": "🍿",
+                "color": "@orange",
+                "action": { "type": "launch_app", "package": "com.netflix.ninja" },
+                "tile": { "style": "card", "size": "large" }
+              },
+              {
+                "type": "shortcut",
+                "id": "music",
+                "label": "Music",
+                "icon": "🎵",
+                "color": "@green",
+                "action": { "type": "launch_app", "package": "com.spotify.tv.android" },
+                "tile": { "style": "card", "size": "large" }
+              },
+              {
+                "type": "shortcut",
+                "id": "grown_ups",
+                "label": "Grown-ups: all apps",
+                "icon": "lock",
+                "action": { "type": "open_app_drawer" },
+                "span": 4,
+                "height": 56,
+                "tile": { "style": "card", "size": "small" }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

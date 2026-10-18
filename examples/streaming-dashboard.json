@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "name": "Streaming dashboard",
+  "theme": {
+    "colors": {
+      "background": "#0B0D12",
+      "surface": "#1A1F2B",
+      "primary": "#E50914",
+      "text": "#F2F2F2",
+      "textMuted": "#A0A7B4",
+      "focus": "#FFFFFF",
+      "custom": { "hero": "#2A0E12" }
+    },
+    "cornerRadius": 10
+  },
+  "background": { "type": "gradient", "colors": ["#2A0E12", "#0B0D12", "#0B0D12"], "angle": 180 },
+  "pageTabs": true,
+  "pages": [
+    {
+      "id": "watch",
+      "title": "Watch",
+      "initialFocus": "streaming",
+      "root": {
+        "type": "column",
+        "id": "watch_root",
+        "width": "fill",
+        "height": "fill",
+        "padding": [48, 16],
+        "spacing": 18,
+        "scroll": true,
+        "children": [
+          {
+            "type": "row",
+            "id": "hero",
+            "width": "fill",
+            "padding": [24, 18],
+            "background": "@hero",
+            "cornerRadius": 16,
+            "children": [
+              {
+                "type": "column",
+                "id": "hero_text",
+                "weight": 1,
+                "children": [
+                  { "type": "text", "id": "hero_title", "text": "Movie night", "style": "headline", "bold": true },
+                  { "type": "text", "id": "hero_sub", "text": "Pick a service and press OK.", "style": "body", "color": "@textMuted" }
+                ]
+              },
+              { "type": "clock", "id": "hero_clock", "format": "HH:mm", "style": "headline" }
+            ]
+          },
+          {
+            "type": "app_row",
+            "id": "streaming",
+            "title": "Streaming",
+            "source": {
+              "type": "packages",
+              "packages": [
+                "com.netflix.ninja",
+                "com.disney.disneyplus",
+                "com.amazon.amazonvideo.livingroom",
+                "com.wbd.stream",
+                "com.apple.atve.androidtv.appletv",
+                "com.google.android.youtube.tv"
+              ]
+            },
+            "tile": { "style": "card", "size": "large" }
+          },
+          {
+            "type": "app_row",
+            "id": "music",
+            "title": "Music",
+            "source": { "type": "packages", "packages": ["com.spotify.tv.android", "com.google.android.youtube.tvmusic"] },
+            "tile": { "style": "banner", "size": "medium" }
+          },
+          {
+            "type": "row",
+            "id": "quick_actions",
+            "spacing": 16,
+            "children": [
+              {
+                "type": "shortcut",
+                "id": "goto_apps",
+                "label": "All apps",
+                "icon": "apps",
+                "action": { "type": "go_to_page", "page": "apps" },
+                "tile": { "style": "icon", "size": "small" }
+              },
+              {
+                "type": "shortcut",
+                "id": "wifi",
+                "label": "Network",
+                "icon": "🛜",
+                "action": { "type": "open_system_settings", "screen": "network" },
+                "tile": { "style": "icon", "size": "small" }
+              },
+              {
+                "type": "shortcut",
+                "id": "system_settings",
+                "label": "Settings",
+                "icon": "settings",
+                "action": { "type": "open_system_settings" },
+                "tile": { "style": "icon", "size": "small" }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "apps",
+      "title": "Apps",
+      "root": {
+        "type": "column",
+        "id": "apps_root",
+        "width": "fill",
+        "height": "fill",
+        "padding": [48, 16],
+        "scroll": true,
+        "children": [
+          {
+            "type": "app_grid",
+            "id": "apps_grid",
+            "columns": 7,
+            "source": { "type": "all", "sort": "recently_installed" },
+            "tile": { "style": "icon", "size": "medium" }
+          }
+        ]
+      }
+    }
+  ]
+}

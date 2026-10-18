@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OwnTV layout</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --text: #16181d; --muted: #5d6470; --line: #d9dde3;
+    --accent: #2f5fd0; --accent-text: #ffffff; --error: #b3261e; --warn: #8a5a00; --ok: #1e7a3c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1115; --card: #181b21; --text: #eceef2; --muted: #9aa1ad; --line: #2c313a;
+      --accent: #7aa2f7; --accent-text: #0f1115; --error: #ffb4a9; --warn: #ffe08a; --ok: #8ee6a8;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.45 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 20px 16px 48px; }
+  h1 { font-size: 22px; margin: 4px 0 4px; }
+  p { margin: 6px 0; color: var(--muted); }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-top: 16px; }
+  h2 { font-size: 17px; margin: 0 0 8px; }
+  textarea { width: 100%; min-height: 260px; border: 1px solid var(--line); border-radius: 10px; padding: 10px;
+    background: var(--bg); color: var(--text); font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; resize: vertical; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  button { appearance: none; border: 1px solid var(--line); background: var(--card); color: var(--text);
+    border-radius: 10px; padding: 10px 14px; font: inherit; cursor: pointer; }
+  button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 600; }
+  button:disabled { opacity: .5; }
+  #status { margin-top: 10px; font-weight: 600; }
+  #status.error { color: var(--error); } #status.ok { color: var(--ok); }
+  ul { padding-left: 18px; margin: 8px 0 0; }
+  li { margin: 4px 0; font-size: 14px; }
+  li.error { color: var(--error); } li.warning { color: var(--warn); } li.info { color: var(--muted); }
+  code { font: 12px ui-monospace, Menlo, monospace; }
+  #manual { display: none; }
+</style>
+</head>
+<body>
+<main>
+  <h1>OwnTV layout</h1>
+  <p>Paste a layout here and send it to your TV. The TV shows a preview first; nothing changes until you choose Apply there.</p>
+
+  <section>
+    <h2>1. Ask an AI for a layout</h2>
+    <p>Copy a prompt that already contains the layout format, your installed apps and your current layout. Paste it into any AI chat and add what you want, for example "a dark layout with my streaming apps on top".</p>
+    <div class="row">
+      <button id="copyPrompt">Copy AI prompt</button>
+      <button id="loadCurrent">Put current layout in the box</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>2. Paste the layout JSON</h2>
+    <p>You can paste the whole AI answer; text around the JSON code block is ignored.</p>
+    <textarea id="layout" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder='{ "schemaVersion": 1, "pages": [ ... ] }'></textarea>
+    <div class="row">
+      <button class="primary" id="send">Send to TV</button>
+      <button id="clear">Clear</button>
+    </div>
+    <div id="status" role="status"></div>
+    <ul id="issues"></ul>
+    <div class="row"><button id="copyErrors" hidden>Copy problems for the AI</button></div>
+  </section>
+
+  <section id="manual">
+    <h2>Copy by hand</h2>
+    <p>This browser blocked copying. Select the text below and copy it.</p>
+    <textarea id="manualText" readonly></textarea>
+  </section>
+</main>
+<script>
+  const token = new URLSearchParams(location.search).get('t') || '';
+  const $ = (id) => document.getElementById(id);
+  let lastFeedback = '';
+
+  function api(path, options = {}) {
+    const sep = path.includes('?') ? '&' : '?';
+    return fetch(path + sep + 't=' + encodeURIComponent(token), options).then(async (r) => {
+      const body = await r.text();
+      if (!r.ok) throw new Error(body || ('HTTP ' + r.status));
+      return body;
+    });
+  }
+
+  async function copy(text) {
+    try { await navigator.clipboard.writeText(text); return true; } catch (e) { /* not a secure context */ }
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, text.length);
+    let ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    if (!ok) { $('manual').style.display = 'block'; $('manualText').value = text; $('manualText').focus(); $('manualText').select(); }
+    return ok;
+  }
+
+  function status(text, kind) { const s = $('status'); s.textContent = text; s.className = kind || ''; }
+
+  $('copyPrompt').onclick = async () => {
+    try { const prompt = await api('/api/ai-prompt'); status((await copy(prompt)) ? 'AI prompt copied. Paste it into your AI chat.' : 'Copy the prompt below.', 'ok'); }
+    catch (e) { status(e.message, 'error'); }
+  };
+  $('loadCurrent').onclick = async () => {
+    try { $('layout').value = await api('/api/layout'); status('Loaded the layout that is on the TV now.', 'ok'); }
+    catch (e) { status(e.message, 'error'); }
+  };
+  $('clear').onclick = () => { $('layout').value = ''; $('issues').innerHTML = ''; $('copyErrors').hidden = true; status(''); };
+  $('copyErrors').onclick = async () => { status((await copy(lastFeedback)) ? 'Problems copied. Paste them into your AI chat.' : 'Copy the text below.', 'ok'); };
+
+  $('send').onclick = async () => {
+    const text = $('layout').value.trim();
+    if (!text) { status('Paste a layout first.', 'error'); return; }
+    $('send').disabled = true; status('Sending…');
+    try {
+      const res = JSON.parse(await api('/api/layout', { method: 'POST', headers: { 'Content-Type': 'text/plain; charset=utf-8' }, body: text }));
+      status(res.message, res.ok ? 'ok' : 'error');
+      const list = $('issues'); list.innerHTML = '';
+      res.issues.forEach((i) => {
+        const li = document.createElement('li'); li.className = i.severity;
+        li.innerHTML = '<code></code> '; li.firstChild.textContent = i.path; li.append(i.message);
+        list.appendChild(li);
+      });
+      lastFeedback = res.feedback;
+      $('copyErrors').hidden = !res.issues.some((i) => i.severity !== 'info');
+    } catch (e) {
+      status('Could not reach the TV: ' + e.message, 'error');
+    } finally { $('send').disabled = false; }
+  };
+
+  if (!token) status('This link has no token. Scan the QR code on the TV again.', 'error');
+</script>
+</body>
+</html>

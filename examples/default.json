@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "name": "OwnTV default",
+  "background": { "type": "gradient", "colors": ["#0E0F13", "#16203A"], "angle": 160 },
+  "pages": [
+    {
+      "id": "home",
+      "initialFocus": "favorites",
+      "root": {
+        "type": "column",
+        "id": "root",
+        "width": "fill",
+        "height": "fill",
+        "padding": [48, 28],
+        "spacing": 20,
+        "scroll": true,
+        "children": [
+          {
+            "type": "row",
+            "id": "header",
+            "width": "fill",
+            "children": [
+              {
+                "type": "column",
+                "id": "time_block",
+                "children": [
+                  { "type": "clock", "id": "clock", "format": "HH:mm", "style": "display" },
+                  { "type": "clock", "id": "date", "format": "EEEE, d MMMM", "style": "body", "color": "@textMuted" }
+                ]
+              },
+              { "type": "spacer", "id": "header_gap", "weight": 1 },
+              {
+                "type": "shortcut",
+                "id": "settings_button",
+                "label": "Settings",
+                "icon": "settings",
+                "action": { "type": "open_launcher_settings" },
+                "tile": { "style": "icon", "size": "small" }
+              }
+            ]
+          },
+          {
+            "type": "app_row",
+            "id": "favorites",
+            "title": "Favorites",
+            "source": {
+              "type": "packages",
+              "packages": [
+                "com.google.android.youtube.tv",
+                "com.netflix.ninja",
+                "com.disney.disneyplus",
+                "com.amazon.amazonvideo.livingroom",
+                "com.plexapp.android",
+                "com.spotify.tv.android"
+              ]
+            },
+            "tile": { "style": "banner", "size": "large" }
+          },
+          {
+            "type": "app_grid",
+            "id": "all_apps",
+            "title": "All apps",
+            "columns": 5,
+            "source": { "type": "all" }
+          }
+        ]
+      }
+    }
+  ]
+}

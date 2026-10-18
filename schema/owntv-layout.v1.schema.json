@@ -1,0 +1,2445 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://owntv.dev/schema/owntv-layout.v1.schema.json",
+  "title": "OwnTV layout",
+  "description": "Home screen layout for the OwnTV Android TV launcher. Generated from the Kotlin model; do not edit by hand.",
+  "$ref": "#/$defs/LayoutDocument",
+  "$defs": {
+    "LayoutDocument": {
+      "type": "object",
+      "description": "An OwnTV launcher layout. The screen is 960 x 540 dp; all sizes are in dp.",
+      "properties": {
+        "schemaVersion": {
+          "description": "Format version. Use 1.",
+          "type": "integer"
+        },
+        "name": {
+          "description": "Name shown in launcher settings and layout history.",
+          "type": "string"
+        },
+        "theme": {
+          "description": "Colors, corner radius and focus style used by all widgets.",
+          "$ref": "#/$defs/Theme"
+        },
+        "background": {
+          "description": "Background behind every page. Default: the theme background color.",
+          "$ref": "#/$defs/Background"
+        },
+        "pageTabs": {
+          "description": "Show a row of page tabs at the top when there is more than one page. Default false.",
+          "type": "boolean"
+        },
+        "pages": {
+          "description": "Pages of the launcher. The first page is the home page.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Page"
+          }
+        }
+      },
+      "required": [
+        "pages"
+      ],
+      "additionalProperties": false
+    },
+    "Theme": {
+      "type": "object",
+      "description": "Visual theme shared by all widgets.",
+      "properties": {
+        "colors": {
+          "description": "Named colors. Reference them anywhere a color is expected as \"@name\", e.g. \"@primary\".",
+          "$ref": "#/$defs/ThemeColors"
+        },
+        "cornerRadius": {
+          "description": "Default corner radius of tiles in dp. Default 12.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 64
+        },
+        "focus": {
+          "description": "How a focused tile looks.",
+          "$ref": "#/$defs/FocusStyle"
+        },
+        "fontScale": {
+          "description": "Multiplier for all text sizes. Default 1.",
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 2
+        }
+      },
+      "additionalProperties": false
+    },
+    "ThemeColors": {
+      "type": "object",
+      "description": "Theme color tokens. Values must be hex colors (#RRGGBB or #AARRGGBB).",
+      "properties": {
+        "background": {
+          "description": "Token @background: screen background. Default #0E0F13.",
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+        },
+        "surface": {
+          "description": "Token @surface: tile and card background. Default #1F2229.",
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+        },
+        "primary": {
+          "description": "Token @primary: accent color. Default #7AA2F7.",
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+        },
+        "text": {
+          "description": "Token @text: main text color. Default #ECEDEF.",
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+        },
+        "textMuted": {
+          "description": "Token @textMuted: secondary text color. Default #9AA0AA.",
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+        },
+        "focus": {
+          "description": "Token @focus: focus border and glow color. Default #FFFFFF.",
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+        },
+        "custom": {
+          "description": "Extra named colors, e.g. {\"accent2\": \"#FF8800\"}, usable as \"@accent2\".",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "FocusStyle": {
+      "type": "object",
+      "description": "Look of the focused tile. D-pad focus must always be clearly visible on a TV.",
+      "properties": {
+        "scale": {
+          "description": "Scale of the focused tile. Default 1.08.",
+          "type": "number",
+          "minimum": 1,
+          "maximum": 1.5
+        },
+        "borderWidth": {
+          "description": "Border width in dp around the focused tile. Default 3.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 12
+        },
+        "borderColor": {
+          "description": "Border color of the focused tile. Default @focus.",
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+        },
+        "glow": {
+          "description": "Soft glow around the focused tile. Default true.",
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Background": {
+      "description": "A full-screen background.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/Background.color"
+        },
+        {
+          "$ref": "#/$defs/Background.gradient"
+        },
+        {
+          "$ref": "#/$defs/Background.image"
+        }
+      ]
+    },
+    "Background.color": {
+      "type": "object",
+      "description": "A solid color background.",
+      "properties": {
+        "type": {
+          "const": "color"
+        },
+        "color": {
+          "description": "Background color.",
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+        }
+      },
+      "required": [
+        "type",
+        "color"
+      ],
+      "additionalProperties": false
+    },
+    "Background.gradient": {
+      "type": "object",
+      "description": "A linear gradient background.",
+      "properties": {
+        "type": {
+          "const": "gradient"
+        },
+        "colors": {
+          "description": "Two or more colors, from start to end.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+          }
+        },
+        "angle": {
+          "description": "Direction in degrees, CSS style: 0 = bottom to top, 90 = left to right, 180 = top to bottom. Default 180.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 360
+        }
+      },
+      "required": [
+        "type",
+        "colors"
+      ],
+      "additionalProperties": false
+    },
+    "Background.image": {
+      "type": "object",
+      "description": "An image background.",
+      "properties": {
+        "type": {
+          "const": "image"
+        },
+        "src": {
+          "description": "Image location: an https:// URL or \"asset:<path>\" for an image bundled with the app.",
+          "type": "string"
+        },
+        "dim": {
+          "description": "Darkens the image so text stays readable: 0 = none, 1 = black. Default 0.3.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "fit": {
+          "description": "How the image fills the screen. Default cover.",
+          "type": "string",
+          "enum": [
+            "cover",
+            "contain",
+            "fill"
+          ]
+        }
+      },
+      "required": [
+        "type",
+        "src"
+      ],
+      "additionalProperties": false
+    },
+    "Page": {
+      "type": "object",
+      "description": "One full screen of the launcher.",
+      "properties": {
+        "id": {
+          "description": "Unique page id, used by go_to_page actions.",
+          "type": "string"
+        },
+        "title": {
+          "description": "Title shown in page tabs.",
+          "type": "string"
+        },
+        "initialFocus": {
+          "description": "Id of the node that gets focus when the page opens. Default: the first focusable widget.",
+          "type": "string"
+        },
+        "background": {
+          "description": "Background for this page only. Overrides the layout background.",
+          "$ref": "#/$defs/Background"
+        },
+        "root": {
+          "description": "Root node. It fills the whole 960 x 540 dp screen.",
+          "$ref": "#/$defs/Node"
+        }
+      },
+      "required": [
+        "id",
+        "root"
+      ],
+      "additionalProperties": false
+    },
+    "Node": {
+      "description": "A layout node. The \"type\" field selects the widget or container.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/Node.column"
+        },
+        {
+          "$ref": "#/$defs/Node.row"
+        },
+        {
+          "$ref": "#/$defs/Node.grid"
+        },
+        {
+          "$ref": "#/$defs/Node.stack"
+        },
+        {
+          "$ref": "#/$defs/Node.app_tile"
+        },
+        {
+          "$ref": "#/$defs/Node.app_row"
+        },
+        {
+          "$ref": "#/$defs/Node.app_grid"
+        },
+        {
+          "$ref": "#/$defs/Node.shortcut"
+        },
+        {
+          "$ref": "#/$defs/Node.text"
+        },
+        {
+          "$ref": "#/$defs/Node.clock"
+        },
+        {
+          "$ref": "#/$defs/Node.image"
+        },
+        {
+          "$ref": "#/$defs/Node.spacer"
+        }
+      ]
+    },
+    "Node.column": {
+      "type": "object",
+      "description": "Stacks children vertically, top to bottom.",
+      "properties": {
+        "type": {
+          "const": "column"
+        },
+        "id": {
+          "description": "Unique id (letters, digits, _ . -). Used by initialFocus, the editor and AI edits.",
+          "type": "string"
+        },
+        "children": {
+          "description": "Child nodes, top to bottom.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Node"
+          }
+        },
+        "spacing": {
+          "description": "Gap between children in dp. Default 0.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 400
+        },
+        "contentAlign": {
+          "description": "Horizontal alignment of children. Default start.",
+          "type": "string",
+          "enum": [
+            "start",
+            "center",
+            "end"
+          ]
+        },
+        "arrange": {
+          "description": "Vertical distribution of children. Default start.",
+          "type": "string",
+          "enum": [
+            "start",
+            "center",
+            "end",
+            "space_between",
+            "space_around",
+            "space_evenly"
+          ]
+        },
+        "scroll": {
+          "description": "Scroll vertically when the content is taller than the column. The focused widget scrolls into view. Default false.",
+          "type": "boolean"
+        },
+        "width": {
+          "description": "\"fill\" (all available width), \"wrap\" (fit content) or a number in dp. Default depends on the widget.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "fill",
+                "wrap"
+              ]
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 4000
+            }
+          ]
+        },
+        "height": {
+          "description": "\"fill\" (all available height), \"wrap\" (fit content) or a number in dp. Default depends on the widget.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "fill",
+                "wrap"
+              ]
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 4000
+            }
+          ]
+        },
+        "weight": {
+          "description": "Share of the remaining space inside a row or column, like CSS flex-grow.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "padding": {
+          "description": "Inner padding in dp: a number, [horizontal, vertical] or [start, top, end, bottom].",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 400
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 400
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 400
+              },
+              "minItems": 4,
+              "maxItems": 4
+            }
+          ]
+        },
+        "background": {
+          "description": "Background color behind this node.",
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+        },
+        "cornerRadius": {
+          "description": "Corner radius in dp of this node's background.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 200
+        },
+        "align": {
+          "description": "Position inside the parent. In a stack all 9 values apply; in a column only the horizontal part is used; in a row only the vertical part.",
+          "type": "string",
+          "enum": [
+            "top_start",
+            "top",
+            "top_end",
+            "start",
+            "center",
+            "end",
+            "bottom_start",
+            "bottom",
+            "bottom_end"
+          ]
+        },
+        "span": {
+          "description": "Number of grid columns this node covers. Only used inside a grid. Default 1.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 12
+        },
+        "visible": {
+          "description": "Set to false to hide the node without deleting it. Default true.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type",
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "Node.row": {
+      "type": "object",
+      "description": "Places children side by side, left to right.",
+      "properties": {
+        "type": {
+          "const": "row"
+        },
+        "id": {
+          "description": "Unique id (letters, digits, _ . -). Used by initialFocus, the editor and AI edits.",
+          "type": "string"
+        },
+        "children": {
+          "description": "Child nodes, left to right.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Node"
+          }
+        },
+        "spacing": {
+          "description": "Gap between children in dp. Default 0.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 400
+        },
+        "contentAlign": {
+          "description": "Vertical alignment of children. Default center.",
+          "type": "string",
+          "enum": [
+            "top",
+            "center",
+            "bottom"
+          ]
+        },
+        "arrange": {
+          "description": "Horizontal distribution of children. Default start.",
+          "type": "string",
+          "enum": [
+            "start",
+            "center",
+            "end",
+            "space_between",
+            "space_around",
+            "space_evenly"
+          ]
+        },
+        "scroll": {
+          "description": "Scroll horizontally when the content is wider than the row. Default false.",
+          "type": "boolean"
+        },
+        "width": {
+          "description": "\"fill\" (all available width), \"wrap\" (fit content) or a number in dp. Default depends on the widget.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "fill",
+                "wrap"
+              ]
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 4000
+            }
+          ]
+        },
+        "height": {
+          "description": "\"fill\" (all available height), \"wrap\" (fit content) or a number in dp. Default depends on the widget.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "fill",
+                "wrap"
+              ]
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 4000
+            }
+          ]
+        },
+        "weight": {
+          "description": "Share of the remaining space inside a row or column, like CSS flex-grow.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "padding": {
+          "description": "Inner padding in dp: a number, [horizontal, vertical] or [start, top, end, bottom].",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 400
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 400
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 400
+              },
+              "minItems": 4,
+              "maxItems": 4
+            }
+          ]
+        },
+        "background": {
+          "description": "Background color behind this node.",
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+        },
+        "cornerRadius": {
+          "description": "Corner radius in dp of this node's background.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 200
+        },
+        "align": {
+          "description": "Position inside the parent. In a stack all 9 values apply; in a column only the horizontal part is used; in a row only the vertical part.",
+          "type": "string",
+          "enum": [
+            "top_start",
+            "top",
+            "top_end",
+            "start",
+            "center",
+            "end",
+            "bottom_start",
+            "bottom",
+            "bottom_end"
+          ]
+        },
+        "span": {
+          "description": "Number of grid columns this node covers. Only used inside a grid. Default 1.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 12
+        },
+        "visible": {
+          "description": "Set to false to hide the node without deleting it. Default true.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type",
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "Node.grid": {
+      "type": "object",
+      "description": "Arranges children in a fixed number of equal-width columns. Children can cover several columns with span.",
+      "properties": {
+        "type": {
+          "const": "grid"
+        },
+        "id": {
+          "description": "Unique id (letters, digits, _ . -). Used by initialFocus, the editor and AI edits.",
+          "type": "string"
+        },
+        "columns": {
+          "description": "Number of columns.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 12
+        },
+        "children": {
+          "description": "Child nodes, filled row by row.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Node"
+          }
+        },
+        "spacing": {
+          "description": "Gap between cells in dp, both directions. Default 16.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 400
+        },
+        "width": {
+          "description": "\"fill\" (all available width), \"wrap\" (fit content) or a number in dp. Default depends on the widget.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "fill",
+                "wrap"
+              ]
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 4000
+            }
+          ]
+        },
+        "height": {
+          "description": "\"fill\" (all available height), \"wrap\" (fit content) or a number in dp. Default depends on the widget.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "fill",
+                "wrap"
+              ]
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 4000
+            }
+          ]
+        },
+        "weight": {
+          "description": "Share of the remaining space inside a row or column, like CSS flex-grow.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "padding": {
+          "description": "Inner padding in dp: a number, [horizontal, vertical] or [start, top, end, bottom].",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 400
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 400
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 400
+              },
+              "minItems": 4,
+              "maxItems": 4
+            }
+          ]
+        },
+        "background": {
+          "description": "Background color behind this node.",
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+        },
+        "cornerRadius": {
+          "description": "Corner radius in dp of this node's background.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 200
+        },
+        "align": {
+          "description": "Position inside the parent. In a stack all 9 values apply; in a column only the horizontal part is used; in a row only the vertical part.",
+          "type": "string",
+          "enum": [
+            "top_start",
+            "top",
+            "top_end",
+            "start",
+            "center",
+            "end",
+            "bottom_start",
+            "bottom",
+            "bottom_end"
+          ]
+        },
+        "span": {
+          "description": "Number of grid columns this node covers. Only used inside a grid. Default 1.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 12
+        },
+        "visible": {
+          "description": "Set to false to hide the node without deleting it. Default true.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type",
+        "id",
+        "columns"
+      ],
+      "additionalProperties": false
+    },
+    "Node.stack": {
+      "type": "object",
+      "description": "Layers children on top of each other; later children are drawn on top. Position children with align.",
+      "properties": {
+        "type": {
+          "const": "stack"
+        },
+        "id": {
+          "description": "Unique id (letters, digits, _ . -). Used by initialFocus, the editor and AI edits.",
+          "type": "string"
+        },
+        "children": {
+          "description": "Child nodes, bottom layer first.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Node"
+          }
+        },
+        "contentAlign": {
+          "description": "Default position of children that do not set align. Default top_start.",
+          "type": "string",
+          "enum": [
+            "top_start",
+            "top",
+            "top_end",
+            "start",
+            "center",
+            "end",
+            "bottom_start",
+            "bottom",
+            "bottom_end"
+          ]
+        },
+        "width": {
+          "description": "\"fill\" (all available width), \"wrap\" (fit content) or a number in dp. Default depends on the widget.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "fill",
+                "wrap"
+              ]
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 4000
+            }
+          ]
+        },
+        "height": {
+          "description": "\"fill\" (all available height), \"wrap\" (fit content) or a number in dp. Default depends on the widget.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "fill",
+                "wrap"
+              ]
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 4000
+            }
+          ]
+        },
+        "weight": {
+          "description": "Share of the remaining space inside a row or column, like CSS flex-grow.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "padding": {
+          "description": "Inner padding in dp: a number, [horizontal, vertical] or [start, top, end, bottom].",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 400
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 400
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 400
+              },
+              "minItems": 4,
+              "maxItems": 4
+            }
+          ]
+        },
+        "background": {
+          "description": "Background color behind this node.",
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+        },
+        "cornerRadius": {
+          "description": "Corner radius in dp of this node's background.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 200
+        },
+        "align": {
+          "description": "Position inside the parent. In a stack all 9 values apply; in a column only the horizontal part is used; in a row only the vertical part.",
+          "type": "string",
+          "enum": [
+            "top_start",
+            "top",
+            "top_end",
+            "start",
+            "center",
+            "end",
+            "bottom_start",
+            "bottom",
+            "bottom_end"
+          ]
+        },
+        "span": {
+          "description": "Number of grid columns this node covers. Only used inside a grid. Default 1.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 12
+        },
+        "visible": {
+          "description": "Set to false to hide the node without deleting it. Default true.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type",
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "Node.app_tile": {
+      "type": "object",
+      "description": "One focusable tile for one app. Opens the app on click.",
+      "properties": {
+        "type": {
+          "const": "app_tile"
+        },
+        "id": {
+          "description": "Unique id (letters, digits, _ . -). Used by initialFocus, the editor and AI edits.",
+          "type": "string"
+        },
+        "package": {
+          "description": "Package name of the app, e.g. com.netflix.ninja.",
+          "type": "string"
+        },
+        "label": {
+          "description": "Label to show instead of the app name.",
+          "type": "string"
+        },
+        "tile": {
+          "description": "Tile look. Default banner, medium, label on focus.",
+          "$ref": "#/$defs/TileStyle"
+        },
+        "missing": {
+          "description": "What to show when the app is not installed. Default placeholder.",
+          "type": "string",
+          "enum": [
+            "hide",
+            "placeholder"
+          ]
+        },
+        "width": {
+          "description": "\"fill\" (all available width), \"wrap\" (fit content) or a number in dp. Default depends on the widget.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "fill",
+                "wrap"
+              ]
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 4000
+            }
+          ]
+        },
+        "height": {
+          "description": "\"fill\" (all available height), \"wrap\" (fit content) or a number in dp. Default depends on the widget.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "fill",
+                "wrap"
+              ]
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 4000
+            }
+          ]
+        },
+        "weight": {
+          "description": "Share of the remaining space inside a row or column, like CSS flex-grow.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "padding": {
+          "description": "Inner padding in dp: a number, [horizontal, vertical] or [start, top, end, bottom].",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 400
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 400
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 400
+              },
+              "minItems": 4,
+              "maxItems": 4
+            }
+          ]
+        },
+        "background": {
+          "description": "Background color behind this node.",
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+        },
+        "cornerRadius": {
+          "description": "Corner radius in dp of this node's background.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 200
+        },
+        "align": {
+          "description": "Position inside the parent. In a stack all 9 values apply; in a column only the horizontal part is used; in a row only the vertical part.",
+          "type": "string",
+          "enum": [
+            "top_start",
+            "top",
+            "top_end",
+            "start",
+            "center",
+            "end",
+            "bottom_start",
+            "bottom",
+            "bottom_end"
+          ]
+        },
+        "span": {
+          "description": "Number of grid columns this node covers. Only used inside a grid. Default 1.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 12
+        },
+        "visible": {
+          "description": "Set to false to hide the node without deleting it. Default true.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type",
+        "id",
+        "package"
+      ],
+      "additionalProperties": false
+    },
+    "TileStyle": {
+      "type": "object",
+      "description": "Look of app and shortcut tiles.",
+      "properties": {
+        "style": {
+          "description": "banner = 16:9 app banner; icon = square app icon with the label below; card = banner with the label always below. Default banner.",
+          "type": "string",
+          "enum": [
+            "banner",
+            "icon",
+            "card"
+          ]
+        },
+        "size": {
+          "description": "small, medium or large. Banner widths: 128, 160, 208 dp. Icon sizes: 56, 72, 96 dp. Default medium.",
+          "type": "string",
+          "enum": [
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        "showLabel": {
+          "description": "When to show the app name: always, focused or never. Default focused for banners, always for icon and card.",
+          "type": "string",
+          "enum": [
+            "always",
+            "focused",
+            "never"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "Node.app_row": {
+      "type": "object",
+      "description": "A horizontally scrolling row of app tiles with an optional title. Default width fill.",
+      "properties": {
+        "type": {
+          "const": "app_row"
+        },
+        "id": {
+          "description": "Unique id (letters, digits, _ . -). Used by initialFocus, the editor and AI edits.",
+          "type": "string"
+        },
+        "source": {
+          "description": "Which apps to show.",
+          "$ref": "#/$defs/AppSource"
+        },
+        "title": {
+          "description": "Title above the row.",
+          "type": "string"
+        },
+        "tile": {
+          "description": "Tile look. Default banner, medium, label on focus.",
+          "$ref": "#/$defs/TileStyle"
+        },
+        "spacing": {
+          "description": "Gap between tiles in dp. Default 16.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 200
+        },
+        "limit": {
+          "description": "Maximum number of tiles.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 500
+        },
+        "missing": {
+          "description": "For a packages source: what to show for apps that are not installed. Default hide.",
+          "type": "string",
+          "enum": [
+            "hide",
+            "placeholder"
+          ]
+        },
+        "width": {
+          "description": "\"fill\" (all available width), \"wrap\" (fit content) or a number in dp. Default depends on the widget.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "fill",
+                "wrap"
+              ]
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 4000
+            }
+          ]
+        },
+        "height": {
+          "description": "\"fill\" (all available height), \"wrap\" (fit content) or a number in dp. Default depends on the widget.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "fill",
+                "wrap"
+              ]
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 4000
+            }
+          ]
+        },
+        "weight": {
+          "description": "Share of the remaining space inside a row or column, like CSS flex-grow.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "padding": {
+          "description": "Inner padding in dp: a number, [horizontal, vertical] or [start, top, end, bottom].",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 400
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 400
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 400
+              },
+              "minItems": 4,
+              "maxItems": 4
+            }
+          ]
+        },
+        "background": {
+          "description": "Background color behind this node.",
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+        },
+        "cornerRadius": {
+          "description": "Corner radius in dp of this node's background.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 200
+        },
+        "align": {
+          "description": "Position inside the parent. In a stack all 9 values apply; in a column only the horizontal part is used; in a row only the vertical part.",
+          "type": "string",
+          "enum": [
+            "top_start",
+            "top",
+            "top_end",
+            "start",
+            "center",
+            "end",
+            "bottom_start",
+            "bottom",
+            "bottom_end"
+          ]
+        },
+        "span": {
+          "description": "Number of grid columns this node covers. Only used inside a grid. Default 1.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 12
+        },
+        "visible": {
+          "description": "Set to false to hide the node without deleting it. Default true.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type",
+        "id",
+        "source"
+      ],
+      "additionalProperties": false
+    },
+    "AppSource": {
+      "description": "Which apps a row or grid shows.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/AppSource.all"
+        },
+        {
+          "$ref": "#/$defs/AppSource.category"
+        },
+        {
+          "$ref": "#/$defs/AppSource.packages"
+        }
+      ]
+    },
+    "AppSource.all": {
+      "type": "object",
+      "description": "All installed TV apps.",
+      "properties": {
+        "type": {
+          "const": "all"
+        },
+        "sort": {
+          "description": "Order of the apps. Default alphabetical.",
+          "type": "string",
+          "enum": [
+            "alphabetical",
+            "recently_installed"
+          ]
+        },
+        "exclude": {
+          "description": "Package names to leave out.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "includeNonTvApps": {
+          "description": "Also show phone apps that have no TV launcher entry. Default false.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "AppSource.category": {
+      "type": "object",
+      "description": "Installed TV apps of one category.",
+      "properties": {
+        "type": {
+          "const": "category"
+        },
+        "category": {
+          "description": "games = apps marked as games; apps = everything that is not a game.",
+          "type": "string",
+          "enum": [
+            "games",
+            "apps"
+          ]
+        },
+        "sort": {
+          "description": "Order of the apps. Default alphabetical.",
+          "type": "string",
+          "enum": [
+            "alphabetical",
+            "recently_installed"
+          ]
+        },
+        "exclude": {
+          "description": "Package names to leave out.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "type",
+        "category"
+      ],
+      "additionalProperties": false
+    },
+    "AppSource.packages": {
+      "type": "object",
+      "description": "An explicit list of apps, shown in this order.",
+      "properties": {
+        "type": {
+          "const": "packages"
+        },
+        "packages": {
+          "description": "Package names, e.g. [\"com.netflix.ninja\", \"com.google.android.youtube.tv\"].",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "type",
+        "packages"
+      ],
+      "additionalProperties": false
+    },
+    "Node.app_grid": {
+      "type": "object",
+      "description": "A grid of app tiles with an optional title. Default width fill. Put it in a scrolling column when it can be taller than the screen.",
+      "properties": {
+        "type": {
+          "const": "app_grid"
+        },
+        "id": {
+          "description": "Unique id (letters, digits, _ . -). Used by initialFocus, the editor and AI edits.",
+          "type": "string"
+        },
+        "source": {
+          "description": "Which apps to show.",
+          "$ref": "#/$defs/AppSource"
+        },
+        "title": {
+          "description": "Title above the grid.",
+          "type": "string"
+        },
+        "columns": {
+          "description": "Number of columns. Default 5.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 12
+        },
+        "tile": {
+          "description": "Tile look. Default banner, medium, label on focus. Banner and card tiles stretch to the column width.",
+          "$ref": "#/$defs/TileStyle"
+        },
+        "spacing": {
+          "description": "Gap between tiles in dp. Default 16.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 200
+        },
+        "limit": {
+          "description": "Maximum number of tiles.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 500
+        },
+        "missing": {
+          "description": "For a packages source: what to show for apps that are not installed. Default hide.",
+          "type": "string",
+          "enum": [
+            "hide",
+            "placeholder"
+          ]
+        },
+        "width": {
+          "description": "\"fill\" (all available width), \"wrap\" (fit content) or a number in dp. Default depends on the widget.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "fill",
+                "wrap"
+              ]
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 4000
+            }
+          ]
+        },
+        "height": {
+          "description": "\"fill\" (all available height), \"wrap\" (fit content) or a number in dp. Default depends on the widget.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "fill",
+                "wrap"
+              ]
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 4000
+            }
+          ]
+        },
+        "weight": {
+          "description": "Share of the remaining space inside a row or column, like CSS flex-grow.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "padding": {
+          "description": "Inner padding in dp: a number, [horizontal, vertical] or [start, top, end, bottom].",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 400
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 400
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 400
+              },
+              "minItems": 4,
+              "maxItems": 4
+            }
+          ]
+        },
+        "background": {
+          "description": "Background color behind this node.",
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+        },
+        "cornerRadius": {
+          "description": "Corner radius in dp of this node's background.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 200
+        },
+        "align": {
+          "description": "Position inside the parent. In a stack all 9 values apply; in a column only the horizontal part is used; in a row only the vertical part.",
+          "type": "string",
+          "enum": [
+            "top_start",
+            "top",
+            "top_end",
+            "start",
+            "center",
+            "end",
+            "bottom_start",
+            "bottom",
+            "bottom_end"
+          ]
+        },
+        "span": {
+          "description": "Number of grid columns this node covers. Only used inside a grid. Default 1.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 12
+        },
+        "visible": {
+          "description": "Set to false to hide the node without deleting it. Default true.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type",
+        "id",
+        "source"
+      ],
+      "additionalProperties": false
+    },
+    "Node.shortcut": {
+      "type": "object",
+      "description": "A focusable tile with a custom label, icon or image that runs an action.",
+      "properties": {
+        "type": {
+          "const": "shortcut"
+        },
+        "id": {
+          "description": "Unique id (letters, digits, _ . -). Used by initialFocus, the editor and AI edits.",
+          "type": "string"
+        },
+        "label": {
+          "description": "Text on the tile.",
+          "type": "string"
+        },
+        "action": {
+          "description": "What happens on click.",
+          "$ref": "#/$defs/Action"
+        },
+        "icon": {
+          "description": "Icon: one of settings, home, search, star, info, play, favorite, apps, add, refresh, notifications, person, lock, menu, or any emoji such as \"🎬\".",
+          "type": "string"
+        },
+        "image": {
+          "description": "Image instead of an icon: an https:// URL or \"asset:<path>\".",
+          "type": "string"
+        },
+        "color": {
+          "description": "Tile color. Default @surface.",
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+        },
+        "tile": {
+          "description": "Tile look. Default card, medium.",
+          "$ref": "#/$defs/TileStyle"
+        },
+        "width": {
+          "description": "\"fill\" (all available width), \"wrap\" (fit content) or a number in dp. Default depends on the widget.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "fill",
+                "wrap"
+              ]
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 4000
+            }
+          ]
+        },
+        "height": {
+          "description": "\"fill\" (all available height), \"wrap\" (fit content) or a number in dp. Default depends on the widget.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "fill",
+                "wrap"
+              ]
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 4000
+            }
+          ]
+        },
+        "weight": {
+          "description": "Share of the remaining space inside a row or column, like CSS flex-grow.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "padding": {
+          "description": "Inner padding in dp: a number, [horizontal, vertical] or [start, top, end, bottom].",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 400
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 400
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 400
+              },
+              "minItems": 4,
+              "maxItems": 4
+            }
+          ]
+        },
+        "background": {
+          "description": "Background color behind this node.",
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+        },
+        "cornerRadius": {
+          "description": "Corner radius in dp of this node's background.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 200
+        },
+        "align": {
+          "description": "Position inside the parent. In a stack all 9 values apply; in a column only the horizontal part is used; in a row only the vertical part.",
+          "type": "string",
+          "enum": [
+            "top_start",
+            "top",
+            "top_end",
+            "start",
+            "center",
+            "end",
+            "bottom_start",
+            "bottom",
+            "bottom_end"
+          ]
+        },
+        "span": {
+          "description": "Number of grid columns this node covers. Only used inside a grid. Default 1.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 12
+        },
+        "visible": {
+          "description": "Set to false to hide the node without deleting it. Default true.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type",
+        "id",
+        "label",
+        "action"
+      ],
+      "additionalProperties": false
+    },
+    "Action": {
+      "description": "What happens when a focusable widget is clicked.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/Action.go_to_page"
+        },
+        {
+          "$ref": "#/$defs/Action.intent"
+        },
+        {
+          "$ref": "#/$defs/Action.launch_app"
+        },
+        {
+          "$ref": "#/$defs/Action.open_app_drawer"
+        },
+        {
+          "$ref": "#/$defs/Action.open_launcher_settings"
+        },
+        {
+          "$ref": "#/$defs/Action.open_system_settings"
+        },
+        {
+          "$ref": "#/$defs/Action.open_url"
+        }
+      ]
+    },
+    "Action.go_to_page": {
+      "type": "object",
+      "description": "Switches to another page of this layout.",
+      "properties": {
+        "type": {
+          "const": "go_to_page"
+        },
+        "page": {
+          "description": "Id of the target page.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "page"
+      ],
+      "additionalProperties": false
+    },
+    "Action.intent": {
+      "type": "object",
+      "description": "Starts an Android activity intent. Needs at least one of action, package or component.",
+      "properties": {
+        "type": {
+          "const": "intent"
+        },
+        "action": {
+          "description": "Intent action, e.g. android.intent.action.VIEW.",
+          "type": "string"
+        },
+        "data": {
+          "description": "Data URI.",
+          "type": "string"
+        },
+        "package": {
+          "description": "Target package.",
+          "type": "string"
+        },
+        "component": {
+          "description": "Target component as \"package/.Activity\" or \"package/full.class.Name\".",
+          "type": "string"
+        },
+        "categories": {
+          "description": "Intent categories.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "extras": {
+          "description": "String extras.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "Action.launch_app": {
+      "type": "object",
+      "description": "Opens an installed app.",
+      "properties": {
+        "type": {
+          "const": "launch_app"
+        },
+        "package": {
+          "description": "Package name, e.g. com.netflix.ninja.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "package"
+      ],
+      "additionalProperties": false
+    },
+    "Action.open_app_drawer": {
+      "type": "object",
+      "description": "Opens the built-in list of all installed apps.",
+      "properties": {
+        "type": {
+          "const": "open_app_drawer"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "Action.open_launcher_settings": {
+      "type": "object",
+      "description": "Opens OwnTV's own settings (import, templates, history).",
+      "properties": {
+        "type": {
+          "const": "open_launcher_settings"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "Action.open_system_settings": {
+      "type": "object",
+      "description": "Opens Android TV system settings.",
+      "properties": {
+        "type": {
+          "const": "open_system_settings"
+        },
+        "screen": {
+          "description": "Which settings screen. Default main.",
+          "type": "string",
+          "enum": [
+            "main",
+            "network",
+            "bluetooth",
+            "display",
+            "sound",
+            "apps",
+            "date_time",
+            "accessibility"
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "Action.open_url": {
+      "type": "object",
+      "description": "Opens a URL with whatever app handles it (deep links work too).",
+      "properties": {
+        "type": {
+          "const": "open_url"
+        },
+        "url": {
+          "description": "The URL or deep link.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "url"
+      ],
+      "additionalProperties": false
+    },
+    "Node.text": {
+      "type": "object",
+      "description": "Static text. Not focusable.",
+      "properties": {
+        "type": {
+          "const": "text"
+        },
+        "id": {
+          "description": "Unique id (letters, digits, _ . -). Used by initialFocus, the editor and AI edits.",
+          "type": "string"
+        },
+        "text": {
+          "description": "The text.",
+          "type": "string"
+        },
+        "style": {
+          "description": "Text size preset. Default body.",
+          "type": "string",
+          "enum": [
+            "display",
+            "headline",
+            "title",
+            "body",
+            "caption"
+          ]
+        },
+        "color": {
+          "description": "Text color. Default @text.",
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+        },
+        "bold": {
+          "description": "Bold text. Default false.",
+          "type": "boolean"
+        },
+        "textAlign": {
+          "description": "Alignment of the text inside its box. Default start.",
+          "type": "string",
+          "enum": [
+            "start",
+            "center",
+            "end"
+          ]
+        },
+        "maxLines": {
+          "description": "Maximum number of lines; longer text ends with an ellipsis.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20
+        },
+        "width": {
+          "description": "\"fill\" (all available width), \"wrap\" (fit content) or a number in dp. Default depends on the widget.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "fill",
+                "wrap"
+              ]
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 4000
+            }
+          ]
+        },
+        "height": {
+          "description": "\"fill\" (all available height), \"wrap\" (fit content) or a number in dp. Default depends on the widget.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "fill",
+                "wrap"
+              ]
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 4000
+            }
+          ]
+        },
+        "weight": {
+          "description": "Share of the remaining space inside a row or column, like CSS flex-grow.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "padding": {
+          "description": "Inner padding in dp: a number, [horizontal, vertical] or [start, top, end, bottom].",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 400
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 400
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 400
+              },
+              "minItems": 4,
+              "maxItems": 4
+            }
+          ]
+        },
+        "background": {
+          "description": "Background color behind this node.",
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+        },
+        "cornerRadius": {
+          "description": "Corner radius in dp of this node's background.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 200
+        },
+        "align": {
+          "description": "Position inside the parent. In a stack all 9 values apply; in a column only the horizontal part is used; in a row only the vertical part.",
+          "type": "string",
+          "enum": [
+            "top_start",
+            "top",
+            "top_end",
+            "start",
+            "center",
+            "end",
+            "bottom_start",
+            "bottom",
+            "bottom_end"
+          ]
+        },
+        "span": {
+          "description": "Number of grid columns this node covers. Only used inside a grid. Default 1.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 12
+        },
+        "visible": {
+          "description": "Set to false to hide the node without deleting it. Default true.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type",
+        "id",
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "Node.clock": {
+      "type": "object",
+      "description": "Current time and/or date. Not focusable.",
+      "properties": {
+        "type": {
+          "const": "clock"
+        },
+        "id": {
+          "description": "Unique id (letters, digits, _ . -). Used by initialFocus, the editor and AI edits.",
+          "type": "string"
+        },
+        "format": {
+          "description": "java.time pattern, e.g. \"HH:mm\" (24h), \"h:mm a\" (12h) or \"EEEE, d MMMM\" (date). Default HH:mm.",
+          "type": "string"
+        },
+        "style": {
+          "description": "Text size preset. Default display.",
+          "type": "string",
+          "enum": [
+            "display",
+            "headline",
+            "title",
+            "body",
+            "caption"
+          ]
+        },
+        "color": {
+          "description": "Text color. Default @text.",
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+        },
+        "bold": {
+          "description": "Bold text. Default false.",
+          "type": "boolean"
+        },
+        "textAlign": {
+          "description": "Alignment of the text inside its box. Default start.",
+          "type": "string",
+          "enum": [
+            "start",
+            "center",
+            "end"
+          ]
+        },
+        "width": {
+          "description": "\"fill\" (all available width), \"wrap\" (fit content) or a number in dp. Default depends on the widget.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "fill",
+                "wrap"
+              ]
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 4000
+            }
+          ]
+        },
+        "height": {
+          "description": "\"fill\" (all available height), \"wrap\" (fit content) or a number in dp. Default depends on the widget.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "fill",
+                "wrap"
+              ]
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 4000
+            }
+          ]
+        },
+        "weight": {
+          "description": "Share of the remaining space inside a row or column, like CSS flex-grow.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "padding": {
+          "description": "Inner padding in dp: a number, [horizontal, vertical] or [start, top, end, bottom].",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 400
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 400
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 400
+              },
+              "minItems": 4,
+              "maxItems": 4
+            }
+          ]
+        },
+        "background": {
+          "description": "Background color behind this node.",
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+        },
+        "cornerRadius": {
+          "description": "Corner radius in dp of this node's background.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 200
+        },
+        "align": {
+          "description": "Position inside the parent. In a stack all 9 values apply; in a column only the horizontal part is used; in a row only the vertical part.",
+          "type": "string",
+          "enum": [
+            "top_start",
+            "top",
+            "top_end",
+            "start",
+            "center",
+            "end",
+            "bottom_start",
+            "bottom",
+            "bottom_end"
+          ]
+        },
+        "span": {
+          "description": "Number of grid columns this node covers. Only used inside a grid. Default 1.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 12
+        },
+        "visible": {
+          "description": "Set to false to hide the node without deleting it. Default true.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type",
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "Node.image": {
+      "type": "object",
+      "description": "A picture. Not focusable. Give it a width and height.",
+      "properties": {
+        "type": {
+          "const": "image"
+        },
+        "id": {
+          "description": "Unique id (letters, digits, _ . -). Used by initialFocus, the editor and AI edits.",
+          "type": "string"
+        },
+        "src": {
+          "description": "Image location: an https:// URL or \"asset:<path>\" for an image bundled with the app.",
+          "type": "string"
+        },
+        "fit": {
+          "description": "How the image fills its box. Default contain.",
+          "type": "string",
+          "enum": [
+            "cover",
+            "contain",
+            "fill"
+          ]
+        },
+        "alpha": {
+          "description": "Opacity, 0 to 1. Default 1.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "width": {
+          "description": "\"fill\" (all available width), \"wrap\" (fit content) or a number in dp. Default depends on the widget.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "fill",
+                "wrap"
+              ]
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 4000
+            }
+          ]
+        },
+        "height": {
+          "description": "\"fill\" (all available height), \"wrap\" (fit content) or a number in dp. Default depends on the widget.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "fill",
+                "wrap"
+              ]
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 4000
+            }
+          ]
+        },
+        "weight": {
+          "description": "Share of the remaining space inside a row or column, like CSS flex-grow.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "padding": {
+          "description": "Inner padding in dp: a number, [horizontal, vertical] or [start, top, end, bottom].",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 400
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 400
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 400
+              },
+              "minItems": 4,
+              "maxItems": 4
+            }
+          ]
+        },
+        "background": {
+          "description": "Background color behind this node.",
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+        },
+        "cornerRadius": {
+          "description": "Corner radius in dp of this node's background.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 200
+        },
+        "align": {
+          "description": "Position inside the parent. In a stack all 9 values apply; in a column only the horizontal part is used; in a row only the vertical part.",
+          "type": "string",
+          "enum": [
+            "top_start",
+            "top",
+            "top_end",
+            "start",
+            "center",
+            "end",
+            "bottom_start",
+            "bottom",
+            "bottom_end"
+          ]
+        },
+        "span": {
+          "description": "Number of grid columns this node covers. Only used inside a grid. Default 1.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 12
+        },
+        "visible": {
+          "description": "Set to false to hide the node without deleting it. Default true.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type",
+        "id",
+        "src"
+      ],
+      "additionalProperties": false
+    },
+    "Node.spacer": {
+      "type": "object",
+      "description": "Empty space. Use width/height for a fixed gap or weight to push siblings apart.",
+      "properties": {
+        "type": {
+          "const": "spacer"
+        },
+        "id": {
+          "description": "Unique id (letters, digits, _ . -). Used by initialFocus, the editor and AI edits.",
+          "type": "string"
+        },
+        "width": {
+          "description": "\"fill\" (all available width), \"wrap\" (fit content) or a number in dp. Default depends on the widget.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "fill",
+                "wrap"
+              ]
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 4000
+            }
+          ]
+        },
+        "height": {
+          "description": "\"fill\" (all available height), \"wrap\" (fit content) or a number in dp. Default depends on the widget.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "fill",
+                "wrap"
+              ]
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 4000
+            }
+          ]
+        },
+        "weight": {
+          "description": "Share of the remaining space inside a row or column, like CSS flex-grow.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "padding": {
+          "description": "Inner padding in dp: a number, [horizontal, vertical] or [start, top, end, bottom].",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 400
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 400
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 400
+              },
+              "minItems": 4,
+              "maxItems": 4
+            }
+          ]
+        },
+        "background": {
+          "description": "Background color behind this node.",
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+        },
+        "cornerRadius": {
+          "description": "Corner radius in dp of this node's background.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 200
+        },
+        "align": {
+          "description": "Position inside the parent. In a stack all 9 values apply; in a column only the horizontal part is used; in a row only the vertical part.",
+          "type": "string",
+          "enum": [
+            "top_start",
+            "top",
+            "top_end",
+            "start",
+            "center",
+            "end",
+            "bottom_start",
+            "bottom",
+            "bottom_end"
+          ]
+        },
+        "span": {
+          "description": "Number of grid columns this node covers. Only used inside a grid. Default 1.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 12
+        },
+        "visible": {
+          "description": "Set to false to hide the node without deleting it. Default true.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type",
+        "id"
+      ],
+      "additionalProperties": false
+    }
+  }
+}
