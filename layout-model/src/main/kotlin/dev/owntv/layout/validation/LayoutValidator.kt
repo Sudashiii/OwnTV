@@ -14,6 +14,7 @@ import dev.owntv.layout.model.Colors
 import dev.owntv.layout.model.ColumnNode
 import dev.owntv.layout.model.FolderNode
 import dev.owntv.layout.model.GoToPageAction
+import dev.owntv.layout.model.GlassBackground
 import dev.owntv.layout.model.GradientBackground
 import dev.owntv.layout.model.GridNode
 import dev.owntv.layout.model.HeroFollow
@@ -192,7 +193,10 @@ object LayoutValidator {
                 is AppTileNode -> checkPackage(node.packageName, "$path.package")
                 is AppRowNode -> checkSource(node.source, "$path.source")
                 is AppGridNode -> checkSource(node.source, "$path.source")
-                is FolderNode -> checkSource(node.source, "$path.source")
+                is FolderNode -> {
+                    checkSource(node.source, "$path.source")
+                    node.color?.let { checkColorRef(it, "$path.color") }
+                }
                 is ShortcutNode -> {
                     checkAction(node.action, "$path.action")
                     node.color?.let { checkColorRef(it, "$path.color") }
@@ -272,6 +276,7 @@ object LayoutValidator {
                     background.colors.forEachIndexed { i, c -> checkColorRef(c, "$path.colors[$i]") }
                 }
                 is ImageBackground -> checkImageSrc(background.src, "$path.src")
+                is GlassBackground -> checkColorRef(background.tint, "$path.tint")
             }
         }
 

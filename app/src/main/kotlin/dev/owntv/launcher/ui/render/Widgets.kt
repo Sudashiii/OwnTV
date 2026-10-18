@@ -11,6 +11,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.ui.BiasAlignment
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
+import dev.owntv.layout.model.TileShape
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -114,6 +122,8 @@ fun HeroView(node: HeroNode, modifier: Modifier) {
     }
     val content = followed?.toHero() ?: slides.getOrNull(slideIndex)?.toHero() ?: HeroContent(null, null)
     val shape = RoundedCornerShape((node.common.cornerRadius ?: 0).dp)
+    // Glass nodes above the hero blur it; the fade lets it melt into whatever is below.
+    val layered = Modifier.glassSource(HERO_GLASS_LAYER).fadeBottom(node.fade)
 
     val body: @Composable BoxScope.() -> Unit = {
         Crossfade(targetState = content, animationSpec = tween(500), label = "hero") { shown ->
@@ -134,7 +144,7 @@ fun HeroView(node: HeroNode, modifier: Modifier) {
         TileSurface(
             onClick = { slides.getOrNull(slideIndex)?.action?.let(handler::perform) },
             onLongClick = { handler.longPress(ContextTarget(content.title ?: "Hero", null, null, nodeId)) },
-            modifier = modifier.onPreviewKeyEvent { event ->
+            modifier = modifier.then(layered).onPreviewKeyEvent { event ->
                 if (event.type != KeyEventType.KeyDown || slides.size < 2) return@onPreviewKeyEvent false
                 when (event.key) {
                     Key.DirectionLeft -> { slideIndex = (slideIndex - 1 + slides.size) % slides.size; true }
@@ -149,7 +159,22 @@ fun HeroView(node: HeroNode, modifier: Modifier) {
             content = body,
         )
     } else {
-        Box(modifier.clip(shape), content = body)
+        Box(modifier.clip(shape).then(layered), content = body)
+    }
+}
+
+private const val HERO_GLASS_LAYER = 1f
+
+/** Fades the bottom [fraction] of the content out to transparent. */
+private fun Modifier.fadeBottom(fraction: Float): Modifier {
+    if (fraction <= 0f) return this
+    val start = (1f - fraction).coerceIn(0f, 1f)
+    return graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }.drawWithContent {
+        drawContent()
+        drawRect(
+            Brush.verticalGradient(0f to Color.Black, start to Color.Black, 1f to Color.Transparent),
+            blendMode = BlendMode.DstIn,
+        )
     }
 }
 
@@ -165,7 +190,7 @@ private fun HeroLayer(content: HeroContent, node: HeroNode) {
                 modifier = Modifier.fillMaxSize(),
             )
             content.background != null -> BackgroundFill(content.background, Modifier.fillMaxSize())
-            content.app != null -> AppSpotlight(content.app)
+            content.app != null -> AppSpotlight(content.app, raised = node.fade > 0f)
         }
         if (node.showText && (content.title != null || content.description != null)) {
             val bottom = node.contentAlign in setOf(NodeAlignment.BottomStart, NodeAlignment.Bottom, NodeAlignment.BottomEnd)
@@ -196,11 +221,15 @@ private fun HeroLayer(content: HeroContent, node: HeroNode) {
     }
 }
 
-/** For apps without a backdrop: the app's banner, blurred as a backdrop and sharp on the side. */
+/**
+ * For apps without a backdrop: the app's banner, blurred as a backdrop and sharp on the side.
+ * [raised] keeps the sharp banner in the upper part, for heroes whose bottom fades behind a dock.
+ */
 @Composable
-private fun AppSpotlight(app: AppInfo) {
+private fun AppSpotlight(app: AppInfo, raised: Boolean) {
     val banner = rememberAppImage(app, AppImageLoader.Kind.Banner) ?: rememberAppImage(app, AppImageLoader.Kind.Icon) ?: return
-    Box(Modifier.fillMaxSize()) {
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val height = minOf(162.dp, maxHeight * if (raised) 0.4f else 0.6f)
         Image(banner, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize().blur(36.dp))
         Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.45f)))
         Image(
@@ -208,9 +237,9 @@ private fun AppSpotlight(app: AppInfo) {
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier
-                .align(Alignment.CenterEnd)
+                .align(if (raised) BiasAlignment(1f, -0.45f) else Alignment.CenterEnd)
                 .padding(end = 56.dp)
-                .size(288.dp, 162.dp)
+                .size(height * 16f / 9f, height)
                 .clip(RoundedCornerShape(14.dp)),
         )
     }
@@ -237,11 +266,13 @@ fun FolderView(node: FolderNode, sizing: TileSizing, modifier: Modifier) {
             onClick = { open = true },
             onLongClick = { handler.longPress(ContextTarget(node.label, null, null, ancestors.lastOrNull())) },
             modifier = surfaceModifier,
-            color = theme.surface,
+            color = theme.color(node.color) ?: theme.surface,
             interactionSource = interaction,
             cornerRadius = node.tile.cornerRadius?.dp,
+            rim = node.tile.rim,
         ) {
-            FolderPreview(entries.mapNotNull { (it as? AppEntry.Installed)?.app }.take(6))
+            val apps = entries.mapNotNull { (it as? AppEntry.Installed)?.app }
+            if (node.tile.shape == TileShape.Icon) FolderPreview(apps.take(6)) else FolderBannerPreview(apps.take(9))
         }
     }
     if (open) FolderPanel(node, entries, onClose = { open = false })
@@ -258,6 +289,24 @@ private fun FolderPreview(apps: List<AppInfo>) {
                         Image(it, contentDescription = null, modifier = Modifier.weight(1f, fill = false).size(30.dp).clip(RoundedCornerShape(6.dp)))
                     }
                 }
+            }
+        }
+    }
+}
+
+/** Up to nine small app banners in a 3 x 3 grid, like a tvOS folder. */
+@Composable
+private fun FolderBannerPreview(apps: List<AppInfo>) {
+    Column(Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 9.dp), verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically)) {
+        apps.chunked(3).forEach { row ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                row.forEach { app ->
+                    val image = rememberAppImage(app, AppImageLoader.Kind.Banner) ?: rememberAppImage(app, AppImageLoader.Kind.Icon)
+                    Box(Modifier.weight(1f).aspectRatio(5f / 3f).clip(RoundedCornerShape(3.dp)).background(Color.White.copy(alpha = 0.08f))) {
+                        image?.let { Image(it, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()) }
+                    }
+                }
+                repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
             }
         }
     }

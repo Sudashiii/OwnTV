@@ -35,3 +35,5 @@ Paste server for testing from the Mac: open Import on the TV, then `adb forward 
 ## Toolchain notes
 
 AGP 9.4 (built-in Kotlin, so no `kotlin-android` plugin), Kotlin 2.4, Gradle 9.8 on JDK 25. Current Compose and Coil require `compileSdk = 37`.
+
+The `glass` background uses Haze (`dev.chrisbanes.haze`, `ui/render/Glass.kt`). Glass only blurs content marked with `glassSource` (page background, heroes, images); add it to new widgets that should show through glass.

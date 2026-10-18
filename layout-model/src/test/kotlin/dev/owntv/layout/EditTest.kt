@@ -205,7 +205,7 @@ class EditTest {
             LayoutCodec.json.decodeFromJsonElement(AppSource.serializer(), Fields.newSealed(sourceDescriptor, type))
         }
         val background = Background.serializer().descriptor
-        assertEquals(setOf("color", "gradient", "image"), Fields.subtypes(background).keys)
+        assertEquals(setOf("color", "gradient", "image", "glass"), Fields.subtypes(background).keys)
         LayoutCodec.json.decodeFromJsonElement(Background.serializer(), Fields.newSealed(background, "gradient"))
     }
 

@@ -4,12 +4,15 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.BringIntoViewSpec
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.relocation.BringIntoViewRequester
-import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.node.ModifierNodeElement
+import androidx.compose.ui.relocation.BringIntoViewModifierNode
+import androidx.compose.ui.relocation.bringIntoView
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
@@ -17,7 +20,6 @@ import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.focusProperties
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
@@ -26,12 +28,11 @@ import coil3.compose.AsyncImage
 import dev.owntv.layout.model.Background
 import dev.owntv.layout.model.ColorBackground
 import dev.owntv.layout.model.FocusLinks
+import dev.owntv.layout.model.GlassBackground
 import dev.owntv.layout.model.GradientBackground
 import dev.owntv.layout.model.ImageBackground
 import dev.owntv.layout.model.NodeCommon
 import dev.owntv.layout.model.ScrollAlign
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import kotlin.math.abs
 
 /** Draws a color, gradient or image background filling [modifier]. */
@@ -55,6 +56,7 @@ fun BackgroundFill(background: Background, modifier: Modifier, shape: Shape = Re
             )
             if (background.dim > 0f) Box(Modifier.matchParentSize().background(Color.Black.copy(alpha = background.dim)))
         }
+        is GlassBackground -> Box(modifier.glassBackground(background, shape as? RoundedCornerShape ?: RoundedCornerShape(0.dp)))
     }
 }
 
@@ -108,23 +110,22 @@ fun Modifier.containerFocusLinks(links: FocusLinks?, registry: FocusRegistry?): 
     }
 }
 
-/** Scrolls the whole node into view when something inside it gets focus. */
-@Composable
-fun Modifier.revealOnFocus(enabled: Boolean): Modifier {
-    if (!enabled) return this
-    val requester = remember { BringIntoViewRequester() }
-    val scope = rememberCoroutineScope()
-    return this
-        .bringIntoViewRequester(requester)
-        .onFocusChanged { state ->
-            if (state.hasFocus) {
-                scope.launch {
-                    // Let the focused child's own scroll request go first, then show the whole node.
-                    delay(30)
-                    requester.bringIntoView()
-                }
-            }
-        }
+/**
+ * Scrolls the whole node into view when something inside it gets focus. Requests from inside the
+ * node (a focused tile, a nested row) are replaced by one for the node's own bounds, so the
+ * containing scroll never sees two competing targets.
+ */
+fun Modifier.revealOnFocus(enabled: Boolean): Modifier = if (enabled) this then RevealElement else this
+
+private data object RevealElement : ModifierNodeElement<RevealNode>() {
+    override fun create() = RevealNode()
+    override fun update(node: RevealNode) = Unit
+}
+
+private class RevealNode : Modifier.Node(), BringIntoViewModifierNode {
+    override suspend fun bringIntoView(childCoordinates: LayoutCoordinates, boundsProvider: () -> Rect?) {
+        bringIntoView()
+    }
 }
 
 /** How a scroll container moves a focused child into view. */

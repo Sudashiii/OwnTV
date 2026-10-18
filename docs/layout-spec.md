@@ -57,7 +57,7 @@ An OwnTV layout is one JSON document. The launcher renders it natively; nothing 
 
 - Token colors: `@background`, `@surface` (tiles), `@primary`, `@text`, `@textMuted`, `@focus`, plus every key in `custom` (`@accent2`). Theme colors themselves must be hex values. `#AARRGGBB` gives transparency.
 - `fontFamily`: `sans`, `serif`, `mono` or `cursive`. `cornerRadius` 0–64, `fontScale` 0.5–2.
-- `focus`: `scale` 1.0–1.5, `borderWidth` 0–12 (0 = no outline), `glow` on/off, `glowColor` (a dark color such as `#99000000` makes a drop shadow; default is the border color), `glowSize` 0–48.
+- `focus`: `scale` 1.0–1.5, `borderWidth` 0–12 (0 = no outline), `glow` on/off, `glowColor` (a dark color such as `#99000000` makes a drop shadow; default is the border color), `glowSize` 0–48, `highlight` (a light sheen moves across the focused tile, default false), `motion` (`none` default, or `sway`: the focused tile tilts gently in 3D like tvOS parallax).
 
 ## Backgrounds
 
@@ -66,6 +66,7 @@ Used by the document, pages, any node (`background`) and hero slides.
 - `"#101010"` or `"@surface"` — a solid color (shorthand for `{ "type": "color", "color": "#101010" }`).
 - `{ "type": "gradient", "colors": ["#000000", "#203040"], "angle": 180 }` — 2+ colors; angle like CSS: 0 = bottom→top, 90 = left→right, 180 = top→bottom (default).
 - `{ "type": "image", "src": "https://…/bg.jpg", "dim": 0.3, "blur": 0, "fit": "cover" }` — `dim` 0–1 darkens, `blur` 0–60 dp (Android 12+), `fit` is `cover`, `contain` or `fill`.
+- `{ "type": "glass", "tint": "#1FFFFFFF", "variant": "regular" }` — Liquid Glass (tvOS 26 style): blurs and refracts the page background, heroes and images behind the node, with a light rim. `variant` is `regular` (frosted) or `clear` (more see-through). Use it on a node above a hero, e.g. a dock row in a `stack`, and give the node a `cornerRadius`. Android 12+; older devices show only the tint.
 
 ## Common node properties
 
@@ -99,12 +100,12 @@ The page `root` fills the screen. Other containers wrap their content unless you
 
 ## App widgets (focusable)
 
-**Tile style** (`tile`): `{ "shape": "banner" | "icon" | "card", "size": "small" | "medium" | "large", "showLabel": "always" | "focused" | "never", "width": 148, "aspectRatio": 1.67, "cornerRadius": 14 }`
+**Tile style** (`tile`): `{ "shape": "banner" | "icon" | "card", "size": "small" | "medium" | "large", "showLabel": "always" | "focused" | "never", "width": 148, "aspectRatio": 1.67, "cornerRadius": 14, "rim": false }`
 
 - `banner`: the app's TV banner, 16:9 by default; widths 128 / 160 / 208 dp. Label shown on focus by default.
 - `icon`: square app icon (56 / 72 / 96 dp) with the label below.
 - `card`: banner with the label always below.
-- `width` (dp) overrides `size`; `aspectRatio` is width ÷ height (1.78 = 16:9, 1.67 = Apple TV 5:3, 1 = square, 0.67 = poster); `cornerRadius` overrides the theme.
+- `width` (dp) overrides `size`; `aspectRatio` is width ÷ height (1.78 = 16:9, 1.67 = Apple TV 5:3, 1 = square, 0.67 = poster); `cornerRadius` overrides the theme; `rim` draws a thin light edge like tvOS Liquid Glass icons.
 
 **App sources** (`source`):
 
@@ -118,7 +119,7 @@ Widgets:
 - **`app_row`**: horizontally scrolling tiles. `source` (required), `title`, `tile`, `spacing` (16), `skip` (leave out the first N apps), `limit`, `missing` (`hide` default, or `placeholder` for packages that are not installed), `scrollAlign` (`start` keeps the focused tile at the left like Google TV; `center`; `nearest` default), `scrollMargin`. Width fills by default. A row with no apps is hidden.
 - **`app_grid`**: tiles in `columns` (default 5) that wrap onto new rows. Same properties as `app_row` except scrolling. Put it in a scrolling column if it may be taller than the screen. `skip` lets a grid continue where a row above stopped: a row with `"limit": 5` and a grid with `"skip": 5` on the same source show every app once.
 - **`app_tile`**: one app. `package` (required), `label`, `tile`, `missing` (`placeholder` default, or `hide`).
-- **`folder`**: a tile with up to six app icons that opens a panel with its apps. `label` and `source` (both required), `tile`, `itemTile` (tiles in the panel), `columns` (default 4).
+- **`folder`**: a tile with small app images (a 3 × 3 grid of mini banners, or six icons with an `icon` tile) that opens a panel with its apps. `label` and `source` (both required), `tile`, `itemTile` (tiles in the panel), `columns` (default 4), `color` (tile color; a translucent color such as `#33FFFFFF` looks like tvOS glass).
 - **`shortcut`**: a custom tile. `label` and `action` (both required), `icon`, `image` (URL or `asset:`), `color` (tile color), `tile` (default `card`), and `description` / `backdrop` for a hero. Icons: `settings`, `home`, `search`, `star`, `info`, `play`, `favorite`, `apps`, `add`, `refresh`, `notifications`, `person`, `lock`, `menu`, or any emoji such as `"🎬"`. `card`/`banner` tiles show icon and label inside; `icon` tiles show the label below.
 
 ## Hero (Top Shelf / carousel)
@@ -128,9 +129,9 @@ Widgets:
 - `"follow": "focus"` (default): shows the focused app or shortcut — its `backdrop` image and `description` from `apps` (or the shortcut), with its name as the title. Apps without a backdrop show a blurred version of their banner. `target` limits it to focus inside one node (e.g. the dock row); while focus is elsewhere the last item stays. `slides` are shown until something is focused.
 - `"follow": "slides"`: rotates through `slides` every `interval` seconds (default 8). If any slide has an `action`, the hero is focusable: OK runs the current slide's action and Left/Right switch slides.
 - A slide: `{ "title": "…", "description": "…", "background": <background>, "action": <action> }`. Titles and descriptions may use placeholders.
-- `showText` (default true), `scrim` 0–1 (darkness behind the text, default 0.6), `contentAlign` (where the text sits, default `bottom_start`), `cornerRadius` via the common property.
+- `showText` (default true), `scrim` 0–1 (darkness behind the text, default 0.6), `contentAlign` (where the text sits, default `bottom_start`), `fade` 0–1 (share of the height at the bottom that fades out into what is behind, default 0), `cornerRadius` via the common property.
 
-Apple TV pattern: a column with `"scroll": true, "scrollAlign": "start"` holding a `column` with `"revealOnFocus": true` (containing the hero with `"target": "dock"` and the `dock` app_row with `"limit": 5`), followed by an `app_grid` with `"skip": 5`.
+Apple TV pattern (tvOS 26/27): a column with `"scroll": true, "scrollAlign": "start"` holding a `stack` with `"revealOnFocus": true` and a fixed height. In the stack, a hero fills everything (`"target": "dock"`, `"fade": 0.3`), and the `dock` app_row (`"limit": 5`, a `glass` background and a `cornerRadius`) sits at the bottom, so the Top Shelf runs full-bleed behind the glass dock. An `app_grid` with `"skip": 5` follows the stack. See the built-in Apple TV look.
 
 ## Content widgets (not focusable)
 

@@ -29,6 +29,7 @@ import androidx.tv.material3.ClickableSurfaceDefaults
 import androidx.tv.material3.LocalContentColor
 import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
+import dev.chrisbanes.haze.rememberHazeState
 import dev.owntv.layout.model.LayoutDocument
 import dev.owntv.layout.model.Page
 import dev.owntv.layout.model.StyleResolver
@@ -57,10 +58,12 @@ fun LayoutView(
     val theme = remember(resolved.theme) { OwnTheme(resolved.theme) }
     val page = resolved.pages.firstOrNull { it.id == pageId } ?: resolved.pages.first()
     val catalog = LocalApps.current.withOverrides(resolved.apps)
-    CompositionLocalProvider(LocalOwnTheme provides theme, LocalApps provides catalog) {
+    val haze = rememberHazeState()
+    CompositionLocalProvider(LocalOwnTheme provides theme, LocalApps provides catalog, LocalHazeState provides haze) {
         Box(modifier.fillMaxSize()) {
             val background = page.background ?: resolved.background
-            if (background != null) BackgroundFill(background, Modifier.fillMaxSize()) else Box(Modifier.fillMaxSize().background(theme.background))
+            val backgroundModifier = Modifier.fillMaxSize().glassSource(0f)
+            if (background != null) BackgroundFill(background, backgroundModifier) else Box(backgroundModifier.background(theme.background))
             Column(Modifier.fillMaxSize()) {
                 if (resolved.pageTabs && resolved.pages.size > 1) {
                     PageTabs(resolved.pages, page.id, onSelectPage)

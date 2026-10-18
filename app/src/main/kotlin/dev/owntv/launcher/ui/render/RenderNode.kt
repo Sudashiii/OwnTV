@@ -58,6 +58,7 @@ import dev.owntv.layout.model.Arrange
 import dev.owntv.layout.model.ClockNode
 import dev.owntv.layout.model.ColumnNode
 import dev.owntv.layout.model.FolderNode
+import dev.owntv.layout.model.GlassBackground
 import dev.owntv.layout.model.GridNode
 import dev.owntv.layout.model.HAlign
 import dev.owntv.layout.model.HeroNode
@@ -124,6 +125,7 @@ fun RenderNode(node: Node, modifier: Modifier = Modifier, fillByDefault: Boolean
     }
     outer = outer.revealOnFocus(common.revealOnFocus)
     outer = outer.nodeDecoration(common, theme, shape)
+    (common.background as? GlassBackground)?.let { outer = outer.glassBackground(it, shape) }
     val padding = common.padding?.let { Modifier.padding(it.start.dp, it.top.dp, it.end.dp, it.bottom.dp) } ?: Modifier
 
     // Tiles adapt to the width they get when the node or its parent sets one.
@@ -133,7 +135,7 @@ fun RenderNode(node: Node, modifier: Modifier = Modifier, fillByDefault: Boolean
     CompositionLocalProvider(LocalAncestors provides LocalAncestors.current + node.id) {
         if (image != null) {
             Box(outer, propagateMinConstraints = true) {
-                BackgroundFill(image, Modifier.matchParentSize(), shape)
+                BackgroundFill(image, Modifier.matchParentSize().glassSource(IMAGE_GLASS_LAYER), shape)
                 NodeContent(node, padding, sizing)
             }
         } else {
@@ -171,7 +173,7 @@ private fun NodeContent(node: Node, modifier: Modifier, sizing: TileSizing) {
             model = imageModel(node.src),
             contentDescription = null,
             contentScale = node.fit.toContentScale(),
-            modifier = modifier.clip(RoundedCornerShape((node.common.cornerRadius ?: 0).dp)).alpha(node.alpha),
+            modifier = modifier.clip(RoundedCornerShape((node.common.cornerRadius ?: 0).dp)).alpha(node.alpha).glassSource(IMAGE_GLASS_LAYER),
         )
         is SpacerNode -> Spacer(modifier)
         is UnknownNode -> Box(modifier.background(theme.surface.copy(alpha = 0.5f), RoundedCornerShape(8.dp)).padding(12.dp)) {
@@ -368,6 +370,9 @@ private fun ClockView(node: ClockNode, modifier: Modifier) {
 // ---------------------------------------------------------------- modifiers and mappings
 
 private val TILE_BLEED = 14.dp
+
+/** Images sit above the page background in the glass source order. */
+private const val IMAGE_GLASS_LAYER = 1f
 
 /** Widens a child by [amount] on both sides so focus scaling is not clipped at the row's edges. */
 private fun Modifier.bleedHorizontally(amount: Dp) = layout { measurable, constraints ->

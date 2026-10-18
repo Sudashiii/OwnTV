@@ -115,5 +115,7 @@ dependencies {
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.cio)
     implementation(libs.zxing.core)
+    implementation(libs.haze)
+    implementation(libs.haze.glass)
     testImplementation(kotlin("test-junit"))
 }
