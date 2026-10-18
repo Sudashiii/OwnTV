@@ -15,6 +15,7 @@ composeMultiplatform = "1.12.2"
 cmpMaterialIcons = "1.7.3"
 okhttp = "5.5.0"
 zxing = "3.5.4"
+haze = "2.0.1"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
@@ -45,6 +46,8 @@ cmp-animation = { module = "org.jetbrains.compose.animation:animation", version.
 cmp-material-icons-core = { module = "org.jetbrains.compose.material:material-icons-core", version.ref = "cmpMaterialIcons" }
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
+haze = { module = "dev.chrisbanes.haze:haze", version.ref = "haze" }
+haze-glass = { module = "dev.chrisbanes.haze:haze-glass", version.ref = "haze" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

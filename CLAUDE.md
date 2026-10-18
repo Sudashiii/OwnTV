@@ -42,3 +42,5 @@ Paste server for testing from the Mac: open Import on the TV, then `adb forward 
 AGP 9.4 (built-in Kotlin, so no `kotlin-android` plugin), Kotlin 2.4, Gradle 9.8 on JDK 25. Current Compose and Coil require `compileSdk = 37`.
 
 `layout-render` uses `com.android.kotlin.multiplatform.library` and Compose Multiplatform 1.12 (`composeMultiplatform` in the catalog; keep it on the same Compose version as `composeBom`). The `web` module also needs the `org.jetbrains.compose` plugin, which unpacks Skia's Wasm runtime. Project repositories are off, so Node.js, Yarn and Binaryen for the Wasm build are declared in `settings.gradle.kts`, and the root and `web` build files tell the Kotlin plugin not to add its own.
+
+The `glass` background uses Haze (`dev.chrisbanes.haze`, `layout-render/.../ui/render/Glass.kt`, android and wasmJs). Glass only blurs content marked with `glassSource` (page background, heroes, images); add it to new widgets that should show through glass.

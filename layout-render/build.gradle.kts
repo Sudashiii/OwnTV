@@ -39,6 +39,8 @@ kotlin {
             implementation(libs.cmp.material.icons.core)
             implementation(libs.coil.compose)
             implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.haze)
+            implementation(libs.haze.glass)
         }
     }
 }

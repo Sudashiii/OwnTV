@@ -1,27 +1,38 @@
 {
   "schemaVersion": 2,
   "name": "Apple TV",
-  "description": "tvOS style: the Top Shelf shows the app focused in the dock, a five-column grid follows, and focus lifts tiles instead of outlining them.",
+  "description": "tvOS 26/27 Liquid Glass: a full-bleed Top Shelf for the focused app, a glass dock, 5:3 icons that lift, sway and catch the light on focus.",
   "theme": {
     "colors": {
-      "background": "#0B0B0D",
+      "background": "#000000",
       "surface": "#2C2C2E",
       "primary": "#0A84FF",
       "text": "#F5F5F7",
       "textMuted": "#98989D",
       "focus": "#FFFFFF"
     },
-    "cornerRadius": 14,
-    "focus": { "scale": 1.12, "borderWidth": 0, "glow": true, "glowColor": "#40FFFFFF", "glowSize": 20 }
-  },
-  "background": { "type": "gradient", "colors": ["#1C1C1E", "#0B0B0D"], "angle": 180 },
-  "defaults": {
-    "app_row": { "spacing": 30, "tile": { "shape": "banner", "width": 148, "aspectRatio": 1.6667, "showLabel": "focused" } },
-    "app_grid": { "spacing": 30, "columns": 5, "tile": { "shape": "banner", "aspectRatio": 1.6667, "showLabel": "focused" } },
-    "folder": {
-      "tile": { "shape": "banner", "aspectRatio": 1.6667, "showLabel": "focused" },
-      "itemTile": { "shape": "banner", "aspectRatio": 1.6667, "showLabel": "focused" }
+    "cornerRadius": 16,
+    "focus": {
+      "scale": 1.15,
+      "borderWidth": 0,
+      "glow": true,
+      "glowColor": "#B3000000",
+      "glowSize": 22,
+      "highlight": true,
+      "motion": "sway"
     }
+  },
+  "background": { "type": "gradient", "colors": ["#1C1C1E", "#000000"], "angle": 180 },
+  "defaults": {
+    "app_row": { "spacing": 30, "tile": { "shape": "banner", "width": 148, "aspectRatio": 1.6667, "showLabel": "focused", "rim": true } },
+    "app_grid": { "spacing": 30, "columns": 5, "tile": { "shape": "banner", "aspectRatio": 1.6667, "showLabel": "focused", "rim": true } },
+    "folder": {
+      "color": "#33FFFFFF",
+      "tile": { "shape": "banner", "aspectRatio": 1.6667, "showLabel": "focused", "rim": true },
+      "itemTile": { "shape": "banner", "aspectRatio": 1.6667, "showLabel": "focused", "rim": true },
+      "columns": 5
+    },
+    "shortcut": { "tile": { "shape": "banner", "aspectRatio": 1.6667, "showLabel": "focused", "rim": true } }
   },
   "pages": [
     {
@@ -35,30 +46,46 @@
         "scrollMargin": 24,
         "children": [
           {
-            "type": "column",
+            "type": "stack",
             "id": "shelf",
             "width": "fill",
+            "height": 410,
             "revealOnFocus": true,
             "children": [
               {
                 "type": "hero",
                 "id": "top_shelf",
                 "target": "dock",
-                "height": 330,
+                "width": "fill",
+                "height": "fill",
+                "fade": 0.3,
+                "scrim": 0.5,
+                "contentAlign": "top_start",
                 "slides": [
                   {
                     "title": "Welcome",
-                    "description": "Focus an app in the top row to see it here. Give any app a backdrop and description in the layout's apps section.",
+                    "description": "Focus an app in the dock to see it here. Give any app a backdrop and description in the layout's apps section.",
                     "background": { "type": "gradient", "colors": ["#3A3A3C", "#1C1C1E"], "angle": 135 }
                   }
                 ]
               },
               {
-                "type": "app_row",
-                "id": "dock",
-                "source": { "type": "all" },
-                "limit": 5,
-                "padding": [48, 14]
+                "type": "column",
+                "id": "dock_area",
+                "width": "fill",
+                "align": "bottom",
+                "padding": [20, 0, 20, 14],
+                "children": [
+                  {
+                    "type": "app_row",
+                    "id": "dock",
+                    "source": { "type": "all" },
+                    "limit": 5,
+                    "background": { "type": "glass", "tint": "#1AFFFFFF" },
+                    "cornerRadius": 34,
+                    "padding": [30, 14]
+                  }
+                ]
               }
             ]
           },
@@ -67,7 +94,7 @@
             "id": "grid",
             "source": { "type": "all" },
             "skip": 5,
-            "padding": [48, 8, 48, 48]
+            "padding": [50, 12, 50, 48]
           }
         ]
       }

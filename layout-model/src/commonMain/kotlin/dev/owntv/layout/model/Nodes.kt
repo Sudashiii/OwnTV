@@ -255,6 +255,8 @@ data class FolderNode(
     val itemTile: TileStyle = TileStyle(),
     @Range(1.0, 12.0) @Doc("Columns in the open panel. Default 4.")
     val columns: Int = 4,
+    @ColorValue @Doc("Folder tile color; a translucent color gives a glass look. Default @surface.")
+    val color: String? = null,
     @Transient override val common: NodeCommon = NodeCommon(),
 ) : Node {
     override fun withCommon(common: NodeCommon) = copy(common = common)
@@ -305,6 +307,8 @@ data class HeroNode(
     val scrim: Float = 0.6f,
     @Doc("Where the text block sits. Default bottom_start.")
     val contentAlign: Alignment = Alignment.BottomStart,
+    @Range(0.0, 1.0) @Doc("Share of the height at the bottom that fades out into what is behind the hero, 0 to 1. Default 0.")
+    val fade: Float = 0f,
     @Transient override val common: NodeCommon = NodeCommon(),
 ) : Node {
     override fun withCommon(common: NodeCommon) = copy(common = common)
@@ -437,6 +441,8 @@ data class TileStyle(
     val aspectRatio: Float? = null,
     @Range(0.0, 200.0) @Doc("Corner radius in dp; overrides the theme's cornerRadius.")
     val cornerRadius: Int? = null,
+    @Doc("Thin light edge around the tile, like tvOS Liquid Glass icons. Default false.")
+    val rim: Boolean = false,
 )
 
 @Serializable

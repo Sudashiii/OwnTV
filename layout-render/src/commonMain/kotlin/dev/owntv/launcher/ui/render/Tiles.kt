@@ -54,6 +54,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import coil3.compose.AsyncImage
+import dev.owntv.layout.model.FocusMotion
 import dev.owntv.layout.model.LabelMode
 import dev.owntv.layout.model.LaunchAppAction
 import dev.owntv.layout.model.ShortcutNode
@@ -101,16 +102,27 @@ fun TileSurface(
     interactionSource: MutableInteractionSource,
     cornerRadius: Dp? = null,
     focusedScale: Float? = null,
+    rim: Boolean = false,
     content: @Composable BoxScope.() -> Unit,
 ) {
     val theme = LocalOwnTheme.current
     val shape = RoundedCornerShape(cornerRadius ?: theme.cornerRadius)
     val surfaces = LocalInteractiveSurfaces.current
     if (LocalPreviewMode.current || surfaces == null) {
-        Box(modifier.clip(shape).background(color), contentAlignment = Alignment.Center, content = content)
+        Box(modifier.clip(shape).background(color), contentAlignment = Alignment.Center) {
+            content()
+            if (rim) TileRim(shape)
+        }
         return
     }
-    surfaces.Tile(onClick, onLongClick, modifier, shape, color, focusedScale ?: theme.focusScale, interactionSource, content)
+    val focused by interactionSource.collectIsFocusedAsState()
+    val effects = theme.theme.focus
+    val phase = rememberSwayPhase(focused && effects.motion == FocusMotion.Sway)
+    surfaces.Tile(onClick, onLongClick, modifier.sway(effects.motion, focused, phase), shape, color, focusedScale ?: theme.focusScale, interactionSource) {
+        content()
+        if (rim) TileRim(shape)
+        if (focused && effects.highlight) FocusSheen(phase)
+    }
 }
 
 /** Tells the page's [FocusTracker] which tile is focused, for heroes and the {focused} placeholder. */
@@ -152,6 +164,7 @@ fun AppTileView(
             color = theme.color(override?.color) ?: theme.surface,
             interactionSource = interaction,
             cornerRadius = tile.cornerRadius?.dp,
+            rim = tile.rim,
         ) {
             when {
                 app == null -> MissingContent(label)
@@ -204,6 +217,7 @@ fun ShortcutView(node: ShortcutNode, sizing: TileSizing, modifier: Modifier = Mo
             color = theme.color(node.color) ?: theme.surface,
             interactionSource = interaction,
             cornerRadius = node.tile.cornerRadius?.dp,
+            rim = node.tile.rim,
         ) {
             if (node.image != null) {
                 AsyncImage(

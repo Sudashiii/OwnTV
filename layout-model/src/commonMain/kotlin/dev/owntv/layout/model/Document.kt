@@ -147,7 +147,17 @@ data class FocusStyle(
     val glowColor: String? = null,
     @Range(0.0, 48.0) @Doc("Glow size in dp. Default 10.")
     val glowSize: Int = 10,
+    @Doc("Draw a moving light sheen across the focused tile, like the tvOS focus effect. Default false.")
+    val highlight: Boolean = false,
+    @Doc("Movement of the focused tile: none, or sway (a gentle 3D tilt, like tvOS parallax). Default none.")
+    val motion: FocusMotion = FocusMotion.None,
 )
+
+@Serializable
+enum class FocusMotion {
+    @SerialName("none") None,
+    @SerialName("sway") Sway,
+}
 
 /**
  * A background: a solid color, a gradient or an image. In JSON a plain color string such as
@@ -190,6 +200,22 @@ data class ImageBackground(
 ) : Background
 
 @Serializable
+@SerialName("glass")
+@Doc("Frosted Liquid Glass: blurs and refracts the hero, images and page background behind the node, with a light rim. Android 12 and newer; older devices show the tint only.")
+data class GlassBackground(
+    @ColorValue @Doc("Tint over the glass; use a translucent color. Default #1FFFFFFF.")
+    val tint: String = "#1FFFFFFF",
+    @Doc("regular = frosted, clear = mostly see-through with stronger refraction. Default regular.")
+    val variant: GlassVariant = GlassVariant.Regular,
+) : Background
+
+@Serializable
+enum class GlassVariant {
+    @SerialName("regular") Regular,
+    @SerialName("clear") Clear,
+}
+
+@Serializable
 enum class ImageFit {
     @SerialName("cover") Cover,
     @SerialName("contain") Contain,
@@ -204,6 +230,7 @@ object BackgroundSerializer : KSerializer<Background> {
         "color" to ColorBackground.serializer(),
         "gradient" to GradientBackground.serializer(),
         "image" to ImageBackground.serializer(),
+        "glass" to GlassBackground.serializer(),
     )
 
     @OptIn(InternalSerializationApi::class)
@@ -228,6 +255,7 @@ object BackgroundSerializer : KSerializer<Background> {
         val (type, body) = when (value) {
             is GradientBackground -> "gradient" to output.json.encodeToJsonElement(GradientBackground.serializer(), value)
             is ImageBackground -> "image" to output.json.encodeToJsonElement(ImageBackground.serializer(), value)
+            is GlassBackground -> "glass" to output.json.encodeToJsonElement(GlassBackground.serializer(), value)
             is ColorBackground -> error("handled above")
         }
         output.encodeJsonElement(JsonObject(linkedMapOf<String, JsonElement>("type" to JsonPrimitive(type)) + body.jsonObject))

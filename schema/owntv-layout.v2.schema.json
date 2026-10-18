@@ -204,6 +204,18 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 48
+        },
+        "highlight": {
+          "description": "Draw a moving light sheen across the focused tile, like the tvOS focus effect. Default false.",
+          "type": "boolean"
+        },
+        "motion": {
+          "description": "Movement of the focused tile: none, or sway (a gentle 3D tilt, like tvOS parallax). Default none.",
+          "type": "string",
+          "enum": [
+            "none",
+            "sway"
+          ]
         }
       },
       "additionalProperties": false
@@ -221,6 +233,9 @@
         },
         {
           "$ref": "#/$defs/Background.image"
+        },
+        {
+          "$ref": "#/$defs/Background.glass"
         }
       ]
     },
@@ -288,6 +303,32 @@
       "required": [
         "type",
         "src"
+      ],
+      "additionalProperties": false
+    },
+    "Background.glass": {
+      "type": "object",
+      "description": "Frosted Liquid Glass: blurs and refracts the hero, images and page background behind the node, with a light rim. Android 12 and newer; older devices show the tint only.",
+      "properties": {
+        "type": {
+          "const": "glass"
+        },
+        "tint": {
+          "description": "Tint over the glass; use a translucent color. Default #1FFFFFFF.",
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+        },
+        "variant": {
+          "description": "regular = frosted, clear = mostly see-through with stronger refraction. Default regular.",
+          "type": "string",
+          "enum": [
+            "regular",
+            "clear"
+          ]
+        }
+      },
+      "required": [
+        "type"
       ],
       "additionalProperties": false
     },
@@ -1413,6 +1454,10 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 200
+        },
+        "rim": {
+          "description": "Thin light edge around the tile, like tvOS Liquid Glass icons. Default false.",
+          "type": "boolean"
         }
       },
       "additionalProperties": false
@@ -1979,6 +2024,11 @@
           "minimum": 1,
           "maximum": 12
         },
+        "color": {
+          "description": "Folder tile color; a translucent color gives a glass look. Default @surface.",
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+        },
         "width": {
           "description": "\"fill\" (all available width), \"wrap\" (fit content) or a number in dp. Default depends on the widget.",
           "oneOf": [
@@ -2541,6 +2591,12 @@
             "bottom",
             "bottom_end"
           ]
+        },
+        "fade": {
+          "description": "Share of the height at the bottom that fades out into what is behind the hero, 0 to 1. Default 0.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
         },
         "width": {
           "description": "\"fill\" (all available width), \"wrap\" (fit content) or a number in dp. Default depends on the widget.",
