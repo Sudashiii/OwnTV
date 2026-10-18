@@ -8,6 +8,12 @@ The entire home screen is described by one JSON document: rows, columns, grids a
 
 **Launcher settings → Looks** has recreations of popular TV home screens: Google TV, Android TV classic, Apple TV (Top Shelf hero over a dock and app grid), Fire TV, Roku and LG webOS. Use a whole look, or keep your layout and take only its colors, fonts, focus style and tile defaults. They live in [looks/](looks/) and are ordinary layouts, so they are good starting points for your own.
 
+## Editing on the TV
+
+Open **Launcher settings → Edit layout**, or long-press a tile and choose **Edit layout** to select its row or widget. Use the outline to select an item; the preview outlines it in pink and scrolls it into view. Press OK to edit its properties, add items, move them, duplicate them or delete them.
+
+Changes stay in the editor until you choose **Save**. **Undo** and **Redo** work while editing; Back returns through the panels and asks whether to save or discard unsaved changes. Validation errors must be fixed before saving. Saved edits go into layout history like imports.
+
 ## Getting a layout onto the TV
 
 Open **Launcher settings → Import layout** (long-press OK on any tile, or use a Settings shortcut):
@@ -41,7 +47,7 @@ adb shell pm disable-user --user 0 com.google.android.apps.tv.launcherx
 ## Building
 
 ```bash
-./gradlew :layout-model:test :app:assembleDebug
+./gradlew :layout-model:test :app:testDebugUnitTest :app:assembleDebug
 ```
 
 See [CLAUDE.md](CLAUDE.md) for the project layout and development notes.

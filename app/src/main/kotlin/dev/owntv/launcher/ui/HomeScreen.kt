@@ -118,6 +118,7 @@ fun HomeScreen(container: AppContainer, nav: Navigator, state: LayoutState, cata
             onOpen = { target.app?.let { handler.openApp(it) } },
             onAppInfo = { target.packageName?.let(container.actions::openAppInfo) },
             onLauncherSettings = { nav.push(Screen.Settings) },
+            onEditLayout = { nav.push(Screen.Editor(target.nodeId)) },
         )
     }
 }

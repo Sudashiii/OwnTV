@@ -79,6 +79,7 @@ fun ContextMenu(
     onOpen: () -> Unit,
     onAppInfo: () -> Unit,
     onLauncherSettings: () -> Unit,
+    onEditLayout: (() -> Unit)? = null,
 ) {
     Dialog(onDismissRequest = onDismiss) {
         Column(
@@ -91,6 +92,7 @@ fun ContextMenu(
             val items = buildList<Pair<String, () -> Unit>> {
                 if (target.app != null) add("Open" to onOpen)
                 if (target.packageName != null) add("App info" to onAppInfo)
+                if (onEditLayout != null) add("Edit layout" to onEditLayout)
                 add("Launcher settings" to onLauncherSettings)
                 add("Cancel" to {})
             }

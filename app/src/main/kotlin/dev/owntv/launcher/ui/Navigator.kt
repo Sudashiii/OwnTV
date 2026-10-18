@@ -11,6 +11,7 @@ sealed interface Screen {
     data object Home : Screen
     data object AppDrawer : Screen
     data object Settings : Screen
+    data class Editor(val selectId: String? = null) : Screen
     data object Import : Screen
     data object Templates : Screen
     data object Looks : Screen

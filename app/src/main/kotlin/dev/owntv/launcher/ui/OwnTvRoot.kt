@@ -15,6 +15,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.darkColorScheme
 import dev.owntv.launcher.AppContainer
+import dev.owntv.launcher.ui.editor.EditorScreen
 import dev.owntv.launcher.ui.render.AppCatalog
 
 @Composable
@@ -43,6 +44,7 @@ fun OwnTvRoot(container: AppContainer, nav: Navigator) {
                 Screen.Home -> HomeScreen(container, nav, layoutState, catalog)
                 Screen.AppDrawer -> AppDrawerScreen(container, nav, layoutState, catalog)
                 Screen.Settings -> SettingsScreen(container, nav, layoutState)
+                is Screen.Editor -> EditorScreen(container, nav, layoutState, catalog, screen.selectId)
                 Screen.Import -> ImportScreen(container, nav)
                 Screen.Templates -> TemplatesScreen(container, nav)
                 Screen.Looks -> LooksScreen(container, nav)

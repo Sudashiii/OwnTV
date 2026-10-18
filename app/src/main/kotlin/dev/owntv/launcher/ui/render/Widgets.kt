@@ -91,6 +91,7 @@ fun HeroView(node: HeroNode, modifier: Modifier) {
     val handler = LocalActionHandler.current
     val tracker = LocalFocusTracker.current
     val preview = LocalPreviewMode.current
+    val nodeId = LocalAncestors.current.lastOrNull()
     val slides = node.slides
 
     var slideIndex by remember(slides) { mutableIntStateOf(0) }
@@ -132,7 +133,7 @@ fun HeroView(node: HeroNode, modifier: Modifier) {
         val interaction = remember { MutableInteractionSource() }
         TileSurface(
             onClick = { slides.getOrNull(slideIndex)?.action?.let(handler::perform) },
-            onLongClick = { handler.longPress(ContextTarget(content.title ?: "Hero", null, null)) },
+            onLongClick = { handler.longPress(ContextTarget(content.title ?: "Hero", null, null, nodeId)) },
             modifier = modifier.onPreviewKeyEvent { event ->
                 if (event.type != KeyEventType.KeyDown || slides.size < 2) return@onPreviewKeyEvent false
                 when (event.key) {
@@ -234,7 +235,7 @@ fun FolderView(node: FolderNode, sizing: TileSizing, modifier: Modifier) {
     TileFrame(node.tile, sizing, node.label, focused, modifier) { surfaceModifier ->
         TileSurface(
             onClick = { open = true },
-            onLongClick = { handler.longPress(ContextTarget(node.label, null, null)) },
+            onLongClick = { handler.longPress(ContextTarget(node.label, null, null, ancestors.lastOrNull())) },
             modifier = surfaceModifier,
             color = theme.surface,
             interactionSource = interaction,

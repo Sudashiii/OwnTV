@@ -115,4 +115,5 @@ dependencies {
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.cio)
     implementation(libs.zxing.core)
+    testImplementation(kotlin("test-junit"))
 }

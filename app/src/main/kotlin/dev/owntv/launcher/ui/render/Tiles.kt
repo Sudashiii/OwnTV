@@ -169,7 +169,7 @@ fun AppTileView(
     val app = (entry as? AppEntry.Installed)?.app
     val override = catalog.override(entry.packageName)
     val label = labelOverride ?: app?.let(catalog::labelOf) ?: entry.packageName
-    val target = ContextTarget(label, app, entry.packageName)
+    val target = ContextTarget(label, app, entry.packageName, ancestors.lastOrNull())
 
     ReportFocus(focused) { FocusedTile(label, app, override?.description, override?.backdrop, ancestors) }
 
@@ -218,7 +218,7 @@ fun ShortcutView(node: ShortcutNode, sizing: TileSizing, modifier: Modifier = Mo
     val interaction = remember { MutableInteractionSource() }
     val focused by interaction.collectIsFocusedAsState()
     val launchPackage = (node.action as? LaunchAppAction)?.packageName
-    val target = ContextTarget(node.label, launchPackage?.let { catalog[it] }, launchPackage)
+    val target = ContextTarget(node.label, launchPackage?.let { catalog[it] }, launchPackage, ancestors.lastOrNull())
     val labelInside = node.tile.shape != TileShape.Icon
 
     ReportFocus(focused) {

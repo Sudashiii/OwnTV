@@ -37,10 +37,10 @@ fun SettingsScreen(container: AppContainer, nav: Navigator, state: LayoutState) 
 
     SettingsScaffold("OwnTV settings", "Layout: ${state.document.name}") {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
+            SettingsItem("Edit layout", "Add, move and customize items with your remote", modifier = rememberInitialFocus()) { nav.push(Screen.Editor()) }
             SettingsItem(
                 "Import layout",
                 "Paste JSON from your phone, load a URL or a file",
-                modifier = rememberInitialFocus(),
             ) { nav.push(Screen.Import) }
             SettingsItem("Looks", "Google TV, Apple TV, Fire TV, Roku and more; use a whole look or only its style") { nav.push(Screen.Looks) }
             SettingsItem("Templates", "Start from a built-in layout") { nav.push(Screen.Templates) }

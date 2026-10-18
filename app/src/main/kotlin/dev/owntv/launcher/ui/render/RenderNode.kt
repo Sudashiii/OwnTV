@@ -1,6 +1,9 @@
 package dev.owntv.launcher.ui.render
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.gestures.LocalBringIntoViewSpec
 import androidx.compose.foundation.horizontalScroll
@@ -32,9 +35,11 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.layout.ContentScale
@@ -95,8 +100,17 @@ fun RenderNode(node: Node, modifier: Modifier = Modifier, fillByDefault: Boolean
     val common = node.common
     val shape = RoundedCornerShape((common.cornerRadius ?: 0).dp)
     val fillWidth = fillByDefault || fillWidthByDefault || node is AppRowNode || node is AppGridNode || node is HeroNode
+    val selected = LocalEditorSelection.current == node.id
+    val bringIntoView = remember { BringIntoViewRequester() }
+    LaunchedEffect(selected) {
+        if (selected) {
+            withFrameNanos { }
+            bringIntoView.bringIntoView()
+        }
+    }
 
     var outer = modifier.nodeSize(node, fillWidth = fillWidth, fillHeight = fillByDefault)
+    if (selected) outer = outer.bringIntoViewRequester(bringIntoView).border(3.dp, Color(0xFFFF4FD8), shape)
 
     // Focus: targets of links get a requester; containers with links or targets become focus groups.
     val isTarget = registry?.isTarget(node.id) == true

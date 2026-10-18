@@ -112,7 +112,7 @@ fun Node.rendersFocusable(catalog: AppCatalog): Boolean = visible && when (this)
 }
 
 /** What a long press on a tile refers to. */
-data class ContextTarget(val title: String, val app: AppInfo?, val packageName: String?)
+data class ContextTarget(val title: String, val app: AppInfo?, val packageName: String?, val nodeId: String? = null)
 
 /** Receives clicks from rendered widgets. */
 interface ActionHandler {
@@ -164,6 +164,9 @@ val LocalFocusTracker = staticCompositionLocalOf<FocusTracker?> { null }
 
 /** Ids of the nodes enclosing the current one, outermost first. */
 val LocalAncestors = staticCompositionLocalOf { emptyList<String>() }
+
+/** The node outlined in the editor's preview. */
+val LocalEditorSelection = staticCompositionLocalOf<String?> { null }
 
 /** Title of the page being rendered, for the {page} placeholder. */
 val LocalPageTitle = staticCompositionLocalOf<String?> { null }
