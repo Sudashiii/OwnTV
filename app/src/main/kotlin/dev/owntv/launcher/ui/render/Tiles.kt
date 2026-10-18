@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -59,6 +60,7 @@ import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
 import coil3.compose.AsyncImage
 import dev.owntv.launcher.data.apps.AppImageLoader
+import dev.owntv.launcher.data.apps.AppInfo
 import dev.owntv.layout.model.LabelMode
 import dev.owntv.layout.model.LaunchAppAction
 import dev.owntv.layout.model.ShortcutNode
@@ -81,11 +83,15 @@ fun TileSize.iconSize(): Dp = when (this) {
     TileSize.Large -> 96.dp
 }
 
-private fun TileStyle.labelMode(): LabelMode = showLabel ?: if (style == TileShape.Banner) LabelMode.Focused else LabelMode.Always
+private fun TileStyle.labelMode(): LabelMode = showLabel ?: if (shape == TileShape.Banner) LabelMode.Focused else LabelMode.Always
+
+private fun TileStyle.ratio(): Float = aspectRatio ?: if (shape == TileShape.Icon) 1f else BANNER_RATIO
+
+private fun TileStyle.fixedWidth(): Dp = width?.dp ?: if (shape == TileShape.Icon) size.iconSize() else size.bannerWidth()
 
 /**
- * How a tile is sized. Fixed tiles use the [TileSize] preset; adaptive tiles fill the width their
- * parent gives them (grid cells, explicit widths) and keep a 16:9 ratio unless [fixedHeight] is set.
+ * How a tile is sized. Fixed tiles use the [TileStyle] size; adaptive tiles fill the width their
+ * parent gives them (grid cells, explicit widths) and keep the tile's aspect ratio unless [fixedHeight] is set.
  */
 data class TileSizing(val adaptive: Boolean, val fixedHeight: Boolean)
 
@@ -97,10 +103,12 @@ fun TileSurface(
     modifier: Modifier,
     color: Color,
     interactionSource: MutableInteractionSource,
+    cornerRadius: Dp? = null,
+    focusedScale: Float? = null,
     content: @Composable BoxScope.() -> Unit,
 ) {
     val theme = LocalOwnTheme.current
-    val shape = RoundedCornerShape(theme.cornerRadius)
+    val shape = RoundedCornerShape(cornerRadius ?: theme.cornerRadius)
     if (LocalPreviewMode.current) {
         Box(modifier.clip(shape).background(color), contentAlignment = Alignment.Center, content = content)
         return
@@ -118,16 +126,29 @@ fun TileSurface(
             pressedContainerColor = color,
             pressedContentColor = theme.text,
         ),
-        scale = ClickableSurfaceDefaults.scale(focusedScale = theme.focusScale),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = focusedScale ?: theme.focusScale),
         border = ClickableSurfaceDefaults.border(
-            focusedBorder = Border(border = BorderStroke(theme.focusBorderWidth, theme.focusBorderColor), shape = shape),
+            focusedBorder = if (theme.focusBorderWidth > 0.dp) {
+                Border(border = BorderStroke(theme.focusBorderWidth, theme.focusBorderColor), shape = shape)
+            } else {
+                Border.None
+            },
         ),
         glow = ClickableSurfaceDefaults.glow(
-            focusedGlow = if (theme.glow) Glow(elevationColor = theme.focusBorderColor.copy(alpha = 0.55f), elevation = 10.dp) else Glow.None,
+            focusedGlow = if (theme.glow) Glow(elevationColor = theme.glowColor, elevation = theme.glowSize) else Glow.None,
         ),
         interactionSource = interactionSource,
         content = content,
     )
+}
+
+/** Tells the page's [FocusTracker] which tile is focused, for heroes and the {focused} placeholder. */
+@Composable
+fun ReportFocus(focused: Boolean, tile: () -> FocusedTile) {
+    val tracker = LocalFocusTracker.current ?: return
+    LaunchedEffect(focused) {
+        if (focused) tracker.current = tile()
+    }
 }
 
 /** One app tile: banner, icon or card. [entry] may be an app that is not installed. */
@@ -141,34 +162,45 @@ fun AppTileView(
 ) {
     val theme = LocalOwnTheme.current
     val handler = LocalActionHandler.current
+    val catalog = LocalApps.current
+    val ancestors = LocalAncestors.current
     val interaction = remember { MutableInteractionSource() }
     val focused by interaction.collectIsFocusedAsState()
     val app = (entry as? AppEntry.Installed)?.app
-    val label = labelOverride ?: app?.label ?: entry.packageName
+    val override = catalog.override(entry.packageName)
+    val label = labelOverride ?: app?.let(catalog::labelOf) ?: entry.packageName
     val target = ContextTarget(label, app, entry.packageName)
+
+    ReportFocus(focused) { FocusedTile(label, app, override?.description, override?.backdrop, ancestors) }
 
     TileFrame(tile, sizing, label, focused, modifier) { surfaceModifier ->
         TileSurface(
             onClick = { if (app != null) handler.openApp(app) else handler.openMissing(entry.packageName) },
             onLongClick = { handler.longPress(target) },
             modifier = surfaceModifier,
-            color = theme.surface,
+            color = theme.color(override?.color) ?: theme.surface,
             interactionSource = interaction,
+            cornerRadius = tile.cornerRadius?.dp,
         ) {
             when {
                 app == null -> MissingContent(label)
-                tile.style == TileShape.Icon -> {
-                    val icon = rememberAppImage(app, AppImageLoader.Kind.Icon)
-                    if (icon != null) {
-                        Image(icon, contentDescription = label, modifier = Modifier.fillMaxSize().padding(8.dp))
+                tile.shape == TileShape.Icon -> {
+                    val custom = override?.icon
+                    if (custom != null) {
+                        AsyncImage(imageModel(custom), contentDescription = label, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+                    } else {
+                        rememberAppImage(app, AppImageLoader.Kind.Icon)?.let {
+                            Image(it, contentDescription = label, modifier = Modifier.fillMaxSize().padding(8.dp))
+                        }
                     }
                 }
                 else -> {
-                    val banner = rememberAppImage(app, AppImageLoader.Kind.Banner)
-                    if (banner != null) {
-                        Image(banner, contentDescription = label, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-                    } else {
-                        IconFallbackContent(app, label)
+                    val custom = override?.banner
+                    val banner = if (custom == null) rememberAppImage(app, AppImageLoader.Kind.Banner) else null
+                    when {
+                        custom != null -> AsyncImage(imageModel(custom), contentDescription = label, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+                        banner != null -> Image(banner, contentDescription = label, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+                        else -> IconFallbackContent(app, label)
                     }
                 }
             }
@@ -182,11 +214,16 @@ fun ShortcutView(node: ShortcutNode, sizing: TileSizing, modifier: Modifier = Mo
     val theme = LocalOwnTheme.current
     val handler = LocalActionHandler.current
     val catalog = LocalApps.current
+    val ancestors = LocalAncestors.current
     val interaction = remember { MutableInteractionSource() }
     val focused by interaction.collectIsFocusedAsState()
     val launchPackage = (node.action as? LaunchAppAction)?.packageName
     val target = ContextTarget(node.label, launchPackage?.let { catalog[it] }, launchPackage)
-    val labelInside = node.tile.style != TileShape.Icon
+    val labelInside = node.tile.shape != TileShape.Icon
+
+    ReportFocus(focused) {
+        FocusedTile(node.label, launchPackage?.let { catalog[it] }, node.description, node.backdrop, ancestors)
+    }
 
     TileFrame(node.tile, sizing, node.label, focused, modifier, showOutsideLabel = !labelInside) { surfaceModifier ->
         TileSurface(
@@ -195,6 +232,7 @@ fun ShortcutView(node: ShortcutNode, sizing: TileSizing, modifier: Modifier = Mo
             modifier = surfaceModifier,
             color = theme.color(node.color) ?: theme.surface,
             interactionSource = interaction,
+            cornerRadius = node.tile.cornerRadius?.dp,
         ) {
             if (node.image != null) {
                 AsyncImage(
@@ -204,21 +242,7 @@ fun ShortcutView(node: ShortcutNode, sizing: TileSizing, modifier: Modifier = Mo
                     modifier = Modifier.fillMaxSize(),
                 )
             } else if (labelInside) {
-                BoxWithConstraints(Modifier.fillMaxSize().padding(10.dp), contentAlignment = Alignment.Center) {
-                    val wide = maxWidth > maxHeight * 3
-                    val iconSize = if (wide) maxHeight * 0.6f else minOf(maxHeight * 0.45f, 56.dp)
-                    if (wide) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
-                            node.icon?.let { ShortcutIcon(it, iconSize); Spacer(Modifier.width(12.dp)) }
-                            TileLabel(node.label, TextStyleName.Title)
-                        }
-                    } else {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                            node.icon?.let { ShortcutIcon(it, iconSize); Spacer(Modifier.height(6.dp)) }
-                            TileLabel(node.label, TextStyleName.Body)
-                        }
-                    }
-                }
+                IconAndLabel(node.icon, node.label)
             } else {
                 BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     ShortcutIcon(node.icon ?: "star", minOf(maxWidth, maxHeight) * 0.55f)
@@ -228,9 +252,29 @@ fun ShortcutView(node: ShortcutNode, sizing: TileSizing, modifier: Modifier = Mo
     }
 }
 
+/** Icon above a label, or beside it when the tile is very wide. */
+@Composable
+fun IconAndLabel(icon: String?, label: String) {
+    BoxWithConstraints(Modifier.fillMaxSize().padding(10.dp), contentAlignment = Alignment.Center) {
+        val wide = maxWidth > maxHeight * 3
+        val iconSize = if (wide) maxHeight * 0.6f else minOf(maxHeight * 0.45f, 56.dp)
+        if (wide) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                icon?.let { ShortcutIcon(it, iconSize); Spacer(Modifier.width(12.dp)) }
+                TileLabel(label, TextStyleName.Title)
+            }
+        } else {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                icon?.let { ShortcutIcon(it, iconSize); Spacer(Modifier.height(6.dp)) }
+                TileLabel(label, TextStyleName.Body)
+            }
+        }
+    }
+}
+
 /** Lays out a tile surface with its optional label below, sized per [sizing]. */
 @Composable
-private fun TileFrame(
+fun TileFrame(
     tile: TileStyle,
     sizing: TileSizing,
     label: String,
@@ -240,9 +284,9 @@ private fun TileFrame(
     surface: @Composable (Modifier) -> Unit,
 ) {
     val theme = LocalOwnTheme.current
-    val isIcon = tile.style == TileShape.Icon
+    val isIcon = tile.shape == TileShape.Icon
     val outsideLabel = showOutsideLabel && tile.labelMode() != LabelMode.Never
-    val fixedWidth = if (isIcon) tile.size.iconSize() else tile.size.bannerWidth()
+    val width = tile.fixedWidth()
 
     Column(
         modifier = modifier.zIndex(if (focused) 1f else 0f),
@@ -250,14 +294,14 @@ private fun TileFrame(
     ) {
         val surfaceModifier = when {
             sizing.fixedHeight -> Modifier.fillMaxWidth().weight(1f)
-            isIcon -> Modifier.size(tile.size.iconSize())
-            sizing.adaptive -> Modifier.fillMaxWidth().aspectRatio(BANNER_RATIO)
-            else -> Modifier.size(fixedWidth, fixedWidth / BANNER_RATIO)
+            isIcon && tile.width == null -> Modifier.size(tile.size.iconSize())
+            sizing.adaptive -> Modifier.fillMaxWidth().aspectRatio(tile.ratio())
+            else -> Modifier.size(width, width / tile.ratio())
         }
         surface(surfaceModifier)
         if (outsideLabel) {
             val visible = tile.labelMode() == LabelMode.Always || focused
-            val labelWidth = if (sizing.adaptive) Modifier.fillMaxWidth() else Modifier.width(maxOf(fixedWidth, 88.dp))
+            val labelWidth = if (sizing.adaptive) Modifier.fillMaxWidth() else Modifier.width(maxOf(width, 88.dp))
             Text(
                 text = label,
                 style = theme.textStyle(TextStyleName.Caption).copy(fontSize = 13.sp * theme.theme.fontScale),
@@ -281,7 +325,7 @@ private fun MissingContent(label: String) {
 }
 
 @Composable
-private fun IconFallbackContent(app: dev.owntv.launcher.data.apps.AppInfo, label: String) {
+private fun IconFallbackContent(app: AppInfo, label: String) {
     val theme = LocalOwnTheme.current
     val icon = rememberAppImage(app, AppImageLoader.Kind.Icon)
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center, modifier = Modifier.fillMaxSize().padding(6.dp)) {

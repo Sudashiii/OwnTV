@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "name": "Streaming dashboard",
   "theme": {
     "colors": {
@@ -42,11 +42,11 @@
                 "id": "hero_text",
                 "weight": 1,
                 "children": [
-                  { "type": "text", "id": "hero_title", "text": "Movie night", "style": "headline", "bold": true },
-                  { "type": "text", "id": "hero_sub", "text": "Pick a service and press OK.", "style": "body", "color": "@textMuted" }
+                  { "type": "text", "id": "hero_title", "text": "Movie night", "textStyle": "headline", "bold": true },
+                  { "type": "text", "id": "hero_sub", "text": "Pick a service and press OK.", "textStyle": "body", "color": "@textMuted" }
                 ]
               },
-              { "type": "clock", "id": "hero_clock", "format": "HH:mm", "style": "headline" }
+              { "type": "clock", "id": "hero_clock", "format": "HH:mm", "textStyle": "headline" }
             ]
           },
           {
@@ -64,14 +64,14 @@
                 "com.google.android.youtube.tv"
               ]
             },
-            "tile": { "style": "card", "size": "large" }
+            "tile": { "shape": "card", "size": "large" }
           },
           {
             "type": "app_row",
             "id": "music",
             "title": "Music",
             "source": { "type": "packages", "packages": ["com.spotify.tv.android", "com.google.android.youtube.tvmusic"] },
-            "tile": { "style": "banner", "size": "medium" }
+            "tile": { "shape": "banner", "size": "medium" }
           },
           {
             "type": "row",
@@ -84,7 +84,7 @@
                 "label": "All apps",
                 "icon": "apps",
                 "action": { "type": "go_to_page", "page": "apps" },
-                "tile": { "style": "icon", "size": "small" }
+                "tile": { "shape": "icon", "size": "small" }
               },
               {
                 "type": "shortcut",
@@ -92,7 +92,7 @@
                 "label": "Network",
                 "icon": "🛜",
                 "action": { "type": "open_system_settings", "screen": "network" },
-                "tile": { "style": "icon", "size": "small" }
+                "tile": { "shape": "icon", "size": "small" }
               },
               {
                 "type": "shortcut",
@@ -100,7 +100,7 @@
                 "label": "Settings",
                 "icon": "settings",
                 "action": { "type": "open_system_settings" },
-                "tile": { "style": "icon", "size": "small" }
+                "tile": { "shape": "icon", "size": "small" }
               }
             ]
           }
@@ -123,7 +123,7 @@
             "id": "apps_grid",
             "columns": 7,
             "source": { "type": "all", "sort": "recently_installed" },
-            "tile": { "style": "icon", "size": "medium" }
+            "tile": { "shape": "icon", "size": "medium" }
           }
         ]
       }

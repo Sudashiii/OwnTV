@@ -25,7 +25,7 @@ class ValidatorTest {
     fun `initialFocus and go_to_page must point at existing targets`() {
         val result = LayoutCodec.decode(
             """
-            { "schemaVersion": 1, "pages": [ { "id": "home", "initialFocus": "nope", "root":
+            { "schemaVersion": 2, "pages": [ { "id": "home", "initialFocus": "nope", "root":
               { "type": "shortcut", "id": "s", "label": "Go", "action": { "type": "go_to_page", "page": "missing" } } } ] }
             """,
         )

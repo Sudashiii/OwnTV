@@ -22,7 +22,7 @@ dependencies {
     testImplementation(kotlin("test"))
 }
 
-val schemaFile = rootProject.layout.projectDirectory.file("schema/owntv-layout.v1.schema.json")
+val schemaFile = rootProject.layout.projectDirectory.file("schema/owntv-layout.v2.schema.json")
 
 tasks.test {
     useJUnit()
@@ -31,7 +31,7 @@ tasks.test {
     inputs.file(schemaFile).optional()
 }
 
-// Writes schema/owntv-layout.v1.schema.json from the Kotlin model.
+// Writes schema/owntv-layout.v2.schema.json from the Kotlin model.
 tasks.register<JavaExec>("generateSchema") {
     group = "owntv"
     description = "Regenerates the JSON Schema for OwnTV layouts."

@@ -22,7 +22,8 @@ fun OwnTvRoot(container: AppContainer, nav: Navigator) {
     val layoutState by container.layouts.state.collectAsStateWithLifecycle()
     val apps by container.apps.apps.collectAsStateWithLifecycle()
     val appsLoaded by container.apps.loaded.collectAsStateWithLifecycle()
-    val catalog = remember(apps, appsLoaded) { AppCatalog(apps, appsLoaded) }
+    val recent by container.recent.recent.collectAsStateWithLifecycle()
+    val catalog = remember(apps, appsLoaded, recent) { AppCatalog(apps, appsLoaded, recent) }
 
     // The phone paste page runs while Import (or a preview opened from it) is on the stack.
     val importOpen = nav.stack.any { it is Screen.Import }

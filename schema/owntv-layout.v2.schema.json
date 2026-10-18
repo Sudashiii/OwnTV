@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://owntv.dev/schema/owntv-layout.v1.schema.json",
+  "$id": "https://owntv.dev/schema/owntv-layout.v2.schema.json",
   "title": "OwnTV layout",
   "description": "Home screen layout for the OwnTV Android TV launcher. Generated from the Kotlin model; do not edit by hand.",
   "$ref": "#/$defs/LayoutDocument",
@@ -10,20 +10,65 @@
       "description": "An OwnTV launcher layout. The screen is 960 x 540 dp; all sizes are in dp.",
       "properties": {
         "schemaVersion": {
-          "description": "Format version. Use 1.",
+          "description": "Format version. Use 2.",
           "type": "integer"
         },
         "name": {
           "description": "Name shown in launcher settings and layout history.",
           "type": "string"
         },
+        "description": {
+          "description": "One sentence about this layout, shown in the template and theme lists.",
+          "type": "string"
+        },
         "theme": {
-          "description": "Colors, corner radius and focus style used by all widgets.",
+          "description": "Colors, fonts, corner radius and focus style used by all widgets.",
           "$ref": "#/$defs/Theme"
         },
         "background": {
           "description": "Background behind every page. Default: the theme background color.",
           "$ref": "#/$defs/Background"
+        },
+        "styles": {
+          "description": "Named sets of node properties. A node uses one with \"style\": \"name\"; its own properties win. A style may itself set \"style\" to build on another one.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "description": "Node properties (any property a node accepts, except type, id and children)."
+          }
+        },
+        "defaults": {
+          "description": "Default properties per node type, e.g. {\"app_row\": {\"spacing\": 24}}. Applied before styles; the node's own properties win.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "description": "Node properties (any property a node accepts, except type, id and children)."
+          },
+          "propertyNames": {
+            "enum": [
+              "column",
+              "row",
+              "grid",
+              "stack",
+              "app_tile",
+              "app_row",
+              "app_grid",
+              "folder",
+              "shortcut",
+              "hero",
+              "text",
+              "clock",
+              "image",
+              "spacer"
+            ]
+          }
+        },
+        "apps": {
+          "description": "Per-app settings keyed by package name: label, artwork, hero backdrop and description, hidden.",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/AppOverride"
+          }
         },
         "pageTabs": {
           "description": "Show a row of page tabs at the top when there is more than one page. Default false.",
@@ -59,6 +104,16 @@
         "focus": {
           "description": "How a focused tile looks.",
           "$ref": "#/$defs/FocusStyle"
+        },
+        "fontFamily": {
+          "description": "Font family for all text. Default sans.",
+          "type": "string",
+          "enum": [
+            "sans",
+            "serif",
+            "mono",
+            "cursive"
+          ]
         },
         "fontScale": {
           "description": "Multiplier for all text sizes. Default 1.",
@@ -125,7 +180,7 @@
           "maximum": 1.5
         },
         "borderWidth": {
-          "description": "Border width in dp around the focused tile. Default 3.",
+          "description": "Border width in dp around the focused tile; 0 for none. Default 3.",
           "type": "integer",
           "minimum": 0,
           "maximum": 12
@@ -136,17 +191,30 @@
           "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
         },
         "glow": {
-          "description": "Soft glow around the focused tile. Default true.",
+          "description": "Soft glow or shadow around the focused tile. Default true.",
           "type": "boolean"
+        },
+        "glowColor": {
+          "description": "Glow color; use a dark, semi-transparent color like #99000000 for a drop shadow. Default: the border color at 55% opacity.",
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+        },
+        "glowSize": {
+          "description": "Glow size in dp. Default 10.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 48
         }
       },
       "additionalProperties": false
     },
     "Background": {
-      "description": "A full-screen background.",
+      "description": "A color string (shorthand for a solid color) or a gradient or image object.",
       "oneOf": [
         {
-          "$ref": "#/$defs/Background.color"
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$",
+          "description": "A solid color: #RRGGBB, #AARRGGBB or a theme token like @surface."
         },
         {
           "$ref": "#/$defs/Background.gradient"
@@ -156,28 +224,9 @@
         }
       ]
     },
-    "Background.color": {
-      "type": "object",
-      "description": "A solid color background.",
-      "properties": {
-        "type": {
-          "const": "color"
-        },
-        "color": {
-          "description": "Background color.",
-          "type": "string",
-          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
-        }
-      },
-      "required": [
-        "type",
-        "color"
-      ],
-      "additionalProperties": false
-    },
     "Background.gradient": {
       "type": "object",
-      "description": "A linear gradient background.",
+      "description": "A linear gradient.",
       "properties": {
         "type": {
           "const": "gradient"
@@ -205,7 +254,7 @@
     },
     "Background.image": {
       "type": "object",
-      "description": "An image background.",
+      "description": "An image.",
       "properties": {
         "type": {
           "const": "image"
@@ -220,8 +269,14 @@
           "minimum": 0,
           "maximum": 1
         },
+        "blur": {
+          "description": "Blur radius in dp (Android 12 and newer). Default 0.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 60
+        },
         "fit": {
-          "description": "How the image fills the screen. Default cover.",
+          "description": "How the image fills the area. Default cover.",
           "type": "string",
           "enum": [
             "cover",
@@ -234,6 +289,42 @@
         "type",
         "src"
       ],
+      "additionalProperties": false
+    },
+    "AppOverride": {
+      "type": "object",
+      "description": "Settings for one app, used everywhere the app appears.",
+      "properties": {
+        "label": {
+          "description": "Name to show instead of the app's own.",
+          "type": "string"
+        },
+        "banner": {
+          "description": "Image replacing the app's banner on banner and card tiles: an https:// URL or \"asset:<path>\".",
+          "type": "string"
+        },
+        "icon": {
+          "description": "Image replacing the app's icon on icon tiles.",
+          "type": "string"
+        },
+        "backdrop": {
+          "description": "Large image a hero shows while this app is focused.",
+          "type": "string"
+        },
+        "description": {
+          "description": "Text a hero shows while this app is focused.",
+          "type": "string"
+        },
+        "color": {
+          "description": "Tile background color behind the app's artwork.",
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+        },
+        "hidden": {
+          "description": "Leave the app out of all, category, recent and folder sources. Explicit package lists still show it. Default false.",
+          "type": "boolean"
+        }
+      },
       "additionalProperties": false
     },
     "Page": {
@@ -292,7 +383,13 @@
           "$ref": "#/$defs/Node.app_grid"
         },
         {
+          "$ref": "#/$defs/Node.folder"
+        },
+        {
           "$ref": "#/$defs/Node.shortcut"
+        },
+        {
+          "$ref": "#/$defs/Node.hero"
         },
         {
           "$ref": "#/$defs/Node.text"
@@ -316,7 +413,6 @@
           "const": "column"
         },
         "id": {
-          "description": "Unique id (letters, digits, _ . -). Used by initialFocus, the editor and AI edits.",
           "type": "string"
         },
         "children": {
@@ -357,6 +453,21 @@
           "description": "Scroll vertically when the content is taller than the column. The focused widget scrolls into view. Default false.",
           "type": "boolean"
         },
+        "scrollAlign": {
+          "description": "Where a focused child is scrolled to: nearest (just into view), start (to the top, minus scrollMargin) or center. Default nearest.",
+          "type": "string",
+          "enum": [
+            "nearest",
+            "start",
+            "center"
+          ]
+        },
+        "scrollMargin": {
+          "description": "Distance in dp from the top kept when scrollAlign is start. Default 32.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 400
+        },
         "width": {
           "description": "\"fill\" (all available width), \"wrap\" (fit content) or a number in dp. Default depends on the widget.",
           "oneOf": [
@@ -428,15 +539,30 @@
           ]
         },
         "background": {
-          "description": "Background color behind this node.",
-          "type": "string",
-          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+          "description": "Background behind this node: a color like \"#202020\" or \"@surface\", or a gradient or image object.",
+          "$ref": "#/$defs/Background"
+        },
+        "border": {
+          "description": "Outline around this node.",
+          "$ref": "#/$defs/BorderStyle"
         },
         "cornerRadius": {
-          "description": "Corner radius in dp of this node's background.",
+          "description": "Corner radius in dp of the background, border and shadow.",
           "type": "integer",
           "minimum": 0,
           "maximum": 200
+        },
+        "opacity": {
+          "description": "Opacity of the whole node, 0 to 1. Default 1.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "shadow": {
+          "description": "Drop shadow size in dp. Default none.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 48
         },
         "align": {
           "description": "Position inside the parent. In a stack all 9 values apply; in a column only the horizontal part is used; in a row only the vertical part.",
@@ -459,6 +585,18 @@
           "minimum": 1,
           "maximum": 12
         },
+        "style": {
+          "description": "Name of an entry in the document's styles. Its properties apply where this node does not set its own.",
+          "type": "string"
+        },
+        "focus": {
+          "description": "Where the D-pad goes from this node: ids of other nodes on the same page. On a container it applies when focus leaves the container in that direction.",
+          "$ref": "#/$defs/FocusLinks"
+        },
+        "revealOnFocus": {
+          "description": "When something inside this node gets focus, scroll so the whole node is visible (like the Apple TV top shelf). Default false.",
+          "type": "boolean"
+        },
         "visible": {
           "description": "Set to false to hide the node without deleting it. Default true.",
           "type": "boolean"
@@ -470,6 +608,47 @@
       ],
       "additionalProperties": false
     },
+    "BorderStyle": {
+      "type": "object",
+      "description": "Outline around a node.",
+      "properties": {
+        "width": {
+          "description": "Width in dp. Default 2.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 24
+        },
+        "color": {
+          "description": "Color. Default @textMuted.",
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "FocusLinks": {
+      "type": "object",
+      "description": "Explicit D-pad targets. Each value is the id of a node on the same page.",
+      "properties": {
+        "up": {
+          "description": "Node that gets focus when Up is pressed.",
+          "type": "string"
+        },
+        "down": {
+          "description": "Node that gets focus when Down is pressed.",
+          "type": "string"
+        },
+        "left": {
+          "description": "Node that gets focus when Left is pressed.",
+          "type": "string"
+        },
+        "right": {
+          "description": "Node that gets focus when Right is pressed.",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
     "Node.row": {
       "type": "object",
       "description": "Places children side by side, left to right.",
@@ -478,7 +657,6 @@
           "const": "row"
         },
         "id": {
-          "description": "Unique id (letters, digits, _ . -). Used by initialFocus, the editor and AI edits.",
           "type": "string"
         },
         "children": {
@@ -519,6 +697,21 @@
           "description": "Scroll horizontally when the content is wider than the row. Default false.",
           "type": "boolean"
         },
+        "scrollAlign": {
+          "description": "Where a focused child is scrolled to: nearest, start (to the left edge, minus scrollMargin) or center. Default nearest.",
+          "type": "string",
+          "enum": [
+            "nearest",
+            "start",
+            "center"
+          ]
+        },
+        "scrollMargin": {
+          "description": "Distance in dp from the left kept when scrollAlign is start. Default 32.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 400
+        },
         "width": {
           "description": "\"fill\" (all available width), \"wrap\" (fit content) or a number in dp. Default depends on the widget.",
           "oneOf": [
@@ -590,15 +783,30 @@
           ]
         },
         "background": {
-          "description": "Background color behind this node.",
-          "type": "string",
-          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+          "description": "Background behind this node: a color like \"#202020\" or \"@surface\", or a gradient or image object.",
+          "$ref": "#/$defs/Background"
+        },
+        "border": {
+          "description": "Outline around this node.",
+          "$ref": "#/$defs/BorderStyle"
         },
         "cornerRadius": {
-          "description": "Corner radius in dp of this node's background.",
+          "description": "Corner radius in dp of the background, border and shadow.",
           "type": "integer",
           "minimum": 0,
           "maximum": 200
+        },
+        "opacity": {
+          "description": "Opacity of the whole node, 0 to 1. Default 1.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "shadow": {
+          "description": "Drop shadow size in dp. Default none.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 48
         },
         "align": {
           "description": "Position inside the parent. In a stack all 9 values apply; in a column only the horizontal part is used; in a row only the vertical part.",
@@ -621,6 +829,18 @@
           "minimum": 1,
           "maximum": 12
         },
+        "style": {
+          "description": "Name of an entry in the document's styles. Its properties apply where this node does not set its own.",
+          "type": "string"
+        },
+        "focus": {
+          "description": "Where the D-pad goes from this node: ids of other nodes on the same page. On a container it applies when focus leaves the container in that direction.",
+          "$ref": "#/$defs/FocusLinks"
+        },
+        "revealOnFocus": {
+          "description": "When something inside this node gets focus, scroll so the whole node is visible (like the Apple TV top shelf). Default false.",
+          "type": "boolean"
+        },
         "visible": {
           "description": "Set to false to hide the node without deleting it. Default true.",
           "type": "boolean"
@@ -640,7 +860,6 @@
           "const": "grid"
         },
         "id": {
-          "description": "Unique id (letters, digits, _ . -). Used by initialFocus, the editor and AI edits.",
           "type": "string"
         },
         "columns": {
@@ -733,15 +952,30 @@
           ]
         },
         "background": {
-          "description": "Background color behind this node.",
-          "type": "string",
-          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+          "description": "Background behind this node: a color like \"#202020\" or \"@surface\", or a gradient or image object.",
+          "$ref": "#/$defs/Background"
+        },
+        "border": {
+          "description": "Outline around this node.",
+          "$ref": "#/$defs/BorderStyle"
         },
         "cornerRadius": {
-          "description": "Corner radius in dp of this node's background.",
+          "description": "Corner radius in dp of the background, border and shadow.",
           "type": "integer",
           "minimum": 0,
           "maximum": 200
+        },
+        "opacity": {
+          "description": "Opacity of the whole node, 0 to 1. Default 1.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "shadow": {
+          "description": "Drop shadow size in dp. Default none.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 48
         },
         "align": {
           "description": "Position inside the parent. In a stack all 9 values apply; in a column only the horizontal part is used; in a row only the vertical part.",
@@ -764,6 +998,18 @@
           "minimum": 1,
           "maximum": 12
         },
+        "style": {
+          "description": "Name of an entry in the document's styles. Its properties apply where this node does not set its own.",
+          "type": "string"
+        },
+        "focus": {
+          "description": "Where the D-pad goes from this node: ids of other nodes on the same page. On a container it applies when focus leaves the container in that direction.",
+          "$ref": "#/$defs/FocusLinks"
+        },
+        "revealOnFocus": {
+          "description": "When something inside this node gets focus, scroll so the whole node is visible (like the Apple TV top shelf). Default false.",
+          "type": "boolean"
+        },
         "visible": {
           "description": "Set to false to hide the node without deleting it. Default true.",
           "type": "boolean"
@@ -784,7 +1030,6 @@
           "const": "stack"
         },
         "id": {
-          "description": "Unique id (letters, digits, _ . -). Used by initialFocus, the editor and AI edits.",
           "type": "string"
         },
         "children": {
@@ -880,15 +1125,30 @@
           ]
         },
         "background": {
-          "description": "Background color behind this node.",
-          "type": "string",
-          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+          "description": "Background behind this node: a color like \"#202020\" or \"@surface\", or a gradient or image object.",
+          "$ref": "#/$defs/Background"
+        },
+        "border": {
+          "description": "Outline around this node.",
+          "$ref": "#/$defs/BorderStyle"
         },
         "cornerRadius": {
-          "description": "Corner radius in dp of this node's background.",
+          "description": "Corner radius in dp of the background, border and shadow.",
           "type": "integer",
           "minimum": 0,
           "maximum": 200
+        },
+        "opacity": {
+          "description": "Opacity of the whole node, 0 to 1. Default 1.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "shadow": {
+          "description": "Drop shadow size in dp. Default none.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 48
         },
         "align": {
           "description": "Position inside the parent. In a stack all 9 values apply; in a column only the horizontal part is used; in a row only the vertical part.",
@@ -911,6 +1171,18 @@
           "minimum": 1,
           "maximum": 12
         },
+        "style": {
+          "description": "Name of an entry in the document's styles. Its properties apply where this node does not set its own.",
+          "type": "string"
+        },
+        "focus": {
+          "description": "Where the D-pad goes from this node: ids of other nodes on the same page. On a container it applies when focus leaves the container in that direction.",
+          "$ref": "#/$defs/FocusLinks"
+        },
+        "revealOnFocus": {
+          "description": "When something inside this node gets focus, scroll so the whole node is visible (like the Apple TV top shelf). Default false.",
+          "type": "boolean"
+        },
         "visible": {
           "description": "Set to false to hide the node without deleting it. Default true.",
           "type": "boolean"
@@ -930,7 +1202,6 @@
           "const": "app_tile"
         },
         "id": {
-          "description": "Unique id (letters, digits, _ . -). Used by initialFocus, the editor and AI edits.",
           "type": "string"
         },
         "package": {
@@ -1024,15 +1295,30 @@
           ]
         },
         "background": {
-          "description": "Background color behind this node.",
-          "type": "string",
-          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+          "description": "Background behind this node: a color like \"#202020\" or \"@surface\", or a gradient or image object.",
+          "$ref": "#/$defs/Background"
+        },
+        "border": {
+          "description": "Outline around this node.",
+          "$ref": "#/$defs/BorderStyle"
         },
         "cornerRadius": {
-          "description": "Corner radius in dp of this node's background.",
+          "description": "Corner radius in dp of the background, border and shadow.",
           "type": "integer",
           "minimum": 0,
           "maximum": 200
+        },
+        "opacity": {
+          "description": "Opacity of the whole node, 0 to 1. Default 1.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "shadow": {
+          "description": "Drop shadow size in dp. Default none.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 48
         },
         "align": {
           "description": "Position inside the parent. In a stack all 9 values apply; in a column only the horizontal part is used; in a row only the vertical part.",
@@ -1055,6 +1341,18 @@
           "minimum": 1,
           "maximum": 12
         },
+        "style": {
+          "description": "Name of an entry in the document's styles. Its properties apply where this node does not set its own.",
+          "type": "string"
+        },
+        "focus": {
+          "description": "Where the D-pad goes from this node: ids of other nodes on the same page. On a container it applies when focus leaves the container in that direction.",
+          "$ref": "#/$defs/FocusLinks"
+        },
+        "revealOnFocus": {
+          "description": "When something inside this node gets focus, scroll so the whole node is visible (like the Apple TV top shelf). Default false.",
+          "type": "boolean"
+        },
         "visible": {
           "description": "Set to false to hide the node without deleting it. Default true.",
           "type": "boolean"
@@ -1069,9 +1367,9 @@
     },
     "TileStyle": {
       "type": "object",
-      "description": "Look of app and shortcut tiles.",
+      "description": "Look of app, folder and shortcut tiles.",
       "properties": {
-        "style": {
+        "shape": {
           "description": "banner = 16:9 app banner; icon = square app icon with the label below; card = banner with the label always below. Default banner.",
           "type": "string",
           "enum": [
@@ -1097,6 +1395,24 @@
             "focused",
             "never"
           ]
+        },
+        "width": {
+          "description": "Exact tile width in dp; overrides size.",
+          "type": "integer",
+          "minimum": 32,
+          "maximum": 600
+        },
+        "aspectRatio": {
+          "description": "Width divided by height, e.g. 1.78 (16:9), 1.67 (Apple TV 5:3), 1 (square), 0.67 (poster). Default 16:9, or 1 for icons.",
+          "type": "number",
+          "minimum": 0.3,
+          "maximum": 4
+        },
+        "cornerRadius": {
+          "description": "Corner radius in dp; overrides the theme's cornerRadius.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 200
         }
       },
       "additionalProperties": false
@@ -1109,7 +1425,6 @@
           "const": "app_row"
         },
         "id": {
-          "description": "Unique id (letters, digits, _ . -). Used by initialFocus, the editor and AI edits.",
           "type": "string"
         },
         "source": {
@@ -1130,6 +1445,12 @@
           "minimum": 0,
           "maximum": 200
         },
+        "skip": {
+          "description": "Leave out the first N apps of the source, e.g. the ones a dock row above already shows. Default 0.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 500
+        },
         "limit": {
           "description": "Maximum number of tiles.",
           "type": "integer",
@@ -1143,6 +1464,21 @@
             "hide",
             "placeholder"
           ]
+        },
+        "scrollAlign": {
+          "description": "Where the focused tile is scrolled to: nearest, start (Google TV style, focused tile stays at the left) or center. Default nearest.",
+          "type": "string",
+          "enum": [
+            "nearest",
+            "start",
+            "center"
+          ]
+        },
+        "scrollMargin": {
+          "description": "Distance in dp from the left kept when scrollAlign is start. Default 0.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 400
         },
         "width": {
           "description": "\"fill\" (all available width), \"wrap\" (fit content) or a number in dp. Default depends on the widget.",
@@ -1215,15 +1551,30 @@
           ]
         },
         "background": {
-          "description": "Background color behind this node.",
-          "type": "string",
-          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+          "description": "Background behind this node: a color like \"#202020\" or \"@surface\", or a gradient or image object.",
+          "$ref": "#/$defs/Background"
+        },
+        "border": {
+          "description": "Outline around this node.",
+          "$ref": "#/$defs/BorderStyle"
         },
         "cornerRadius": {
-          "description": "Corner radius in dp of this node's background.",
+          "description": "Corner radius in dp of the background, border and shadow.",
           "type": "integer",
           "minimum": 0,
           "maximum": 200
+        },
+        "opacity": {
+          "description": "Opacity of the whole node, 0 to 1. Default 1.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "shadow": {
+          "description": "Drop shadow size in dp. Default none.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 48
         },
         "align": {
           "description": "Position inside the parent. In a stack all 9 values apply; in a column only the horizontal part is used; in a row only the vertical part.",
@@ -1245,6 +1596,18 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 12
+        },
+        "style": {
+          "description": "Name of an entry in the document's styles. Its properties apply where this node does not set its own.",
+          "type": "string"
+        },
+        "focus": {
+          "description": "Where the D-pad goes from this node: ids of other nodes on the same page. On a container it applies when focus leaves the container in that direction.",
+          "$ref": "#/$defs/FocusLinks"
+        },
+        "revealOnFocus": {
+          "description": "When something inside this node gets focus, scroll so the whole node is visible (like the Apple TV top shelf). Default false.",
+          "type": "boolean"
         },
         "visible": {
           "description": "Set to false to hide the node without deleting it. Default true.",
@@ -1269,6 +1632,9 @@
         },
         {
           "$ref": "#/$defs/AppSource.packages"
+        },
+        {
+          "$ref": "#/$defs/AppSource.recent"
         }
       ]
     },
@@ -1296,6 +1662,10 @@
         },
         "includeNonTvApps": {
           "description": "Also show phone apps that have no TV launcher entry. Default false.",
+          "type": "boolean"
+        },
+        "includeHidden": {
+          "description": "Also show apps marked hidden in the apps map. Default false.",
           "type": "boolean"
         }
       },
@@ -1362,6 +1732,26 @@
       ],
       "additionalProperties": false
     },
+    "AppSource.recent": {
+      "type": "object",
+      "description": "Recently used apps, most recent first. Launches from OwnTV always count; with usage access granted, launches from anywhere count.",
+      "properties": {
+        "type": {
+          "const": "recent"
+        },
+        "exclude": {
+          "description": "Package names to leave out.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    },
     "Node.app_grid": {
       "type": "object",
       "description": "A grid of app tiles with an optional title. Default width fill. Put it in a scrolling column when it can be taller than the screen.",
@@ -1370,7 +1760,6 @@
           "const": "app_grid"
         },
         "id": {
-          "description": "Unique id (letters, digits, _ . -). Used by initialFocus, the editor and AI edits.",
           "type": "string"
         },
         "source": {
@@ -1396,6 +1785,12 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 200
+        },
+        "skip": {
+          "description": "Leave out the first N apps of the source, e.g. the ones a dock row above already shows. Default 0.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 500
         },
         "limit": {
           "description": "Maximum number of tiles.",
@@ -1482,15 +1877,30 @@
           ]
         },
         "background": {
-          "description": "Background color behind this node.",
-          "type": "string",
-          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+          "description": "Background behind this node: a color like \"#202020\" or \"@surface\", or a gradient or image object.",
+          "$ref": "#/$defs/Background"
+        },
+        "border": {
+          "description": "Outline around this node.",
+          "$ref": "#/$defs/BorderStyle"
         },
         "cornerRadius": {
-          "description": "Corner radius in dp of this node's background.",
+          "description": "Corner radius in dp of the background, border and shadow.",
           "type": "integer",
           "minimum": 0,
           "maximum": 200
+        },
+        "opacity": {
+          "description": "Opacity of the whole node, 0 to 1. Default 1.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "shadow": {
+          "description": "Drop shadow size in dp. Default none.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 48
         },
         "align": {
           "description": "Position inside the parent. In a stack all 9 values apply; in a column only the horizontal part is used; in a row only the vertical part.",
@@ -1513,6 +1923,18 @@
           "minimum": 1,
           "maximum": 12
         },
+        "style": {
+          "description": "Name of an entry in the document's styles. Its properties apply where this node does not set its own.",
+          "type": "string"
+        },
+        "focus": {
+          "description": "Where the D-pad goes from this node: ids of other nodes on the same page. On a container it applies when focus leaves the container in that direction.",
+          "$ref": "#/$defs/FocusLinks"
+        },
+        "revealOnFocus": {
+          "description": "When something inside this node gets focus, scroll so the whole node is visible (like the Apple TV top shelf). Default false.",
+          "type": "boolean"
+        },
         "visible": {
           "description": "Set to false to hide the node without deleting it. Default true.",
           "type": "boolean"
@@ -1525,41 +1947,37 @@
       ],
       "additionalProperties": false
     },
-    "Node.shortcut": {
+    "Node.folder": {
       "type": "object",
-      "description": "A focusable tile with a custom label, icon or image that runs an action.",
+      "description": "A tile showing a few app icons that opens a panel with a group of apps, like Apple TV folders.",
       "properties": {
         "type": {
-          "const": "shortcut"
+          "const": "folder"
         },
         "id": {
-          "description": "Unique id (letters, digits, _ . -). Used by initialFocus, the editor and AI edits.",
           "type": "string"
         },
         "label": {
-          "description": "Text on the tile.",
+          "description": "Folder name, shown on and under the tile and as the panel title.",
           "type": "string"
         },
-        "action": {
-          "description": "What happens on click.",
-          "$ref": "#/$defs/Action"
-        },
-        "icon": {
-          "description": "Icon: one of settings, home, search, star, info, play, favorite, apps, add, refresh, notifications, person, lock, menu, or any emoji such as \"🎬\".",
-          "type": "string"
-        },
-        "image": {
-          "description": "Image instead of an icon: an https:// URL or \"asset:<path>\".",
-          "type": "string"
-        },
-        "color": {
-          "description": "Tile color. Default @surface.",
-          "type": "string",
-          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+        "source": {
+          "description": "Which apps are in the folder.",
+          "$ref": "#/$defs/AppSource"
         },
         "tile": {
-          "description": "Tile look. Default card, medium.",
+          "description": "Look of the folder tile. Default banner, medium.",
           "$ref": "#/$defs/TileStyle"
+        },
+        "itemTile": {
+          "description": "Look of the app tiles in the open panel. Default banner, medium.",
+          "$ref": "#/$defs/TileStyle"
+        },
+        "columns": {
+          "description": "Columns in the open panel. Default 4.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 12
         },
         "width": {
           "description": "\"fill\" (all available width), \"wrap\" (fit content) or a number in dp. Default depends on the widget.",
@@ -1632,15 +2050,30 @@
           ]
         },
         "background": {
-          "description": "Background color behind this node.",
-          "type": "string",
-          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+          "description": "Background behind this node: a color like \"#202020\" or \"@surface\", or a gradient or image object.",
+          "$ref": "#/$defs/Background"
+        },
+        "border": {
+          "description": "Outline around this node.",
+          "$ref": "#/$defs/BorderStyle"
         },
         "cornerRadius": {
-          "description": "Corner radius in dp of this node's background.",
+          "description": "Corner radius in dp of the background, border and shadow.",
           "type": "integer",
           "minimum": 0,
           "maximum": 200
+        },
+        "opacity": {
+          "description": "Opacity of the whole node, 0 to 1. Default 1.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "shadow": {
+          "description": "Drop shadow size in dp. Default none.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 48
         },
         "align": {
           "description": "Position inside the parent. In a stack all 9 values apply; in a column only the horizontal part is used; in a row only the vertical part.",
@@ -1662,6 +2095,203 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 12
+        },
+        "style": {
+          "description": "Name of an entry in the document's styles. Its properties apply where this node does not set its own.",
+          "type": "string"
+        },
+        "focus": {
+          "description": "Where the D-pad goes from this node: ids of other nodes on the same page. On a container it applies when focus leaves the container in that direction.",
+          "$ref": "#/$defs/FocusLinks"
+        },
+        "revealOnFocus": {
+          "description": "When something inside this node gets focus, scroll so the whole node is visible (like the Apple TV top shelf). Default false.",
+          "type": "boolean"
+        },
+        "visible": {
+          "description": "Set to false to hide the node without deleting it. Default true.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type",
+        "id",
+        "label",
+        "source"
+      ],
+      "additionalProperties": false
+    },
+    "Node.shortcut": {
+      "type": "object",
+      "description": "A focusable tile with a custom label, icon or image that runs an action.",
+      "properties": {
+        "type": {
+          "const": "shortcut"
+        },
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "description": "Text on the tile.",
+          "type": "string"
+        },
+        "action": {
+          "description": "What happens on click.",
+          "$ref": "#/$defs/Action"
+        },
+        "icon": {
+          "description": "Icon: one of settings, home, search, star, info, play, favorite, apps, add, refresh, notifications, person, lock, menu, or any emoji such as \"🎬\".",
+          "type": "string"
+        },
+        "image": {
+          "description": "Image instead of an icon: an https:// URL or \"asset:<path>\".",
+          "type": "string"
+        },
+        "color": {
+          "description": "Tile color. Default @surface.",
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+        },
+        "tile": {
+          "description": "Tile look. Default card, medium.",
+          "$ref": "#/$defs/TileStyle"
+        },
+        "description": {
+          "description": "Text a hero shows while this shortcut is focused.",
+          "type": "string"
+        },
+        "backdrop": {
+          "description": "Image a hero shows while this shortcut is focused: an https:// URL or \"asset:<path>\".",
+          "type": "string"
+        },
+        "width": {
+          "description": "\"fill\" (all available width), \"wrap\" (fit content) or a number in dp. Default depends on the widget.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "fill",
+                "wrap"
+              ]
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 4000
+            }
+          ]
+        },
+        "height": {
+          "description": "\"fill\" (all available height), \"wrap\" (fit content) or a number in dp. Default depends on the widget.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "fill",
+                "wrap"
+              ]
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 4000
+            }
+          ]
+        },
+        "weight": {
+          "description": "Share of the remaining space inside a row or column, like CSS flex-grow.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "padding": {
+          "description": "Inner padding in dp: a number, [horizontal, vertical] or [start, top, end, bottom].",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 400
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 400
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 400
+              },
+              "minItems": 4,
+              "maxItems": 4
+            }
+          ]
+        },
+        "background": {
+          "description": "Background behind this node: a color like \"#202020\" or \"@surface\", or a gradient or image object.",
+          "$ref": "#/$defs/Background"
+        },
+        "border": {
+          "description": "Outline around this node.",
+          "$ref": "#/$defs/BorderStyle"
+        },
+        "cornerRadius": {
+          "description": "Corner radius in dp of the background, border and shadow.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 200
+        },
+        "opacity": {
+          "description": "Opacity of the whole node, 0 to 1. Default 1.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "shadow": {
+          "description": "Drop shadow size in dp. Default none.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 48
+        },
+        "align": {
+          "description": "Position inside the parent. In a stack all 9 values apply; in a column only the horizontal part is used; in a row only the vertical part.",
+          "type": "string",
+          "enum": [
+            "top_start",
+            "top",
+            "top_end",
+            "start",
+            "center",
+            "end",
+            "bottom_start",
+            "bottom",
+            "bottom_end"
+          ]
+        },
+        "span": {
+          "description": "Number of grid columns this node covers. Only used inside a grid. Default 1.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 12
+        },
+        "style": {
+          "description": "Name of an entry in the document's styles. Its properties apply where this node does not set its own.",
+          "type": "string"
+        },
+        "focus": {
+          "description": "Where the D-pad goes from this node: ids of other nodes on the same page. On a container it applies when focus leaves the container in that direction.",
+          "$ref": "#/$defs/FocusLinks"
+        },
+        "revealOnFocus": {
+          "description": "When something inside this node gets focus, scroll so the whole node is visible (like the Apple TV top shelf). Default false.",
+          "type": "boolean"
         },
         "visible": {
           "description": "Set to false to hide the node without deleting it. Default true.",
@@ -1852,23 +2482,245 @@
       ],
       "additionalProperties": false
     },
+    "Node.hero": {
+      "type": "object",
+      "description": "A large banner area. With follow \"focus\" it shows the focused app (Apple TV top shelf); with \"slides\" it rotates through slides (Google TV / Fire TV carousel). Default width fill, height 280.",
+      "properties": {
+        "type": {
+          "const": "hero"
+        },
+        "id": {
+          "type": "string"
+        },
+        "follow": {
+          "description": "focus = show the focused app or shortcut (backdrop and description come from the apps map or the shortcut); slides = rotate through slides. Default focus.",
+          "type": "string",
+          "enum": [
+            "focus",
+            "slides"
+          ]
+        },
+        "target": {
+          "description": "With follow focus: only react to focus inside the node with this id (e.g. the dock row). Default: the whole page.",
+          "type": "string"
+        },
+        "slides": {
+          "description": "Slides. With follow focus they are shown until something is focused.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/HeroSlide"
+          }
+        },
+        "interval": {
+          "description": "Seconds per slide. Default 8.",
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 120
+        },
+        "showText": {
+          "description": "Show title and description text. Default true.",
+          "type": "boolean"
+        },
+        "scrim": {
+          "description": "Darkness of the gradient behind the text, 0 to 1. Default 0.6.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "contentAlign": {
+          "description": "Where the text block sits. Default bottom_start.",
+          "type": "string",
+          "enum": [
+            "top_start",
+            "top",
+            "top_end",
+            "start",
+            "center",
+            "end",
+            "bottom_start",
+            "bottom",
+            "bottom_end"
+          ]
+        },
+        "width": {
+          "description": "\"fill\" (all available width), \"wrap\" (fit content) or a number in dp. Default depends on the widget.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "fill",
+                "wrap"
+              ]
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 4000
+            }
+          ]
+        },
+        "height": {
+          "description": "\"fill\" (all available height), \"wrap\" (fit content) or a number in dp. Default depends on the widget.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "fill",
+                "wrap"
+              ]
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 4000
+            }
+          ]
+        },
+        "weight": {
+          "description": "Share of the remaining space inside a row or column, like CSS flex-grow.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "padding": {
+          "description": "Inner padding in dp: a number, [horizontal, vertical] or [start, top, end, bottom].",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 400
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 400
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 400
+              },
+              "minItems": 4,
+              "maxItems": 4
+            }
+          ]
+        },
+        "background": {
+          "description": "Background behind this node: a color like \"#202020\" or \"@surface\", or a gradient or image object.",
+          "$ref": "#/$defs/Background"
+        },
+        "border": {
+          "description": "Outline around this node.",
+          "$ref": "#/$defs/BorderStyle"
+        },
+        "cornerRadius": {
+          "description": "Corner radius in dp of the background, border and shadow.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 200
+        },
+        "opacity": {
+          "description": "Opacity of the whole node, 0 to 1. Default 1.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "shadow": {
+          "description": "Drop shadow size in dp. Default none.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 48
+        },
+        "align": {
+          "description": "Position inside the parent. In a stack all 9 values apply; in a column only the horizontal part is used; in a row only the vertical part.",
+          "type": "string",
+          "enum": [
+            "top_start",
+            "top",
+            "top_end",
+            "start",
+            "center",
+            "end",
+            "bottom_start",
+            "bottom",
+            "bottom_end"
+          ]
+        },
+        "span": {
+          "description": "Number of grid columns this node covers. Only used inside a grid. Default 1.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 12
+        },
+        "style": {
+          "description": "Name of an entry in the document's styles. Its properties apply where this node does not set its own.",
+          "type": "string"
+        },
+        "focus": {
+          "description": "Where the D-pad goes from this node: ids of other nodes on the same page. On a container it applies when focus leaves the container in that direction.",
+          "$ref": "#/$defs/FocusLinks"
+        },
+        "revealOnFocus": {
+          "description": "When something inside this node gets focus, scroll so the whole node is visible (like the Apple TV top shelf). Default false.",
+          "type": "boolean"
+        },
+        "visible": {
+          "description": "Set to false to hide the node without deleting it. Default true.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type",
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "HeroSlide": {
+      "type": "object",
+      "description": "One slide of a hero.",
+      "properties": {
+        "title": {
+          "description": "Large text.",
+          "type": "string"
+        },
+        "description": {
+          "description": "Smaller text under the title.",
+          "type": "string"
+        },
+        "background": {
+          "description": "Slide background: a color, gradient or image.",
+          "$ref": "#/$defs/Background"
+        },
+        "action": {
+          "description": "Makes the hero clickable while this slide shows.",
+          "$ref": "#/$defs/Action"
+        }
+      },
+      "additionalProperties": false
+    },
     "Node.text": {
       "type": "object",
-      "description": "Static text. Not focusable.",
+      "description": "Text, not focusable. May contain placeholders: {greeting}, {time}, {date}, {date:EEEE d MMMM}, {focused}, {page}. Write {{ for a literal {.",
       "properties": {
         "type": {
           "const": "text"
         },
         "id": {
-          "description": "Unique id (letters, digits, _ . -). Used by initialFocus, the editor and AI edits.",
           "type": "string"
         },
         "text": {
-          "description": "The text.",
+          "description": "The text, optionally with placeholders.",
           "type": "string"
         },
-        "style": {
-          "description": "Text size preset. Default body.",
+        "textStyle": {
+          "description": "Size preset. Default body.",
           "type": "string",
           "enum": [
             "display",
@@ -1876,6 +2728,22 @@
             "title",
             "body",
             "caption"
+          ]
+        },
+        "fontSize": {
+          "description": "Font size in sp; overrides the preset size.",
+          "type": "integer",
+          "minimum": 6,
+          "maximum": 200
+        },
+        "font": {
+          "description": "Font family. Default: the theme's font.",
+          "type": "string",
+          "enum": [
+            "sans",
+            "serif",
+            "mono",
+            "cursive"
           ]
         },
         "color": {
@@ -1886,6 +2754,16 @@
         "bold": {
           "description": "Bold text. Default false.",
           "type": "boolean"
+        },
+        "uppercase": {
+          "description": "Show the text in capital letters. Default false.",
+          "type": "boolean"
+        },
+        "letterSpacing": {
+          "description": "Extra space between letters in sp.",
+          "type": "number",
+          "minimum": -2,
+          "maximum": 20
         },
         "textAlign": {
           "description": "Alignment of the text inside its box. Default start.",
@@ -1973,15 +2851,30 @@
           ]
         },
         "background": {
-          "description": "Background color behind this node.",
-          "type": "string",
-          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+          "description": "Background behind this node: a color like \"#202020\" or \"@surface\", or a gradient or image object.",
+          "$ref": "#/$defs/Background"
+        },
+        "border": {
+          "description": "Outline around this node.",
+          "$ref": "#/$defs/BorderStyle"
         },
         "cornerRadius": {
-          "description": "Corner radius in dp of this node's background.",
+          "description": "Corner radius in dp of the background, border and shadow.",
           "type": "integer",
           "minimum": 0,
           "maximum": 200
+        },
+        "opacity": {
+          "description": "Opacity of the whole node, 0 to 1. Default 1.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "shadow": {
+          "description": "Drop shadow size in dp. Default none.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 48
         },
         "align": {
           "description": "Position inside the parent. In a stack all 9 values apply; in a column only the horizontal part is used; in a row only the vertical part.",
@@ -2004,6 +2897,18 @@
           "minimum": 1,
           "maximum": 12
         },
+        "style": {
+          "description": "Name of an entry in the document's styles. Its properties apply where this node does not set its own.",
+          "type": "string"
+        },
+        "focus": {
+          "description": "Where the D-pad goes from this node: ids of other nodes on the same page. On a container it applies when focus leaves the container in that direction.",
+          "$ref": "#/$defs/FocusLinks"
+        },
+        "revealOnFocus": {
+          "description": "When something inside this node gets focus, scroll so the whole node is visible (like the Apple TV top shelf). Default false.",
+          "type": "boolean"
+        },
         "visible": {
           "description": "Set to false to hide the node without deleting it. Default true.",
           "type": "boolean"
@@ -2024,15 +2929,14 @@
           "const": "clock"
         },
         "id": {
-          "description": "Unique id (letters, digits, _ . -). Used by initialFocus, the editor and AI edits.",
           "type": "string"
         },
         "format": {
           "description": "java.time pattern, e.g. \"HH:mm\" (24h), \"h:mm a\" (12h) or \"EEEE, d MMMM\" (date). Default HH:mm.",
           "type": "string"
         },
-        "style": {
-          "description": "Text size preset. Default display.",
+        "textStyle": {
+          "description": "Size preset. Default display.",
           "type": "string",
           "enum": [
             "display",
@@ -2040,6 +2944,22 @@
             "title",
             "body",
             "caption"
+          ]
+        },
+        "fontSize": {
+          "description": "Font size in sp; overrides the preset size.",
+          "type": "integer",
+          "minimum": 6,
+          "maximum": 200
+        },
+        "font": {
+          "description": "Font family. Default: the theme's font.",
+          "type": "string",
+          "enum": [
+            "sans",
+            "serif",
+            "mono",
+            "cursive"
           ]
         },
         "color": {
@@ -2050,6 +2970,12 @@
         "bold": {
           "description": "Bold text. Default false.",
           "type": "boolean"
+        },
+        "letterSpacing": {
+          "description": "Extra space between letters in sp.",
+          "type": "number",
+          "minimum": -2,
+          "maximum": 20
         },
         "textAlign": {
           "description": "Alignment of the text inside its box. Default start.",
@@ -2131,15 +3057,30 @@
           ]
         },
         "background": {
-          "description": "Background color behind this node.",
-          "type": "string",
-          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+          "description": "Background behind this node: a color like \"#202020\" or \"@surface\", or a gradient or image object.",
+          "$ref": "#/$defs/Background"
+        },
+        "border": {
+          "description": "Outline around this node.",
+          "$ref": "#/$defs/BorderStyle"
         },
         "cornerRadius": {
-          "description": "Corner radius in dp of this node's background.",
+          "description": "Corner radius in dp of the background, border and shadow.",
           "type": "integer",
           "minimum": 0,
           "maximum": 200
+        },
+        "opacity": {
+          "description": "Opacity of the whole node, 0 to 1. Default 1.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "shadow": {
+          "description": "Drop shadow size in dp. Default none.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 48
         },
         "align": {
           "description": "Position inside the parent. In a stack all 9 values apply; in a column only the horizontal part is used; in a row only the vertical part.",
@@ -2162,6 +3103,18 @@
           "minimum": 1,
           "maximum": 12
         },
+        "style": {
+          "description": "Name of an entry in the document's styles. Its properties apply where this node does not set its own.",
+          "type": "string"
+        },
+        "focus": {
+          "description": "Where the D-pad goes from this node: ids of other nodes on the same page. On a container it applies when focus leaves the container in that direction.",
+          "$ref": "#/$defs/FocusLinks"
+        },
+        "revealOnFocus": {
+          "description": "When something inside this node gets focus, scroll so the whole node is visible (like the Apple TV top shelf). Default false.",
+          "type": "boolean"
+        },
         "visible": {
           "description": "Set to false to hide the node without deleting it. Default true.",
           "type": "boolean"
@@ -2181,7 +3134,6 @@
           "const": "image"
         },
         "id": {
-          "description": "Unique id (letters, digits, _ . -). Used by initialFocus, the editor and AI edits.",
           "type": "string"
         },
         "src": {
@@ -2274,15 +3226,30 @@
           ]
         },
         "background": {
-          "description": "Background color behind this node.",
-          "type": "string",
-          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+          "description": "Background behind this node: a color like \"#202020\" or \"@surface\", or a gradient or image object.",
+          "$ref": "#/$defs/Background"
+        },
+        "border": {
+          "description": "Outline around this node.",
+          "$ref": "#/$defs/BorderStyle"
         },
         "cornerRadius": {
-          "description": "Corner radius in dp of this node's background.",
+          "description": "Corner radius in dp of the background, border and shadow.",
           "type": "integer",
           "minimum": 0,
           "maximum": 200
+        },
+        "opacity": {
+          "description": "Opacity of the whole node, 0 to 1. Default 1.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "shadow": {
+          "description": "Drop shadow size in dp. Default none.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 48
         },
         "align": {
           "description": "Position inside the parent. In a stack all 9 values apply; in a column only the horizontal part is used; in a row only the vertical part.",
@@ -2305,6 +3272,18 @@
           "minimum": 1,
           "maximum": 12
         },
+        "style": {
+          "description": "Name of an entry in the document's styles. Its properties apply where this node does not set its own.",
+          "type": "string"
+        },
+        "focus": {
+          "description": "Where the D-pad goes from this node: ids of other nodes on the same page. On a container it applies when focus leaves the container in that direction.",
+          "$ref": "#/$defs/FocusLinks"
+        },
+        "revealOnFocus": {
+          "description": "When something inside this node gets focus, scroll so the whole node is visible (like the Apple TV top shelf). Default false.",
+          "type": "boolean"
+        },
         "visible": {
           "description": "Set to false to hide the node without deleting it. Default true.",
           "type": "boolean"
@@ -2325,7 +3304,6 @@
           "const": "spacer"
         },
         "id": {
-          "description": "Unique id (letters, digits, _ . -). Used by initialFocus, the editor and AI edits.",
           "type": "string"
         },
         "width": {
@@ -2399,15 +3377,30 @@
           ]
         },
         "background": {
-          "description": "Background color behind this node.",
-          "type": "string",
-          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+          "description": "Background behind this node: a color like \"#202020\" or \"@surface\", or a gradient or image object.",
+          "$ref": "#/$defs/Background"
+        },
+        "border": {
+          "description": "Outline around this node.",
+          "$ref": "#/$defs/BorderStyle"
         },
         "cornerRadius": {
-          "description": "Corner radius in dp of this node's background.",
+          "description": "Corner radius in dp of the background, border and shadow.",
           "type": "integer",
           "minimum": 0,
           "maximum": 200
+        },
+        "opacity": {
+          "description": "Opacity of the whole node, 0 to 1. Default 1.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "shadow": {
+          "description": "Drop shadow size in dp. Default none.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 48
         },
         "align": {
           "description": "Position inside the parent. In a stack all 9 values apply; in a column only the horizontal part is used; in a row only the vertical part.",
@@ -2429,6 +3422,18 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 12
+        },
+        "style": {
+          "description": "Name of an entry in the document's styles. Its properties apply where this node does not set its own.",
+          "type": "string"
+        },
+        "focus": {
+          "description": "Where the D-pad goes from this node: ids of other nodes on the same page. On a container it applies when focus leaves the container in that direction.",
+          "$ref": "#/$defs/FocusLinks"
+        },
+        "revealOnFocus": {
+          "description": "When something inside this node gets focus, scroll so the whole node is visible (like the Apple TV top shelf). Default false.",
+          "type": "boolean"
         },
         "visible": {
           "description": "Set to false to hide the node without deleting it. Default true.",

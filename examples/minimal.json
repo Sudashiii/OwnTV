@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "name": "Minimal",
   "theme": {
     "colors": { "background": "#000000", "surface": "#141414", "primary": "#FFFFFF", "text": "#F5F5F5", "textMuted": "#8A8A8A", "focus": "#FFFFFF" },
@@ -17,12 +17,12 @@
         "contentAlign": "center",
         "arrange": "space_between",
         "children": [
-          { "type": "clock", "id": "clock", "format": "HH:mm", "style": "display", "bold": true },
+          { "type": "clock", "id": "clock", "format": "HH:mm", "textStyle": "display", "bold": true },
           {
             "type": "app_row",
             "id": "apps",
             "source": { "type": "all", "sort": "alphabetical" },
-            "tile": { "style": "icon", "size": "medium" }
+            "tile": { "shape": "icon", "size": "medium" }
           }
         ]
       }

@@ -1,8 +1,8 @@
 package dev.owntv.layout.validation
 
+import dev.owntv.layout.model.BackgroundSerializer
 import dev.owntv.layout.model.ColorValue
 import dev.owntv.layout.model.Colors
-import dev.owntv.layout.model.CommonNodeFields
 import dev.owntv.layout.model.NodeRegistry
 import dev.owntv.layout.model.NodeSerializer
 import dev.owntv.layout.model.PaddingSerializer
@@ -36,6 +36,22 @@ internal data class FieldMeta(
  */
 internal class StructureValidator(private val out: IssueCollector) {
 
+    /** Checks a whole layout document, including its styles and type defaults. */
+    fun checkDocument(descriptor: SerialDescriptor, doc: JsonObject) {
+        check(descriptor, doc, "$")
+        (doc["styles"] as? JsonObject)?.forEach { (name, style) ->
+            (style as? JsonObject)?.let { checkStyle(it, "$.styles.$name", allowedTypes = null) }
+        }
+        (doc["defaults"] as? JsonObject)?.forEach { (type, style) ->
+            val nodeType = NodeRegistry.forType(type)
+            if (nodeType == null) {
+                out.warning("$.defaults.$type", "\"$type\" is not a node type, so these defaults are never used. Node types: ${NodeRegistry.types.joinToString(", ")}.")
+            } else {
+                (style as? JsonObject)?.let { checkStyle(it, "$.defaults.$type", allowedTypes = setOf(type)) }
+            }
+        }
+    }
+
     fun check(descriptor: SerialDescriptor, element: JsonElement, path: String, meta: FieldMeta = FieldMeta()) {
         if (element is JsonNull) {
             if (!descriptor.isNullable) out.error(path, "Must not be null.")
@@ -43,6 +59,7 @@ internal class StructureValidator(private val out: IssueCollector) {
         }
         when (descriptor.serialName.removeSuffix("?")) {
             NodeSerializer.SERIAL_NAME -> return checkNode(element, path)
+            BackgroundSerializer.SERIAL_NAME -> return checkBackground(element, path)
             SizeSerializer.SERIAL_NAME -> return checkSize(element, path)
             PaddingSerializer.SERIAL_NAME -> return checkPadding(element, path)
         }
@@ -59,32 +76,43 @@ internal class StructureValidator(private val out: IssueCollector) {
             }
             StructureKind.MAP -> {
                 val obj = element as? JsonObject ?: return out.error(path, "Must be an object {...}.")
-                obj.forEach { (key, value) -> check(descriptor.getElementDescriptor(1), value, "$path.$key", meta) }
+                val valueDescriptor = descriptor.getElementDescriptor(1)
+                // Styles and defaults hold free-form node properties; checkDocument looks at them.
+                if (valueDescriptor.serialName.startsWith("kotlinx.serialization.json.JsonObject")) {
+                    obj.forEach { (key, value) -> if (value !is JsonObject) out.error("$path.$key", "Must be an object {...}.") }
+                    return
+                }
+                obj.forEach { (key, value) -> check(valueDescriptor, value, "$path.$key", meta) }
             }
             StructureKind.CLASS, StructureKind.OBJECT -> {
                 val obj = element as? JsonObject ?: return out.error(path, "Must be an object {...}.")
-                checkObject(descriptor, obj, path, isNode = false, skip = emptySet())
+                checkObject(listOf(descriptor), obj, path, skip = emptySet())
             }
             PolymorphicKind.SEALED -> checkSealed(descriptor, element, path)
             else -> Unit
         }
     }
 
-    private fun checkObject(descriptor: SerialDescriptor, obj: JsonObject, path: String, isNode: Boolean, skip: Set<String>) {
+    /** Checks [obj] against the union of [descriptors] (a node uses its own descriptor plus the common one). */
+    private fun checkObject(descriptors: List<SerialDescriptor>, obj: JsonObject, path: String, skip: Set<String>, requireAll: Boolean = true) {
         for ((key, value) in obj) {
             if (key in skip) continue
-            val index = descriptor.getElementIndex(key)
-            if (index == CompositeDecoder.UNKNOWN_NAME) {
-                val allowed = descriptor.elementNames.joinToString(", ")
+            val match = descriptors.firstNotNullOfOrNull { d -> d.getElementIndex(key).takeIf { it != CompositeDecoder.UNKNOWN_NAME }?.let { d to it } }
+            if (match == null) {
+                val allowed = descriptors.flatMap { it.elementNames }.joinToString(", ")
                 out.warning("$path.$key", "Unknown property \"$key\" is ignored. Allowed here: $allowed.")
                 continue
             }
-            check(descriptor.getElementDescriptor(index), value, "$path.$key", metaFor(descriptor, index, isNode))
+            val (descriptor, index) = match
+            check(descriptor.getElementDescriptor(index), value, "$path.$key", metaFor(descriptor, index))
         }
-        for (i in 0 until descriptor.elementsCount) {
-            val name = descriptor.getElementName(i)
-            if (!descriptor.isElementOptional(i) && name !in obj) {
-                out.error(path, "Missing required property \"$name\".")
+        if (!requireAll) return
+        for (descriptor in descriptors) {
+            for (i in 0 until descriptor.elementsCount) {
+                val name = descriptor.getElementName(i)
+                if (!descriptor.isElementOptional(i) && name !in obj) {
+                    out.error(path, "Missing required property \"$name\".")
+                }
             }
         }
     }
@@ -99,7 +127,19 @@ internal class StructureValidator(private val out: IssueCollector) {
         if (index == CompositeDecoder.UNKNOWN_NAME) {
             return out.error("$path.type", "Unknown type \"$type\". One of: $allowed.")
         }
-        checkObject(subtypes.getElementDescriptor(index), obj, path, isNode = false, skip = setOf("type"))
+        checkObject(listOf(subtypes.getElementDescriptor(index)), obj, path, skip = setOf("type"))
+    }
+
+    private fun checkBackground(element: JsonElement, path: String) {
+        if (element is JsonPrimitive && element.isString) return checkString(element, path, FieldMeta(color = true))
+        val obj = element as? JsonObject
+            ?: return out.error(path, "Must be a color string like \"#202020\" or an object with a \"type\".")
+        val allowed = BackgroundSerializer.subtypes.keys.joinToString(", ")
+        val type = (obj["type"] as? JsonPrimitive)?.takeIf { it.isString }?.content
+            ?: return out.error(path, "Missing \"type\". One of: $allowed.")
+        val serializer = BackgroundSerializer.subtypes[type]
+            ?: return out.error("$path.type", "Unknown background type \"$type\". One of: $allowed.")
+        checkObject(listOf(serializer.descriptor), obj, path, skip = setOf("type"))
     }
 
     private fun checkNode(element: JsonElement, path: String) {
@@ -114,7 +154,33 @@ internal class StructureValidator(private val out: IssueCollector) {
             )
             return
         }
-        checkObject(nodeType.serializer.descriptor, obj, path, isNode = true, skip = setOf("type"))
+        checkObject(listOf(nodeType.serializer.descriptor, NodeRegistry.commonDescriptor), obj, path, skip = setOf("type"))
+    }
+
+    /** A style may hold any node property; each value is checked against the first node type that has that key. */
+    private fun checkStyle(style: JsonObject, path: String, allowedTypes: Set<String>?) {
+        val types = NodeRegistry.all.filter { allowedTypes == null || it.type in allowedTypes }
+        for ((key, value) in style) {
+            when (key) {
+                "type", "id", "children" -> {
+                    out.error("$path.$key", "\"$key\" cannot be set by a style or default.")
+                    continue
+                }
+                "style" -> {
+                    if (allowedTypes != null) out.error("$path.style", "Defaults cannot refer to a style; set \"style\" on the node instead.")
+                    else if ((value as? JsonPrimitive)?.isString != true) out.error("$path.style", "Must be the name of another style.")
+                    continue
+                }
+            }
+            val descriptor = (types.map { it.serializer.descriptor } + NodeRegistry.commonDescriptor)
+                .firstOrNull { it.getElementIndex(key) != CompositeDecoder.UNKNOWN_NAME }
+            if (descriptor == null) {
+                out.warning("$path.$key", "No node type has a property \"$key\", so it is never used.")
+                continue
+            }
+            val index = descriptor.getElementIndex(key)
+            check(descriptor.getElementDescriptor(index), value, "$path.$key", metaFor(descriptor, index))
+        }
     }
 
     private fun checkString(element: JsonElement, path: String, meta: FieldMeta) {
@@ -168,13 +234,12 @@ internal class StructureValidator(private val out: IssueCollector) {
         if (!ok) out.error(path, "Must be a number, [horizontal, vertical] or [start, top, end, bottom], each 0 to 400 dp.")
     }
 
-    private fun metaFor(descriptor: SerialDescriptor, index: Int, isNode: Boolean): FieldMeta {
+    private fun metaFor(descriptor: SerialDescriptor, index: Int): FieldMeta {
         val annotations = descriptor.getElementAnnotations(index)
-        val name = descriptor.getElementName(index)
-        val range = annotations.filterIsInstance<Range>().firstOrNull()?.let { it.min..it.max }
-            ?: if (isNode) CommonNodeFields.ranges[name] else null
-        val color = annotations.any { it is ColorValue } || (isNode && name in CommonNodeFields.colorFields)
-        return FieldMeta(color = color, range = range)
+        return FieldMeta(
+            color = annotations.any { it is ColorValue },
+            range = annotations.filterIsInstance<Range>().firstOrNull()?.let { it.min..it.max },
+        )
     }
 
     private fun Double.clean(): String = if (this == Math.floor(this)) toLong().toString() else toString()

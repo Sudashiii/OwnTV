@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "name": "OwnTV default",
   "background": { "type": "gradient", "colors": ["#0E0F13", "#16203A"], "angle": 160 },
   "pages": [
@@ -24,8 +24,8 @@
                 "type": "column",
                 "id": "time_block",
                 "children": [
-                  { "type": "clock", "id": "clock", "format": "HH:mm", "style": "display" },
-                  { "type": "clock", "id": "date", "format": "EEEE, d MMMM", "style": "body", "color": "@textMuted" }
+                  { "type": "clock", "id": "clock", "format": "HH:mm", "textStyle": "display" },
+                  { "type": "clock", "id": "date", "format": "EEEE, d MMMM", "textStyle": "body", "color": "@textMuted" }
                 ]
               },
               { "type": "spacer", "id": "header_gap", "weight": 1 },
@@ -35,7 +35,7 @@
                 "label": "Settings",
                 "icon": "settings",
                 "action": { "type": "open_launcher_settings" },
-                "tile": { "style": "icon", "size": "small" }
+                "tile": { "shape": "icon", "size": "small" }
               }
             ]
           },
@@ -54,7 +54,7 @@
                 "com.spotify.tv.android"
               ]
             },
-            "tile": { "style": "banner", "size": "large" }
+            "tile": { "shape": "banner", "size": "large" }
           },
           {
             "type": "app_grid",

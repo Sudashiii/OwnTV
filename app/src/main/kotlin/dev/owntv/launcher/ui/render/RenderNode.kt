@@ -2,6 +2,7 @@ package dev.owntv.launcher.ui.render
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusGroup
+import androidx.compose.foundation.gestures.LocalBringIntoViewSpec
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,6 +25,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -37,9 +39,11 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Text
 import coil3.compose.AsyncImage
 import dev.owntv.layout.model.AppGridNode
@@ -48,12 +52,17 @@ import dev.owntv.layout.model.AppTileNode
 import dev.owntv.layout.model.Arrange
 import dev.owntv.layout.model.ClockNode
 import dev.owntv.layout.model.ColumnNode
+import dev.owntv.layout.model.FolderNode
 import dev.owntv.layout.model.GridNode
 import dev.owntv.layout.model.HAlign
+import dev.owntv.layout.model.HeroNode
+import dev.owntv.layout.model.ImageBackground
 import dev.owntv.layout.model.ImageFit
 import dev.owntv.layout.model.ImageNode
+import dev.owntv.layout.model.Missing
 import dev.owntv.layout.model.Node
 import dev.owntv.layout.model.RowNode
+import dev.owntv.layout.model.ScrollAlign
 import dev.owntv.layout.model.ShortcutNode
 import dev.owntv.layout.model.Size
 import dev.owntv.layout.model.SpacerNode
@@ -63,6 +72,8 @@ import dev.owntv.layout.model.TextNode
 import dev.owntv.layout.model.TextStyleName
 import dev.owntv.layout.model.UnknownNode
 import dev.owntv.layout.model.VAlign
+import dev.owntv.layout.model.isSingleTile
+import dev.owntv.layout.model.visible
 import kotlinx.coroutines.delay
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -73,95 +84,136 @@ import dev.owntv.layout.model.Alignment as NodeAlignment
 
 /**
  * Renders one node. [modifier] carries what the parent decides (weight, align); this function adds
- * the node's own size, background and padding. [fillByDefault] makes width and height fill when unset.
+ * the node's own size, focus behavior, decoration and padding. [fillByDefault] makes width and
+ * height fill when unset; [fillWidthByDefault] only the width (grid cells).
  */
 @Composable
 fun RenderNode(node: Node, modifier: Modifier = Modifier, fillByDefault: Boolean = false, fillWidthByDefault: Boolean = false) {
     if (!node.visible) return
     val theme = LocalOwnTheme.current
-    val fillWidth = fillByDefault || fillWidthByDefault || node is AppRowNode || node is AppGridNode
-    var base = modifier
-        .nodeSize(node, fillWidth = fillWidth, fillHeight = fillByDefault)
-        .then(nodeBackground(node, theme))
-        .then(node.padding?.let { Modifier.padding(it.start.dp, it.top.dp, it.end.dp, it.bottom.dp) } ?: Modifier)
+    val registry = LocalFocusRegistry.current
+    val common = node.common
+    val shape = RoundedCornerShape((common.cornerRadius ?: 0).dp)
+    val fillWidth = fillByDefault || fillWidthByDefault || node is AppRowNode || node is AppGridNode || node is HeroNode
 
-    LocalFocusTargets.current?.let { targets ->
-        if (targets.targetId != null && targets.targetId == node.id) {
-            base = if (node is AppTileNode || node is ShortcutNode) {
-                base.focusRequester(targets.requester)
-            } else {
-                base.focusRequester(targets.requester).focusGroup()
-            }
-        }
+    var outer = modifier.nodeSize(node, fillWidth = fillWidth, fillHeight = fillByDefault)
+
+    // Focus: targets of links get a requester; containers with links or targets become focus groups.
+    val isTarget = registry?.isTarget(node.id) == true
+    val tile = node.isSingleTile
+    if (tile) {
+        if (isTarget) outer = outer.focusRequester(registry!!.requester(node.id))
+        outer = outer.tileFocusLinks(common.focus, registry)
+    } else if (isTarget || common.focus != null) {
+        if (isTarget) outer = outer.focusRequester(registry!!.requester(node.id))
+        outer = outer.containerFocusLinks(common.focus, registry).focusGroup()
     }
+    outer = outer.revealOnFocus(common.revealOnFocus)
+    outer = outer.nodeDecoration(common, theme, shape)
+    val padding = common.padding?.let { Modifier.padding(it.start.dp, it.top.dp, it.end.dp, it.bottom.dp) } ?: Modifier
 
     // Tiles adapt to the width they get when the node or its parent sets one.
-    val sizing = TileSizing(adaptive = node.width != null || fillWidthByDefault, fixedHeight = node.height is Size.Fixed)
+    val sizing = TileSizing(adaptive = common.width != null || fillWidthByDefault, fixedHeight = common.height is Size.Fixed)
+    val image = common.background as? ImageBackground
 
+    CompositionLocalProvider(LocalAncestors provides LocalAncestors.current + node.id) {
+        if (image != null) {
+            Box(outer, propagateMinConstraints = true) {
+                BackgroundFill(image, Modifier.matchParentSize(), shape)
+                NodeContent(node, padding, sizing)
+            }
+        } else {
+            NodeContent(node, outer.then(padding), sizing)
+        }
+    }
+}
+
+@Composable
+private fun NodeContent(node: Node, modifier: Modifier, sizing: TileSizing) {
+    val theme = LocalOwnTheme.current
     when (node) {
-        is ColumnNode -> ColumnView(node, base)
-        is RowNode -> RowView(node, base)
-        is GridNode -> GridView(node, base)
-        is StackNode -> StackView(node, base)
+        is ColumnNode -> ColumnView(node, modifier)
+        is RowNode -> RowView(node, modifier)
+        is GridNode -> GridView(node, modifier)
+        is StackNode -> StackView(node, modifier)
         is AppTileNode -> {
             val catalog = LocalApps.current
             val app = catalog[node.packageName]
             val entry = when {
                 app != null -> AppEntry.Installed(app)
-                node.missing == dev.owntv.layout.model.Missing.Placeholder && catalog.loaded -> AppEntry.NotInstalled(node.packageName)
+                node.missing == Missing.Placeholder && catalog.loaded -> AppEntry.NotInstalled(node.packageName)
                 else -> null
             }
-            if (entry != null) AppTileView(entry, node.tile, sizing, base, labelOverride = node.label)
+            if (entry != null) AppTileView(entry, node.tile, sizing, modifier, labelOverride = node.label)
         }
-        is AppRowNode -> AppRowView(node, base)
-        is AppGridNode -> AppGridView(node, base)
-        is ShortcutNode -> ShortcutView(node, sizing, base)
-        is TextNode -> Text(
-            text = node.text,
-            style = theme.textStyle(node.style, node.bold).copy(textAlign = node.textAlign.toCompose()),
-            color = theme.color(node.color) ?: theme.text,
-            maxLines = node.maxLines ?: Int.MAX_VALUE,
-            overflow = TextOverflow.Ellipsis,
-            modifier = base,
-        )
-        is ClockNode -> ClockView(node, base)
+        is AppRowNode -> AppRowView(node, modifier)
+        is AppGridNode -> AppGridView(node, modifier)
+        is FolderNode -> FolderView(node, sizing, modifier)
+        is ShortcutNode -> ShortcutView(node, sizing, modifier)
+        is HeroNode -> HeroView(node, modifier)
+        is TextNode -> TextView(node, modifier)
+        is ClockNode -> ClockView(node, modifier)
         is ImageNode -> AsyncImage(
             model = imageModel(node.src),
             contentDescription = null,
             contentScale = node.fit.toContentScale(),
-            modifier = base.clip(RoundedCornerShape((node.cornerRadius ?: 0).dp)).alpha(node.alpha),
+            modifier = modifier.clip(RoundedCornerShape((node.common.cornerRadius ?: 0).dp)).alpha(node.alpha),
         )
-        is SpacerNode -> Spacer(base)
-        is UnknownNode -> UnknownView(node, base)
+        is SpacerNode -> Spacer(modifier)
+        is UnknownNode -> Box(modifier.background(theme.surface.copy(alpha = 0.5f), RoundedCornerShape(8.dp)).padding(12.dp)) {
+            Text("Unknown widget \"${node.type}\"", style = theme.textStyle(TextStyleName.Caption), color = theme.textMuted)
+        }
     }
 }
 
 // ---------------------------------------------------------------- containers
 
+/**
+ * Provides [align] to the scroll container itself and restores the outer behavior for its
+ * children, so nested rows keep their own scrolling.
+ */
+@Composable
+private fun ScrollSpecScope(align: ScrollAlign, margin: Dp, container: @Composable (children: @Composable (@Composable () -> Unit) -> Unit) -> Unit) {
+    val outer = LocalBringIntoViewSpec.current
+    val marginPx = with(LocalDensity.current) { margin.toPx() }
+    val spec = remember(align, marginPx) { scrollSpec(align, marginPx) }
+    CompositionLocalProvider(LocalBringIntoViewSpec provides spec) {
+        container { content -> CompositionLocalProvider(LocalBringIntoViewSpec provides outer) { content() } }
+    }
+}
+
 @Composable
 private fun ColumnView(node: ColumnNode, modifier: Modifier) {
-    val scroll = if (node.scroll) Modifier.verticalScroll(rememberScrollState()) else Modifier
-    Column(
-        modifier = modifier.then(scroll),
-        verticalArrangement = node.arrange.vertical(node.spacing.dp),
-        horizontalAlignment = node.contentAlign.toCompose(),
-    ) {
-        node.children.forEachIndexed { index, child ->
-            key(index, child.id) { RenderNode(child, childModifier(child)) }
+    ScrollSpecScope(node.scrollAlign, node.scrollMargin.dp) { restore ->
+        val scroll = if (node.scroll) Modifier.verticalScroll(rememberScrollState()) else Modifier
+        Column(
+            modifier = modifier.then(scroll),
+            verticalArrangement = node.arrange.vertical(node.spacing.dp),
+            horizontalAlignment = node.contentAlign.toCompose(),
+        ) {
+            restore {
+                node.children.forEachIndexed { index, child ->
+                    key(index, child.id) { RenderNode(child, childModifier(child)) }
+                }
+            }
         }
     }
 }
 
 @Composable
 private fun RowView(node: RowNode, modifier: Modifier) {
-    val scroll = if (node.scroll) Modifier.horizontalScroll(rememberScrollState()) else Modifier
-    Row(
-        modifier = modifier.then(scroll),
-        horizontalArrangement = node.arrange.horizontal(node.spacing.dp),
-        verticalAlignment = node.contentAlign.toCompose(),
-    ) {
-        node.children.forEachIndexed { index, child ->
-            key(index, child.id) { RenderNode(child, childModifier(child)) }
+    ScrollSpecScope(node.scrollAlign, node.scrollMargin.dp) { restore ->
+        val scroll = if (node.scroll) Modifier.horizontalScroll(rememberScrollState()) else Modifier
+        Row(
+            modifier = modifier.then(scroll),
+            horizontalArrangement = node.arrange.horizontal(node.spacing.dp),
+            verticalAlignment = node.contentAlign.toCompose(),
+        ) {
+            restore {
+                node.children.forEachIndexed { index, child ->
+                    key(index, child.id) { RenderNode(child, childModifier(child)) }
+                }
+            }
         }
     }
 }
@@ -174,7 +226,7 @@ private fun GridView(node: GridNode, modifier: Modifier) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(node.spacing.dp)) {
                 var used = 0
                 row.forEach { child ->
-                    val span = (child.span ?: 1).coerceIn(1, node.columns)
+                    val span = (child.common.span ?: 1).coerceIn(1, node.columns)
                     used += span
                     key(child.id) { RenderNode(child, Modifier.weight(span.toFloat()), fillWidthByDefault = true) }
                 }
@@ -188,7 +240,7 @@ private fun packGrid(children: List<Node>, columns: Int): List<List<Node>> {
     val rows = mutableListOf<MutableList<Node>>()
     var used = columns
     for (child in children) {
-        val span = (child.span ?: 1).coerceIn(1, columns)
+        val span = (child.common.span ?: 1).coerceIn(1, columns)
         if (used + span > columns) {
             rows += mutableListOf<Node>()
             used = 0
@@ -201,10 +253,10 @@ private fun packGrid(children: List<Node>, columns: Int): List<List<Node>> {
 
 @Composable
 private fun StackView(node: StackNode, modifier: Modifier) {
-    Box(modifier, contentAlignment = node.contentAlign.toCompose()) {
+    Box(modifier, contentAlignment = node.contentAlign.toComposeAlignment()) {
         node.children.forEachIndexed { index, child ->
             key(index, child.id) {
-                RenderNode(child, child.align?.let { Modifier.align(it.toCompose()) } ?: Modifier)
+                RenderNode(child, child.common.align?.let { Modifier.align(it.toComposeAlignment()) } ?: Modifier)
             }
         }
     }
@@ -215,17 +267,19 @@ private fun StackView(node: StackNode, modifier: Modifier) {
 @Composable
 private fun AppRowView(node: AppRowNode, modifier: Modifier) {
     val catalog = LocalApps.current
-    val entries = remember(catalog, node.source, node.missing, node.limit) { catalog.resolve(node.source, node.missing, node.limit) }
+    val entries = remember(catalog, node.source, node.missing, node.limit, node.skip) { catalog.resolve(node.source, node.missing, node.limit, node.skip) }
     if (entries.isEmpty()) return
     Column(modifier) {
         node.title?.let { SectionTitle(it) }
-        LazyRow(
-            modifier = Modifier.fillMaxWidth().bleedHorizontally(TILE_BLEED).focusRestorer(),
-            contentPadding = PaddingValues(horizontal = TILE_BLEED, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(node.spacing.dp),
-        ) {
-            items(entries, key = { it.packageName }) { entry ->
-                AppTileView(entry, node.tile, TileSizing(adaptive = false, fixedHeight = false))
+        ScrollSpecScope(node.scrollAlign, node.scrollMargin.dp) { restore ->
+            LazyRow(
+                modifier = Modifier.fillMaxWidth().bleedHorizontally(TILE_BLEED).focusRestorer(),
+                contentPadding = PaddingValues(horizontal = TILE_BLEED, vertical = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(node.spacing.dp),
+            ) {
+                items(entries, key = { it.packageName }) { entry ->
+                    restore { AppTileView(entry, node.tile, TileSizing(adaptive = false, fixedHeight = false)) }
+                }
             }
         }
     }
@@ -234,7 +288,7 @@ private fun AppRowView(node: AppRowNode, modifier: Modifier) {
 @Composable
 private fun AppGridView(node: AppGridNode, modifier: Modifier) {
     val catalog = LocalApps.current
-    val entries = remember(catalog, node.source, node.missing, node.limit) { catalog.resolve(node.source, node.missing, node.limit) }
+    val entries = remember(catalog, node.source, node.missing, node.limit, node.skip) { catalog.resolve(node.source, node.missing, node.limit, node.skip) }
     if (entries.isEmpty()) return
     Column(modifier) {
         node.title?.let { SectionTitle(it) }
@@ -281,25 +335,20 @@ private fun ClockView(node: ClockNode, modifier: Modifier) {
             delay(if (hasSeconds) 1000 - millis % 1000 else 60_000 - millis % 60_000)
         }
     }
+    val base = theme.textStyle(node.textStyle, node.bold, node.font)
     Text(
         text = formatter?.let { runCatching { now.format(it) }.getOrNull() } ?: "--:--",
-        style = theme.textStyle(node.style, node.bold).copy(textAlign = node.textAlign.toCompose()),
+        style = base.copy(
+            fontSize = node.fontSize?.let { (it * theme.theme.fontScale).sp } ?: base.fontSize,
+            lineHeight = node.fontSize?.let { (it * theme.theme.fontScale * 1.2f).sp } ?: base.lineHeight,
+            letterSpacing = node.letterSpacing?.sp ?: base.letterSpacing,
+            textAlign = node.textAlign.toComposeTextAlign(),
+        ),
         color = theme.color(node.color) ?: theme.text,
         maxLines = 1,
+        overflow = TextOverflow.Clip,
         modifier = modifier,
     )
-}
-
-@Composable
-private fun UnknownView(node: UnknownNode, modifier: Modifier) {
-    val theme = LocalOwnTheme.current
-    Box(modifier.background(theme.surface.copy(alpha = 0.5f), RoundedCornerShape(8.dp)).padding(12.dp)) {
-        Text(
-            text = "Unknown widget \"${node.type}\"",
-            style = theme.textStyle(TextStyleName.Caption),
-            color = theme.textMuted,
-        )
-    }
 }
 
 // ---------------------------------------------------------------- modifiers and mappings
@@ -320,37 +369,37 @@ private fun Modifier.bleedHorizontally(amount: Dp) = layout { measurable, constr
 }
 
 private fun Modifier.nodeSize(node: Node, fillWidth: Boolean, fillHeight: Boolean): Modifier {
-    val withWidth = when (val w = node.width) {
+    val withWidth = when (val w = node.common.width) {
         Size.Fill -> fillMaxWidth()
         Size.Wrap -> wrapContentWidth()
         is Size.Fixed -> width(w.dp.dp)
         null -> if (fillWidth) fillMaxWidth() else this
     }
-    return when (val h = node.height) {
+    return when (val h = node.common.height) {
         Size.Fill -> withWidth.fillMaxHeight()
         Size.Wrap -> withWidth.wrapContentHeight()
         is Size.Fixed -> withWidth.height(h.dp.dp)
-        null -> if (fillHeight) withWidth.fillMaxHeight() else withWidth
+        null -> when {
+            fillHeight -> withWidth.fillMaxHeight()
+            node is HeroNode -> withWidth.height(HERO_DEFAULT_HEIGHT)
+            else -> withWidth
+        }
     }
 }
 
-private fun nodeBackground(node: Node, theme: OwnTheme): Modifier {
-    val color = theme.color(node.background) ?: return Modifier
-    // Tiles draw their own surface; for them, background means the area around the tile.
-    return Modifier.background(color, RoundedCornerShape((node.cornerRadius ?: 0).dp))
-}
+private val HERO_DEFAULT_HEIGHT = 280.dp
 
 private fun ColumnScope.childModifier(child: Node): Modifier {
     var m: Modifier = Modifier
-    child.weight?.takeIf { it > 0f }?.let { m = m.weight(it) }
-    child.align?.let { m = m.align(it.horizontalPart()) }
+    child.common.weight?.takeIf { it > 0f }?.let { m = m.weight(it) }
+    child.common.align?.let { m = m.align(it.horizontalPart()) }
     return m
 }
 
 private fun RowScope.childModifier(child: Node): Modifier {
     var m: Modifier = Modifier
-    child.weight?.takeIf { it > 0f }?.let { m = m.weight(it) }
-    child.align?.let { m = m.align(it.verticalPart()) }
+    child.common.weight?.takeIf { it > 0f }?.let { m = m.weight(it) }
+    child.common.align?.let { m = m.align(it.verticalPart()) }
     return m
 }
 
@@ -384,7 +433,7 @@ private fun VAlign.toCompose(): ComposeAlignment.Vertical = when (this) {
     VAlign.Bottom -> ComposeAlignment.Bottom
 }
 
-private fun NodeAlignment.toCompose(): ComposeAlignment = when (this) {
+fun NodeAlignment.toComposeAlignment(): ComposeAlignment = when (this) {
     NodeAlignment.TopStart -> ComposeAlignment.TopStart
     NodeAlignment.Top -> ComposeAlignment.TopCenter
     NodeAlignment.TopEnd -> ComposeAlignment.TopEnd
@@ -408,7 +457,7 @@ private fun NodeAlignment.verticalPart(): ComposeAlignment.Vertical = when (this
     NodeAlignment.BottomStart, NodeAlignment.Bottom, NodeAlignment.BottomEnd -> ComposeAlignment.Bottom
 }
 
-private fun TextAlignment.toCompose(): ComposeTextAlign = when (this) {
+fun TextAlignment.toComposeTextAlign(): ComposeTextAlign = when (this) {
     TextAlignment.Start -> ComposeTextAlign.Start
     TextAlignment.Center -> ComposeTextAlign.Center
     TextAlignment.End -> ComposeTextAlign.End
@@ -419,4 +468,3 @@ fun ImageFit.toContentScale(): ContentScale = when (this) {
     ImageFit.Contain -> ContentScale.Fit
     ImageFit.Fill -> ContentScale.FillBounds
 }
-

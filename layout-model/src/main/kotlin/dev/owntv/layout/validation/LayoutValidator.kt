@@ -12,9 +12,12 @@ import dev.owntv.layout.model.ClockNode
 import dev.owntv.layout.model.ColorBackground
 import dev.owntv.layout.model.Colors
 import dev.owntv.layout.model.ColumnNode
+import dev.owntv.layout.model.FolderNode
 import dev.owntv.layout.model.GoToPageAction
 import dev.owntv.layout.model.GradientBackground
 import dev.owntv.layout.model.GridNode
+import dev.owntv.layout.model.HeroFollow
+import dev.owntv.layout.model.HeroNode
 import dev.owntv.layout.model.ImageBackground
 import dev.owntv.layout.model.ImageNode
 import dev.owntv.layout.model.IntentAction
@@ -23,27 +26,66 @@ import dev.owntv.layout.model.LayoutDocument
 import dev.owntv.layout.model.Node
 import dev.owntv.layout.model.OpenUrlAction
 import dev.owntv.layout.model.PackagesSource
+import dev.owntv.layout.model.Page
+import dev.owntv.layout.model.Placeholders
+import dev.owntv.layout.model.RecentSource
 import dev.owntv.layout.model.RowNode
 import dev.owntv.layout.model.ShortcutNode
 import dev.owntv.layout.model.StackNode
+import dev.owntv.layout.model.StyleResolver
 import dev.owntv.layout.model.TextNode
 import dev.owntv.layout.model.ThemeColors
 import dev.owntv.layout.model.UnknownNode
 import dev.owntv.layout.model.containsFocusable
 import dev.owntv.layout.model.findNode
+import dev.owntv.layout.model.walk
 import dev.owntv.layout.model.walkNodes
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 import java.time.format.DateTimeFormatter
 
 /** Checks the meaning of a decoded layout: references, ids, colors, and things that make a TV unusable. */
 object LayoutValidator {
     const val MAX_DEPTH = 24
     private val idPattern = Regex("^[A-Za-z0-9_.-]+$")
+    private val packagePattern = Regex("^[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z0-9_]+)+$")
 
     /** @param installedPackages when given, packages that are not installed produce warnings. */
     fun validate(doc: LayoutDocument, installedPackages: Set<String>? = null): List<ValidationIssue> {
         val out = IssueCollector()
-        Checker(doc, installedPackages, out).run()
+        checkStyleReferences(doc, out)
+        val resolved = runCatching { StyleResolver.resolve(doc) }.getOrElse {
+            out.error("$.styles", "Applying styles failed: ${it.message}")
+            doc
+        }
+        Checker(resolved, installedPackages, out).run()
         return out.issues
+    }
+
+    private fun checkStyleReferences(doc: LayoutDocument, out: IssueCollector) {
+        doc.styles.forEach { (name, style) ->
+            val parent = (style["style"] as? JsonPrimitive)?.contentOrNull ?: return@forEach
+            if (parent !in doc.styles) out.error("$.styles.$name.style", "No style named \"$parent\".")
+            if (hasCycle(name, doc.styles)) out.error("$.styles.$name.style", "Style \"$name\" builds on itself.")
+        }
+        doc.walkNodes { _, node, path, _ ->
+            val style = node.common.style ?: return@walkNodes
+            if (style !in doc.styles) {
+                val known = doc.styles.keys.takeIf { it.isNotEmpty() }?.joinToString(", ") ?: "none defined"
+                out.error("$path.style", "No style named \"$style\" (styles: $known).")
+            }
+        }
+    }
+
+    private fun hasCycle(start: String, styles: Map<String, JsonObject>): Boolean {
+        val seen = mutableSetOf<String>()
+        var current: String? = start
+        while (current != null) {
+            if (!seen.add(current)) return true
+            current = (styles[current]?.get("style") as? JsonPrimitive)?.contentOrNull
+        }
+        return false
     }
 
     private class Checker(
@@ -56,6 +98,7 @@ object LayoutValidator {
 
         fun run() {
             checkTheme()
+            checkApps()
             doc.background?.let { checkBackground(it, "$.background") }
             if (doc.pages.isEmpty()) out.error("$.pages", "Add at least one page.")
 
@@ -75,9 +118,10 @@ object LayoutValidator {
                 if (!page.root.containsFocusable()) {
                     out.warning(
                         "$path.root",
-                        "Page \"${page.id}\" has no focusable widget (app_tile, app_row, app_grid or shortcut), so the remote cannot do anything on it.",
+                        "Page \"${page.id}\" has no focusable widget (app_tile, app_row, app_grid, folder or shortcut), so the remote cannot do anything on it.",
                     )
                 }
+                page.root.walk("$path.root") { node, nodePath, _ -> checkReferences(page, node, nodePath) }
             }
 
             val seenIds = mutableMapOf<String, String>()
@@ -89,7 +133,8 @@ object LayoutValidator {
                         out.error("$path.id", "Duplicate id \"${node.id}\" (first used at $first).")
                     }
                 }
-                node.background?.let { checkColorRef(it, "$path.background") }
+                node.common.background?.let { checkBackground(it, "$path.background") }
+                node.common.border?.let { checkColorRef(it.color, "$path.border.color") }
                 checkNode(node, path)
             }
         }
@@ -107,13 +152,39 @@ object LayoutValidator {
                 if (!Colors.isHex(value)) out.error("$base.custom.$name", "Custom colors must be hex values like #1A2B3C, not \"$value\".")
             }
             checkColorRef(doc.theme.focus.borderColor, "$.theme.focus.borderColor")
+            doc.theme.focus.glowColor?.let { checkColorRef(it, "$.theme.focus.glowColor") }
+        }
+
+        fun checkApps() {
+            doc.apps.forEach { (pkg, app) ->
+                val path = "$.apps.$pkg"
+                if (!packagePattern.matches(pkg)) out.warning(path, "\"$pkg\" does not look like a package name such as com.netflix.ninja.")
+                app.banner?.let { checkImageSrc(it, "$path.banner") }
+                app.icon?.let { checkImageSrc(it, "$path.icon") }
+                app.backdrop?.let { checkImageSrc(it, "$path.backdrop") }
+                app.color?.let { checkColorRef(it, "$path.color") }
+            }
+        }
+
+        /** Ids a node points at must exist on the same page. */
+        fun checkReferences(page: Page, node: Node, path: String) {
+            node.common.focus?.let { links ->
+                listOf("up" to links.up, "down" to links.down, "left" to links.left, "right" to links.right).forEach { (dir, id) ->
+                    if (id != null && page.findNode(id) == null) out.error("$path.focus.$dir", "No node with id \"$id\" on page \"${page.id}\".")
+                }
+            }
+            if (node is HeroNode) {
+                node.target?.let { id ->
+                    if (page.findNode(id) == null) out.error("$path.target", "No node with id \"$id\" on page \"${page.id}\".")
+                }
+            }
         }
 
         fun checkNode(node: Node, path: String) {
             when (node) {
                 is ColumnNode, is RowNode, is StackNode -> Unit
                 is GridNode -> node.children.forEachIndexed { i, child ->
-                    val span = child.span ?: 1
+                    val span = child.common.span ?: 1
                     if (span > node.columns) {
                         out.error("$path.children[$i].span", "span $span is larger than the grid's ${node.columns} columns.")
                     }
@@ -121,21 +192,51 @@ object LayoutValidator {
                 is AppTileNode -> checkPackage(node.packageName, "$path.package")
                 is AppRowNode -> checkSource(node.source, "$path.source")
                 is AppGridNode -> checkSource(node.source, "$path.source")
+                is FolderNode -> checkSource(node.source, "$path.source")
                 is ShortcutNode -> {
                     checkAction(node.action, "$path.action")
                     node.color?.let { checkColorRef(it, "$path.color") }
                     node.image?.let { checkImageSrc(it, "$path.image") }
+                    node.backdrop?.let { checkImageSrc(it, "$path.backdrop") }
                     if (node.icon != null && node.image != null) out.info(path, "Both icon and image are set; the image is used.")
                 }
-                is TextNode -> node.color?.let { checkColorRef(it, "$path.color") }
+                is HeroNode -> {
+                    if (node.follow == HeroFollow.Slides && node.slides.isEmpty()) {
+                        out.warning("$path.slides", "A hero with follow \"slides\" needs at least one slide.")
+                    }
+                    node.slides.forEachIndexed { i, slide ->
+                        slide.background?.let { checkBackground(it, "$path.slides[$i].background") }
+                        slide.action?.let { checkAction(it, "$path.slides[$i].action") }
+                        slide.title?.let { checkPlaceholders(it, "$path.slides[$i].title") }
+                        slide.description?.let { checkPlaceholders(it, "$path.slides[$i].description") }
+                    }
+                }
+                is TextNode -> {
+                    node.color?.let { checkColorRef(it, "$path.color") }
+                    checkPlaceholders(node.text, "$path.text")
+                }
                 is ClockNode -> {
                     node.color?.let { checkColorRef(it, "$path.color") }
-                    runCatching { DateTimeFormatter.ofPattern(node.format) }.onFailure {
-                        out.error("$path.format", "Invalid time pattern \"${node.format}\": ${it.message}")
-                    }
+                    checkPattern(node.format, "$path.format")
                 }
                 is ImageNode -> checkImageSrc(node.src, "$path.src")
                 else -> Unit
+            }
+        }
+
+        fun checkPlaceholders(text: String, path: String) {
+            Placeholders.tokens(text).forEach { token ->
+                when {
+                    token.name !in Placeholders.names ->
+                        out.warning(path, "Unknown placeholder {${token.name}}; it is shown as written. Known: ${Placeholders.names.joinToString(", ") { "{$it}" }}. Write {{ for a literal {.")
+                    token.name == "date" || token.name == "time" -> token.argument?.let { checkPattern(it, path) }
+                }
+            }
+        }
+
+        fun checkPattern(pattern: String, path: String) {
+            runCatching { DateTimeFormatter.ofPattern(pattern) }.onFailure {
+                out.error(path, "Invalid time pattern \"$pattern\": ${it.message}")
             }
         }
 
@@ -145,7 +246,7 @@ object LayoutValidator {
                     if (source.packages.isEmpty()) out.warning("$path.packages", "The package list is empty.")
                     source.packages.forEachIndexed { i, pkg -> checkPackage(pkg, "$path.packages[$i]") }
                 }
-                is AllAppsSource, is CategorySource -> Unit
+                is AllAppsSource, is CategorySource, is RecentSource -> Unit
             }
         }
 
@@ -165,7 +266,7 @@ object LayoutValidator {
 
         fun checkBackground(background: Background, path: String) {
             when (background) {
-                is ColorBackground -> checkColorRef(background.color, "$path.color")
+                is ColorBackground -> checkColorRef(background.color, path)
                 is GradientBackground -> {
                     if (background.colors.size < 2) out.error("$path.colors", "A gradient needs at least 2 colors.")
                     background.colors.forEachIndexed { i, c -> checkColorRef(c, "$path.colors[$i]") }

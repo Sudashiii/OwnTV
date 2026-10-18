@@ -27,6 +27,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         container.apps.refresh()
+        container.recent.refresh()
     }
 
     override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {

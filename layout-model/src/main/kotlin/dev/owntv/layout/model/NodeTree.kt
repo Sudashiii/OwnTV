@@ -6,7 +6,15 @@ val Node.children: List<Node>
 
 /** True for widgets the user can focus and click with the remote. */
 val Node.isFocusableWidget: Boolean
-    get() = this is AppTileNode || this is AppRowNode || this is AppGridNode || this is ShortcutNode
+    get() = when (this) {
+        is AppTileNode, is AppRowNode, is AppGridNode, is ShortcutNode, is FolderNode -> true
+        is HeroNode -> follow == HeroFollow.Slides && slides.any { it.action != null }
+        else -> false
+    }
+
+/** True for widgets that are a single focus target (as opposed to rows and grids of tiles). */
+val Node.isSingleTile: Boolean
+    get() = this is AppTileNode || this is ShortcutNode || this is FolderNode || this is HeroNode
 
 /** True when this node or one of its visible descendants can take focus. */
 fun Node.containsFocusable(): Boolean =
@@ -29,4 +37,15 @@ fun Page.findNode(id: String): Node? {
     var found: Node? = null
     root.walk("") { node, _, _ -> if (found == null && node.id == id) found = node }
     return found
+}
+
+/** Ids on this page that other nodes point at (focus links, hero targets, initial focus). */
+fun Page.referencedIds(): Set<String> {
+    val ids = mutableSetOf<String>()
+    initialFocus?.let(ids::add)
+    root.walk("") { node, _, _ ->
+        node.common.focus?.ids?.let(ids::addAll)
+        (node as? HeroNode)?.target?.let(ids::add)
+    }
+    return ids
 }

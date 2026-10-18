@@ -1,7 +1,7 @@
 package dev.owntv.layout.schema
 
+import dev.owntv.layout.model.BackgroundSerializer
 import dev.owntv.layout.model.ColorValue
-import dev.owntv.layout.model.CommonNodeFields
 import dev.owntv.layout.model.Doc
 import dev.owntv.layout.model.LayoutDocument
 import dev.owntv.layout.model.NodeRegistry
@@ -31,7 +31,7 @@ import kotlinx.serialization.json.putJsonObject
 
 /** Generates a JSON Schema (2020-12) for [LayoutDocument] from the serializers and their [Doc] annotations. */
 object JsonSchemaGenerator {
-    const val SCHEMA_ID = "https://owntv.dev/schema/owntv-layout.v1.schema.json"
+    const val SCHEMA_ID = "https://owntv.dev/schema/owntv-layout.v2.schema.json"
     const val COLOR_PATTERN = "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
 
     private val printer = Json {
@@ -53,7 +53,7 @@ object JsonSchemaGenerator {
                 "Home screen layout for the OwnTV Android TV launcher. Generated from the Kotlin model; do not edit by hand.",
             )
             rootRef.forEach { (k, v) -> put(k, v) }
-            put("\$defs", JsonObject(builder.defs))
+            put("\$defs", JsonObject(builder.withDefaultsKeyedByType()))
         }
     }
 
@@ -76,7 +76,14 @@ object JsonSchemaGenerator {
                     }
                 }
                 PaddingSerializer.SERIAL_NAME -> paddingSchema()
-                else -> byKind(descriptor, meta)
+                BackgroundSerializer.SERIAL_NAME -> ref("Background") { backgroundDef() }
+                else -> when {
+                    descriptor.serialName.startsWith("kotlinx.serialization.json.JsonObject") -> buildJsonObject {
+                        put("type", "object")
+                        put("description", "Node properties (any property a node accepts, except type, id and children).")
+                    }
+                    else -> byKind(descriptor, meta)
+                }
             }
             return withMeta(base, meta)
         }
@@ -104,7 +111,7 @@ object JsonSchemaGenerator {
             }
             StructureKind.CLASS, StructureKind.OBJECT -> {
                 val name = simpleName(descriptor.serialName)
-                ref(name) { objectSchema(descriptor, typeConst = null, isNode = false) }
+                ref(name) { objectSchema(listOf(descriptor), typeConst = null) }
             }
             PolymorphicKind.SEALED -> {
                 val name = simpleName(descriptor.serialName)
@@ -118,7 +125,7 @@ object JsonSchemaGenerator {
             putJsonArray("oneOf") {
                 NodeRegistry.all.forEach { nodeType ->
                     val name = "Node.${nodeType.type}"
-                    add(ref(name) { objectSchema(nodeType.serializer.descriptor, nodeType.type, isNode = true) })
+                    add(ref(name) { objectSchema(listOf(nodeType.serializer.descriptor, NodeRegistry.commonDescriptor), nodeType.type) })
                 }
             }
         }
@@ -129,45 +136,70 @@ object JsonSchemaGenerator {
                 classDoc(descriptor)?.let { put("description", it) }
                 putJsonArray("oneOf") {
                     subtypes.elementDescriptors.forEach { sub ->
-                        add(ref("$baseName.${sub.serialName}") { objectSchema(sub, sub.serialName, isNode = false) })
+                        add(ref("$baseName.${sub.serialName}") { objectSchema(listOf(sub), sub.serialName) })
                     }
                 }
             }
         }
 
-        private fun objectSchema(descriptor: SerialDescriptor, typeConst: String?, isNode: Boolean): JsonObject {
+        private fun objectSchema(descriptors: List<SerialDescriptor>, typeConst: String?): JsonObject {
             val required = mutableListOf<String>()
             val properties = buildJsonObject {
                 if (typeConst != null) {
                     putJsonObject("type") { put("const", typeConst) }
                     required += "type"
                 }
-                for (i in 0 until descriptor.elementsCount) {
-                    val name = descriptor.getElementName(i)
-                    put(name, schemaFor(descriptor.getElementDescriptor(i), metaFor(descriptor, i, isNode)))
-                    if (!descriptor.isElementOptional(i)) required += name
+                for (descriptor in descriptors) {
+                    for (i in 0 until descriptor.elementsCount) {
+                        val name = descriptor.getElementName(i)
+                        put(name, schemaFor(descriptor.getElementDescriptor(i), metaFor(descriptor, i)))
+                        if (!descriptor.isElementOptional(i)) required += name
+                    }
                 }
             }
             return buildJsonObject {
                 put("type", "object")
-                classDoc(descriptor)?.let { put("description", it) }
+                classDoc(descriptors.first())?.let { put("description", it) }
                 put("properties", properties)
                 if (required.isNotEmpty()) put("required", buildJsonArray { required.forEach { add(it) } })
                 put("additionalProperties", false)
             }
         }
 
-        private fun metaFor(descriptor: SerialDescriptor, index: Int, isNode: Boolean): Meta {
+        private fun metaFor(descriptor: SerialDescriptor, index: Int): Meta {
             val annotations = descriptor.getElementAnnotations(index)
-            val name = descriptor.getElementName(index)
-            val common = isNode && name in CommonNodeFields.docs
             return Meta(
-                color = annotations.any { it is ColorValue } || (common && name in CommonNodeFields.colorFields),
-                range = annotations.filterIsInstance<Range>().firstOrNull()?.let { it.min..it.max }
-                    ?: if (common) CommonNodeFields.ranges[name] else null,
-                description = annotations.filterIsInstance<Doc>().firstOrNull()?.value
-                    ?: if (common) CommonNodeFields.docs[name] else null,
+                color = annotations.any { it is ColorValue },
+                range = annotations.filterIsInstance<Range>().firstOrNull()?.let { it.min..it.max },
+                description = annotations.filterIsInstance<Doc>().firstOrNull()?.value,
             )
+        }
+
+        private fun backgroundDef(): JsonObject = buildJsonObject {
+            put("description", "A color string (shorthand for a solid color) or a gradient or image object.")
+            putJsonArray("oneOf") {
+                addJsonObject {
+                    put("type", "string")
+                    put("pattern", COLOR_PATTERN)
+                    put("description", "A solid color: #RRGGBB, #AARRGGBB or a theme token like @surface.")
+                }
+                BackgroundSerializer.subtypes.forEach { (type, serializer) ->
+                    if (type != "color") add(ref("Background.$type") { objectSchema(listOf(serializer.descriptor), type) })
+                }
+            }
+        }
+
+        /** The document's `defaults` map may only use node types as keys. */
+        fun withDefaultsKeyedByType(): Map<String, JsonElement> {
+            val doc = defs["LayoutDocument"] as? JsonObject ?: return defs
+            val properties = doc["properties"] as? JsonObject ?: return defs
+            val defaults = properties["defaults"] as? JsonObject ?: return defs
+            val patched = JsonObject(defaults + ("propertyNames" to buildJsonObject {
+                put("enum", JsonArray(NodeRegistry.types.map(::JsonPrimitive)))
+            }))
+            val result = LinkedHashMap(defs)
+            result["LayoutDocument"] = JsonObject(doc + ("properties" to JsonObject(properties + ("defaults" to patched))))
+            return result
         }
 
         /** Registers a definition once and returns a `$ref` to it. */

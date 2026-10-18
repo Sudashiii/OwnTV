@@ -101,6 +101,16 @@ data class AllAppsSource(
     val exclude: List<String> = emptyList(),
     @Doc("Also show phone apps that have no TV launcher entry. Default false.")
     val includeNonTvApps: Boolean = false,
+    @Doc("Also show apps marked hidden in the apps map. Default false.")
+    val includeHidden: Boolean = false,
+) : AppSource
+
+@Serializable
+@SerialName("recent")
+@Doc("Recently used apps, most recent first. Launches from OwnTV always count; with usage access granted, launches from anywhere count.")
+data class RecentSource(
+    @Doc("Package names to leave out.")
+    val exclude: List<String> = emptyList(),
 ) : AppSource
 
 @Serializable

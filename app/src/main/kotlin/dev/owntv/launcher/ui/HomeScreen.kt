@@ -30,6 +30,7 @@ import dev.owntv.launcher.ui.render.LayoutView
 import dev.owntv.launcher.ui.render.LocalActionHandler
 import dev.owntv.launcher.ui.render.LocalAppImages
 import dev.owntv.launcher.ui.render.LocalApps
+import dev.owntv.launcher.ui.render.rememberResolved
 import dev.owntv.launcher.ui.render.rendersFocusable
 import dev.owntv.layout.model.Action
 import dev.owntv.layout.model.AllAppsSource
@@ -39,6 +40,7 @@ import dev.owntv.layout.model.GoToPageAction
 import dev.owntv.layout.model.LayoutDocument
 import dev.owntv.layout.model.OpenAppDrawerAction
 import dev.owntv.layout.model.OpenLauncherSettingsAction
+import dev.owntv.layout.model.NodeCommon
 import dev.owntv.layout.model.Padding
 import dev.owntv.layout.model.Page
 import dev.owntv.layout.model.TextNode
@@ -97,8 +99,10 @@ fun HomeScreen(container: AppContainer, nav: Navigator, state: LayoutState, cata
             )
 
             // A layout must never lock the user out: if nothing on the page can take focus, offer settings.
-            val page = state.document.pages.firstOrNull { it.id == nav.pageId } ?: state.document.pages.first()
-            val hasFocusable = remember(page, catalog) { page.root.rendersFocusable(catalog) }
+            val resolved = rememberResolved(state.document)
+            val page = resolved.pages.firstOrNull { it.id == nav.pageId } ?: resolved.pages.first()
+            val pageCatalog = catalog.withOverrides(resolved.apps)
+            val hasFocusable = remember(page, pageCatalog) { page.root.rendersFocusable(pageCatalog) }
             if (catalog.loaded && !hasFocusable) {
                 FallbackButton(onClick = { nav.push(Screen.Settings) }, modifier = Modifier.align(Alignment.BottomCenter))
             }
@@ -155,16 +159,16 @@ fun AppDrawerScreen(container: AppContainer, nav: Navigator, state: LayoutState,
                     id = "drawer",
                     root = ColumnNode(
                         id = "drawer_root",
-                        padding = Padding.symmetric(48, 28),
                         spacing = 16,
+                        common = NodeCommon(padding = Padding.symmetric(48, 28)),
                         scroll = true,
                         children = listOf(
-                            TextNode(id = "drawer_title", text = "All apps", style = TextStyleName.Headline),
+                            TextNode(id = "drawer_title", text = "All apps", textStyle = TextStyleName.Headline),
                             AppGridNode(
                                 id = "drawer_grid",
-                                source = AllAppsSource(includeNonTvApps = true),
+                                source = AllAppsSource(includeNonTvApps = true, includeHidden = true),
                                 columns = 7,
-                                tile = TileStyle(style = TileShape.Icon, size = TileSize.Medium),
+                                tile = TileStyle(shape = TileShape.Icon, size = TileSize.Medium),
                             ),
                         ),
                     ),

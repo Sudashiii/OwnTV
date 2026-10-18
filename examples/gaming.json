@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "name": "Gaming",
   "theme": {
     "colors": {
@@ -34,9 +34,9 @@
             "width": "fill",
             "contentAlign": "bottom",
             "children": [
-              { "type": "text", "id": "title", "text": "PLAYER ONE", "style": "headline", "bold": true, "color": "@magenta" },
+              { "type": "text", "id": "title", "text": "PLAYER ONE", "textStyle": "headline", "bold": true, "color": "@magenta" },
               { "type": "spacer", "id": "gap", "weight": 1 },
-              { "type": "clock", "id": "clock", "format": "HH:mm", "style": "title", "color": "@primary" }
+              { "type": "clock", "id": "clock", "format": "HH:mm", "textStyle": "title", "color": "@primary" }
             ]
           },
           {
@@ -47,7 +47,7 @@
               "type": "packages",
               "packages": ["com.nvidia.geforcenow", "com.valvesoftware.steamlink", "com.limelight", "tv.twitch.android.app"]
             },
-            "tile": { "style": "card", "size": "large" }
+            "tile": { "shape": "card", "size": "large" }
           },
           {
             "type": "app_grid",
@@ -55,14 +55,14 @@
             "title": "Installed games",
             "columns": 6,
             "source": { "type": "category", "category": "games" },
-            "tile": { "style": "banner", "size": "small" }
+            "tile": { "shape": "banner", "size": "small" }
           },
           {
             "type": "app_row",
             "id": "other_apps",
             "title": "Everything else",
             "source": { "type": "category", "category": "apps" },
-            "tile": { "style": "icon", "size": "small" }
+            "tile": { "shape": "icon", "size": "small" }
           }
         ]
       }

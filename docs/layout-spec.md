@@ -1,21 +1,25 @@
-# OwnTV layout format (version 1)
+# OwnTV layout format (version 2)
 
-An OwnTV layout is one JSON document. The launcher renders it natively; nothing in it is code. The machine-readable definition is `schema/owntv-layout.v1.schema.json` (JSON Schema 2020-12), generated from the app's Kotlin model.
+An OwnTV layout is one JSON document. The launcher renders it natively; nothing in it is code. The machine-readable definition is `schema/owntv-layout.v2.schema.json` (JSON Schema 2020-12), generated from the app's Kotlin model.
 
 ## Screen and units
 
-- The screen is **960 × 540 dp** (a 1080p TV). All sizes, paddings and gaps are in dp. Text sizes come from presets.
+- The screen is **960 × 540 dp** (a 1080p TV). All sizes, paddings and gaps are in dp; font sizes are in sp.
 - People use a remote: Up/Down/Left/Right move focus, OK clicks, a long press on OK opens a menu (Open, App info, Launcher settings), Back goes back.
-- Only focusable widgets react to the remote: `app_tile`, `app_row`, `app_grid`, `shortcut`. Focus moves to the nearest focusable widget in the pressed direction. A focused tile grows and gets a border and glow, as set in `theme.focus`.
+- Focusable widgets: `app_tile`, `app_row`, `app_grid`, `folder`, `shortcut`, and a `hero` whose slides have actions. Focus moves to the nearest focusable widget in the pressed direction unless `focus` links say otherwise. A focused tile grows and gets the border and glow from `theme.focus`.
 
 ## Document
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "name": "Living room",
+  "description": "Streaming apps on top, games below.",
   "theme": { "colors": { "primary": "#7AA2F7" } },
   "background": { "type": "gradient", "colors": ["#0E0F13", "#16203A"], "angle": 160 },
+  "styles": { "big_tiles": { "tile": { "size": "large" }, "spacing": 24 } },
+  "defaults": { "app_row": { "tile": { "shape": "card" } } },
+  "apps": { "com.netflix.ninja": { "description": "Movies and series", "backdrop": "https://example.com/netflix.jpg" } },
   "pageTabs": false,
   "pages": [ { "id": "home", "initialFocus": "favorites", "root": { "type": "column", "id": "root", "children": [] } } ]
 }
@@ -23,14 +27,17 @@ An OwnTV layout is one JSON document. The launcher renders it natively; nothing 
 
 | Property | Required | Meaning |
 |---|---|---|
-| `schemaVersion` | yes | Always `1`. |
-| `name` | | Shown in settings and history. |
+| `schemaVersion` | yes | Always `2`. Older layouts (version 1) are upgraded automatically. |
+| `name`, `description` | | Shown in settings, templates and history. |
 | `theme` | | See Theme. |
 | `background` | | Background of all pages. Default: theme background color. |
+| `styles` | | Named sets of node properties; see Styles. |
+| `defaults` | | Default properties per node type, e.g. `{ "app_row": { "spacing": 24 } }`. |
+| `apps` | | Per-app settings keyed by package name; see Apps. |
 | `pageTabs` | | `true` shows page titles as tabs at the top (only with 2+ pages). Default `false`. |
 | `pages` | yes | List of pages. The first page is the home page; Back returns to it. |
 
-**Page**: `id` (required, unique), `title` (tab label), `initialFocus` (id of the node focused when the page opens; default: first focusable widget), `background` (overrides the layout background), `root` (required node; it fills the screen).
+**Page**: `id` (required, unique), `title` (tab label and `{page}`), `initialFocus` (id of the node focused when the page opens; default: first focusable widget), `background` (overrides the layout background), `root` (required node; it fills the screen).
 
 ## Theme
 
@@ -42,19 +49,23 @@ An OwnTV layout is one JSON document. The launcher renders it natively; nothing 
     "custom": { "accent2": "#FF8800" }
   },
   "cornerRadius": 12,
+  "fontFamily": "sans",
   "fontScale": 1.0,
-  "focus": { "scale": 1.08, "borderWidth": 3, "borderColor": "@focus", "glow": true }
+  "focus": { "scale": 1.08, "borderWidth": 3, "borderColor": "@focus", "glow": true, "glowColor": "#99000000", "glowSize": 10 }
 }
 ```
 
-- Token colors: `@background`, `@surface` (tiles), `@primary`, `@text`, `@textMuted`, `@focus`, plus every key in `custom` (`@accent2`). Theme colors themselves must be hex values.
-- `cornerRadius` 0–64 (tiles), `fontScale` 0.5–2, `focus.scale` 1.0–1.5, `focus.borderWidth` 0–12.
+- Token colors: `@background`, `@surface` (tiles), `@primary`, `@text`, `@textMuted`, `@focus`, plus every key in `custom` (`@accent2`). Theme colors themselves must be hex values. `#AARRGGBB` gives transparency.
+- `fontFamily`: `sans`, `serif`, `mono` or `cursive`. `cornerRadius` 0–64, `fontScale` 0.5–2.
+- `focus`: `scale` 1.0–1.5, `borderWidth` 0–12 (0 = no outline), `glow` on/off, `glowColor` (a dark color such as `#99000000` makes a drop shadow; default is the border color), `glowSize` 0–48.
 
 ## Backgrounds
 
-- `{ "type": "color", "color": "#101010" }`
+Used by the document, pages, any node (`background`) and hero slides.
+
+- `"#101010"` or `"@surface"` — a solid color (shorthand for `{ "type": "color", "color": "#101010" }`).
 - `{ "type": "gradient", "colors": ["#000000", "#203040"], "angle": 180 }` — 2+ colors; angle like CSS: 0 = bottom→top, 90 = left→right, 180 = top→bottom (default).
-- `{ "type": "image", "src": "https://…/bg.jpg", "dim": 0.3, "fit": "cover" }` — `dim` 0–1 darkens the image; `fit` is `cover`, `contain` or `fill`.
+- `{ "type": "image", "src": "https://…/bg.jpg", "dim": 0.3, "blur": 0, "fit": "cover" }` — `dim` 0–1 darkens, `blur` 0–60 dp (Android 12+), `fit` is `cover`, `contain` or `fill`.
 
 ## Common node properties
 
@@ -65,50 +76,102 @@ Every node has `type` and `id` (both required) and may use:
 | `width`, `height` | `"fill"`, `"wrap"` or a number (dp). Default depends on the widget. |
 | `weight` | Share of the remaining space in a row or column, like flex-grow. `{ "type": "spacer", "id": "gap", "weight": 1 }` pushes neighbours apart. |
 | `padding` | `16`, `[horizontal, vertical]` or `[start, top, end, bottom]`. |
-| `background` | Color behind the node. |
-| `cornerRadius` | Radius of that background, 0–200. |
+| `background` | A background (see above). |
+| `border` | `{ "width": 2, "color": "@textMuted" }`. |
+| `cornerRadius` | Radius of background, border and shadow, 0–200. |
+| `opacity` | 0–1. |
+| `shadow` | Drop shadow size in dp, 0–48. |
 | `align` | `top_start`, `top`, `top_end`, `start`, `center`, `end`, `bottom_start`, `bottom`, `bottom_end`. In a stack all apply; in a column only the horizontal part; in a row only the vertical part. |
 | `span` | Inside a `grid`: how many columns the node covers (default 1). |
+| `style` | Name of an entry in `styles`. |
+| `focus` | `{ "up": "id", "down": "id", "left": "id", "right": "id" }` — where the D-pad goes. On a tile it applies when that tile is focused; on a container or row it applies when focus leaves it in that direction. Ids must be on the same page. |
+| `revealOnFocus` | `true`: when something inside gets focus, scroll so the whole node is visible (e.g. a hero plus the row under it). |
 | `visible` | `false` hides the node. |
 
 ## Containers
 
-- **`column`**: children top to bottom. `children`, `spacing` (gap, default 0), `contentAlign` (`start` / `center` / `end`, horizontal), `arrange` (`start`, `center`, `end`, `space_between`, `space_around`, `space_evenly`, vertical), `scroll` (`true` scrolls vertically; needed when content is taller than the screen).
-- **`row`**: children left to right. `children`, `spacing`, `contentAlign` (`top` / `center` / `bottom`, default `center`), `arrange` (horizontal), `scroll` (horizontal).
-- **`grid`**: `columns` (required, 1–12), `children` (filled row by row), `spacing` (default 16). Children stretch to their cell width; tiles keep 16:9 unless they set `height`.
+- **`column`**: children top to bottom. `children`, `spacing` (gap, default 0), `contentAlign` (`start` / `center` / `end`, horizontal), `arrange` (`start`, `center`, `end`, `space_between`, `space_around`, `space_evenly`, vertical), `scroll` (`true` scrolls vertically; needed when content is taller than the screen), `scrollAlign` (`nearest` default, `start` = focused child scrolls to the top minus `scrollMargin` (default 32), `center`).
+- **`row`**: children left to right. `children`, `spacing`, `contentAlign` (`top` / `center` / `bottom`, default `center`), `arrange` (horizontal), `scroll` (horizontal), `scrollAlign`, `scrollMargin`.
+- **`grid`**: `columns` (required, 1–12), `children` (filled row by row), `spacing` (default 16). Children stretch to their cell width; tiles keep their aspect ratio unless they set `height`.
 - **`stack`**: layers children; later ones on top. `contentAlign` (9 positions, default `top_start`) and each child's `align`.
 
 The page `root` fills the screen. Other containers wrap their content unless you set `width`/`height` (`"fill"` is common for rows that hold a spacer).
 
 ## App widgets (focusable)
 
-**Tile style** (`tile` property): `{ "style": "banner" | "icon" | "card", "size": "small" | "medium" | "large", "showLabel": "always" | "focused" | "never" }`
+**Tile style** (`tile`): `{ "shape": "banner" | "icon" | "card", "size": "small" | "medium" | "large", "showLabel": "always" | "focused" | "never", "width": 148, "aspectRatio": 1.67, "cornerRadius": 14 }`
 
-- `banner`: the app's 16:9 TV banner; widths 128 / 160 / 208 dp. Label shown on focus by default.
+- `banner`: the app's TV banner, 16:9 by default; widths 128 / 160 / 208 dp. Label shown on focus by default.
 - `icon`: square app icon (56 / 72 / 96 dp) with the label below.
 - `card`: banner with the label always below.
+- `width` (dp) overrides `size`; `aspectRatio` is width ÷ height (1.78 = 16:9, 1.67 = Apple TV 5:3, 1 = square, 0.67 = poster); `cornerRadius` overrides the theme.
 
-**App sources** (`source` property):
+**App sources** (`source`):
 
 - `{ "type": "packages", "packages": ["com.netflix.ninja", "com.google.android.youtube.tv"] }` — exactly these apps, in this order.
-- `{ "type": "all", "sort": "alphabetical" | "recently_installed", "exclude": ["…"], "includeNonTvApps": false }` — every TV app.
+- `{ "type": "all", "sort": "alphabetical" | "recently_installed", "exclude": ["…"], "includeNonTvApps": false, "includeHidden": false }` — every TV app.
 - `{ "type": "category", "category": "games" | "apps", "sort": "alphabetical", "exclude": [] }` — games, or everything that is not a game.
+- `{ "type": "recent", "exclude": [] }` — most recently used first. Starts empty and fills as apps are opened.
 
 Widgets:
 
-- **`app_row`**: horizontally scrolling tiles. `source` (required), `title`, `tile`, `spacing` (16), `limit`, `missing` (`hide` default, or `placeholder` for packages that are not installed). Width fills by default. A row with no apps is hidden.
-- **`app_grid`**: tiles in `columns` (default 5) that wrap onto new rows. Same properties as `app_row`. Put it in a scrolling column if it may be taller than the screen.
-- **`app_tile`**: one app. `package` (required), `label` (override), `tile`, `missing` (`placeholder` default, or `hide`).
-- **`shortcut`**: a custom tile. `label` and `action` (both required), `icon`, `image` (URL or `asset:`), `color` (tile color), `tile` (default `card`). Icons: `settings`, `home`, `search`, `star`, `info`, `play`, `favorite`, `apps`, `add`, `refresh`, `notifications`, `person`, `lock`, `menu`, or any emoji such as `"🎬"`. `card`/`banner` tiles show icon and label inside; `icon` tiles show the label below.
+- **`app_row`**: horizontally scrolling tiles. `source` (required), `title`, `tile`, `spacing` (16), `skip` (leave out the first N apps), `limit`, `missing` (`hide` default, or `placeholder` for packages that are not installed), `scrollAlign` (`start` keeps the focused tile at the left like Google TV; `center`; `nearest` default), `scrollMargin`. Width fills by default. A row with no apps is hidden.
+- **`app_grid`**: tiles in `columns` (default 5) that wrap onto new rows. Same properties as `app_row` except scrolling. Put it in a scrolling column if it may be taller than the screen. `skip` lets a grid continue where a row above stopped: a row with `"limit": 5` and a grid with `"skip": 5` on the same source show every app once.
+- **`app_tile`**: one app. `package` (required), `label`, `tile`, `missing` (`placeholder` default, or `hide`).
+- **`folder`**: a tile with up to six app icons that opens a panel with its apps. `label` and `source` (both required), `tile`, `itemTile` (tiles in the panel), `columns` (default 4).
+- **`shortcut`**: a custom tile. `label` and `action` (both required), `icon`, `image` (URL or `asset:`), `color` (tile color), `tile` (default `card`), and `description` / `backdrop` for a hero. Icons: `settings`, `home`, `search`, `star`, `info`, `play`, `favorite`, `apps`, `add`, `refresh`, `notifications`, `person`, `lock`, `menu`, or any emoji such as `"🎬"`. `card`/`banner` tiles show icon and label inside; `icon` tiles show the label below.
+
+## Hero (Top Shelf / carousel)
+
+**`hero`**: a large banner area; width fills, default height 280.
+
+- `"follow": "focus"` (default): shows the focused app or shortcut — its `backdrop` image and `description` from `apps` (or the shortcut), with its name as the title. Apps without a backdrop show a blurred version of their banner. `target` limits it to focus inside one node (e.g. the dock row); while focus is elsewhere the last item stays. `slides` are shown until something is focused.
+- `"follow": "slides"`: rotates through `slides` every `interval` seconds (default 8). If any slide has an `action`, the hero is focusable: OK runs the current slide's action and Left/Right switch slides.
+- A slide: `{ "title": "…", "description": "…", "background": <background>, "action": <action> }`. Titles and descriptions may use placeholders.
+- `showText` (default true), `scrim` 0–1 (darkness behind the text, default 0.6), `contentAlign` (where the text sits, default `bottom_start`), `cornerRadius` via the common property.
+
+Apple TV pattern: a column with `"scroll": true, "scrollAlign": "start"` holding a `column` with `"revealOnFocus": true` (containing the hero with `"target": "dock"` and the `dock` app_row with `"limit": 5`), followed by an `app_grid` with `"skip": 5`.
 
 ## Content widgets (not focusable)
 
-- **`text`**: `text` (required), `style` (`display` 56, `headline` 34, `title` 22, `body` 16, `caption` 12), `color`, `bold`, `textAlign` (`start`/`center`/`end`), `maxLines`.
-- **`clock`**: `format` (java.time pattern; `"HH:mm"` default, `"h:mm a"`, `"EEEE, d MMMM"` for a date), `style` (default `display`), `color`, `bold`, `textAlign`.
+- **`text`**: `text` (required), `textStyle` (`display` 56, `headline` 34, `title` 22, `body` 16, `caption` 12), `fontSize` (sp, overrides the preset), `font` (`sans` / `serif` / `mono` / `cursive`), `color`, `bold`, `uppercase`, `letterSpacing` (sp), `textAlign` (`start` / `center` / `end`), `maxLines`.
+  Placeholders: `{greeting}` (Good morning/afternoon/evening/night), `{time}` (HH:mm) or `{time:h:mm a}`, `{date}` (e.g. "Sunday, 18 October") or `{date:d MMM}`, `{focused}` (name of the focused tile), `{page}` (page title). `{{` and `}}` write literal braces.
+- **`clock`**: `format` (java.time pattern; `"HH:mm"` default, `"h:mm a"`, `"EEEE, d MMMM"` for a date), `textStyle` (default `display`), `fontSize`, `font`, `color`, `bold`, `letterSpacing`, `textAlign`.
 - **`image`**: `src` (required; `https://…` or `asset:<path>`), `fit` (`contain` default, `cover`, `fill`), `alpha` 0–1. Give it a `width` and `height`.
 - **`spacer`**: empty space; use `width`/`height` or `weight`.
 
-## Actions (for `shortcut.action`)
+## Styles and defaults
+
+`defaults` applies to every node of a type; `styles` apply to nodes that name them with `"style"`. Precedence, lowest first: type default → the style's own base style (a style may set `"style"` to build on another) → the style → the node itself. Objects such as `tile` merge key by key; `source`, `action` and `background` are replaced whole. Keys a node type does not have are skipped, so one style can serve several types. Styles cannot set `type`, `id` or `children`. A node property only overrides a style when it differs from that property's default.
+
+```json
+"styles": {
+  "pill": { "color": "#00000000", "tile": { "shape": "icon", "size": "small", "cornerRadius": 28 } },
+  "pill_label": { "style": "pill", "tile": { "showLabel": "always" } }
+}
+```
+
+## Apps
+
+Per-app settings, used everywhere the app appears:
+
+```json
+"apps": {
+  "com.netflix.ninja": {
+    "label": "Netflix",
+    "banner": "https://…/netflix-wide.png",
+    "icon": "https://…/netflix-square.png",
+    "backdrop": "https://…/netflix-hero.jpg",
+    "description": "Series and films",
+    "color": "#141414",
+    "hidden": false
+  }
+}
+```
+
+`banner` replaces the artwork on banner and card tiles, `icon` on icon tiles, `color` is the tile background, `backdrop` and `description` feed heroes, `hidden: true` leaves the app out of all, category, recent and folder sources (explicit package lists and the app drawer still show it).
+
+## Actions (for `shortcut.action` and slides)
 
 - `{ "type": "launch_app", "package": "com.netflix.ninja" }`
 - `{ "type": "open_url", "url": "https://example.com" }` (also deep links)
@@ -116,16 +179,18 @@ Widgets:
 - `{ "type": "go_to_page", "page": "apps" }`
 - `{ "type": "open_app_drawer" }` — built-in list of all apps.
 - `{ "type": "open_system_settings", "screen": "main" | "network" | "bluetooth" | "display" | "sound" | "apps" | "date_time" | "accessibility" }`
-- `{ "type": "open_launcher_settings" }` — OwnTV's import, templates and history.
+- `{ "type": "open_launcher_settings" }` — OwnTV's import, looks, templates and history.
 
 ## Complete example
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "name": "Movie night",
   "theme": { "colors": { "primary": "#E50914", "custom": { "hero": "#2A0E12" } } },
   "background": { "type": "gradient", "colors": ["#2A0E12", "#0B0D12"], "angle": 180 },
+  "styles": { "small_icon": { "tile": { "shape": "icon", "size": "small" } } },
+  "apps": { "com.netflix.ninja": { "description": "Series and films" } },
   "pages": [
     {
       "id": "home",
@@ -136,24 +201,25 @@ Widgets:
           {
             "type": "row", "id": "header", "width": "fill",
             "children": [
-              { "type": "text", "id": "title", "text": "Movie night", "style": "headline", "bold": true },
+              { "type": "text", "id": "title", "text": "{greeting}", "textStyle": "headline", "bold": true },
               { "type": "spacer", "id": "gap", "weight": 1 },
-              { "type": "clock", "id": "clock", "format": "HH:mm", "style": "title" }
+              { "type": "clock", "id": "clock", "format": "HH:mm", "textStyle": "title" }
             ]
           },
+          { "type": "hero", "id": "spotlight", "target": "streaming", "height": 200, "cornerRadius": 16 },
           {
             "type": "app_row", "id": "streaming", "title": "Streaming",
             "source": { "type": "packages", "packages": ["com.netflix.ninja", "com.disney.disneyplus"] },
-            "tile": { "style": "card", "size": "large" }
+            "tile": { "shape": "card", "size": "large" }
           },
           {
             "type": "row", "id": "actions", "spacing": 16,
             "children": [
-              { "type": "shortcut", "id": "all", "label": "All apps", "icon": "apps", "action": { "type": "open_app_drawer" }, "tile": { "style": "icon", "size": "small" } },
-              { "type": "shortcut", "id": "settings", "label": "Settings", "icon": "settings", "action": { "type": "open_system_settings" }, "tile": { "style": "icon", "size": "small" } }
+              { "type": "shortcut", "id": "all", "label": "All apps", "icon": "apps", "style": "small_icon", "action": { "type": "open_app_drawer" } },
+              { "type": "shortcut", "id": "settings", "label": "Settings", "icon": "settings", "style": "small_icon", "action": { "type": "open_system_settings" } }
             ]
           },
-          { "type": "app_grid", "id": "everything", "title": "All apps", "columns": 6, "source": { "type": "all" }, "tile": { "style": "banner", "size": "small" } }
+          { "type": "app_grid", "id": "everything", "title": "All apps", "columns": 6, "source": { "type": "all" }, "tile": { "shape": "banner", "size": "small" } }
         ]
       }
     }
@@ -163,4 +229,4 @@ Widgets:
 
 ## Validation
 
-OwnTV checks every layout before it can be applied and reports problems with a JSON path, for example `ERROR at $.pages[0].root.children[1].source: Missing required property "packages".` Errors block the layout; warnings (unknown properties, apps that are not installed, pages with nothing to focus) do not. Text around a ```json code block, comments and trailing commas are tolerated.
+OwnTV checks every layout before it can be applied and reports problems with a JSON path, for example `ERROR at $.pages[0].root.children[1].source: Missing required property "packages".` Errors block the layout; warnings (unknown properties or placeholders, apps that are not installed, pages with nothing to focus) do not. Text around a ```json code block, comments and trailing commas are tolerated.

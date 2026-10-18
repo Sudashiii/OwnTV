@@ -35,7 +35,7 @@ object LayoutCodec {
         allowComments = true
     }
 
-    private val migrator = Migrator(CURRENT_SCHEMA_VERSION, emptyMap())
+    private val migrator = Migrator(CURRENT_SCHEMA_VERSION, LayoutMigrations.steps)
 
     fun encode(doc: LayoutDocument): String = json.encodeToString(LayoutDocument.serializer(), doc) + "\n"
 
@@ -62,7 +62,7 @@ object LayoutCodec {
         }
         val migrated = migrator.migrate(obj, out) ?: return DecodeResult(null, out.issues)
 
-        StructureValidator(out).check(LayoutDocument.serializer().descriptor, migrated, "$")
+        StructureValidator(out).checkDocument(LayoutDocument.serializer().descriptor, migrated)
         if (out.issues.any { it.severity == Severity.Error }) return DecodeResult(null, out.issues)
 
         val doc = try {

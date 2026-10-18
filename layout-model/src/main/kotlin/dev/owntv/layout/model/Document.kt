@@ -1,23 +1,46 @@
 package dev.owntv.layout.model
 
 import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.InternalSerializationApi
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.descriptors.PolymorphicKind
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.descriptors.buildSerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.json.JsonDecoder
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonEncoder
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
 
-const val CURRENT_SCHEMA_VERSION = 1
+const val CURRENT_SCHEMA_VERSION = 2
 
 @Serializable
 @Doc("An OwnTV launcher layout. The screen is 960 x 540 dp; all sizes are in dp.")
 data class LayoutDocument(
     @EncodeDefault
-    @Doc("Format version. Use 1.")
+    @Doc("Format version. Use 2.")
     val schemaVersion: Int = CURRENT_SCHEMA_VERSION,
     @Doc("Name shown in launcher settings and layout history.")
     val name: String = "Untitled layout",
-    @Doc("Colors, corner radius and focus style used by all widgets.")
+    @Doc("One sentence about this layout, shown in the template and theme lists.")
+    val description: String? = null,
+    @Doc("Colors, fonts, corner radius and focus style used by all widgets.")
     val theme: Theme = Theme(),
     @Doc("Background behind every page. Default: the theme background color.")
     val background: Background? = null,
+    @Doc("Named sets of node properties. A node uses one with \"style\": \"name\"; its own properties win. A style may itself set \"style\" to build on another one.")
+    val styles: Map<String, JsonObject> = emptyMap(),
+    @Doc("Default properties per node type, e.g. {\"app_row\": {\"spacing\": 24}}. Applied before styles; the node's own properties win.")
+    val defaults: Map<String, JsonObject> = emptyMap(),
+    @Doc("Per-app settings keyed by package name: label, artwork, hero backdrop and description, hidden.")
+    val apps: Map<String, AppOverride> = emptyMap(),
     @Doc("Show a row of page tabs at the top when there is more than one page. Default false.")
     val pageTabs: Boolean = false,
     @Doc("Pages of the launcher. The first page is the home page.")
@@ -40,6 +63,25 @@ data class Page(
 )
 
 @Serializable
+@Doc("Settings for one app, used everywhere the app appears.")
+data class AppOverride(
+    @Doc("Name to show instead of the app's own.")
+    val label: String? = null,
+    @Doc("Image replacing the app's banner on banner and card tiles: an https:// URL or \"asset:<path>\".")
+    val banner: String? = null,
+    @Doc("Image replacing the app's icon on icon tiles.")
+    val icon: String? = null,
+    @Doc("Large image a hero shows while this app is focused.")
+    val backdrop: String? = null,
+    @Doc("Text a hero shows while this app is focused.")
+    val description: String? = null,
+    @ColorValue @Doc("Tile background color behind the app's artwork.")
+    val color: String? = null,
+    @Doc("Leave the app out of all, category, recent and folder sources. Explicit package lists still show it. Default false.")
+    val hidden: Boolean = false,
+)
+
+@Serializable
 @Doc("Visual theme shared by all widgets.")
 data class Theme(
     @Doc("Named colors. Reference them anywhere a color is expected as \"@name\", e.g. \"@primary\".")
@@ -49,6 +91,8 @@ data class Theme(
     val cornerRadius: Int = 12,
     @Doc("How a focused tile looks.")
     val focus: FocusStyle = FocusStyle(),
+    @Doc("Font family for all text. Default sans.")
+    val fontFamily: FontName = FontName.Sans,
     @Range(0.5, 2.0)
     @Doc("Multiplier for all text sizes. Default 1.")
     val fontScale: Float = 1f,
@@ -93,21 +137,28 @@ data class ThemeColors(
 data class FocusStyle(
     @Range(1.0, 1.5) @Doc("Scale of the focused tile. Default 1.08.")
     val scale: Float = 1.08f,
-    @Range(0.0, 12.0) @Doc("Border width in dp around the focused tile. Default 3.")
+    @Range(0.0, 12.0) @Doc("Border width in dp around the focused tile; 0 for none. Default 3.")
     val borderWidth: Int = 3,
     @ColorValue @Doc("Border color of the focused tile. Default @focus.")
     val borderColor: String = "@focus",
-    @Doc("Soft glow around the focused tile. Default true.")
+    @Doc("Soft glow or shadow around the focused tile. Default true.")
     val glow: Boolean = true,
+    @ColorValue @Doc("Glow color; use a dark, semi-transparent color like #99000000 for a drop shadow. Default: the border color at 55% opacity.")
+    val glowColor: String? = null,
+    @Range(0.0, 48.0) @Doc("Glow size in dp. Default 10.")
+    val glowSize: Int = 10,
 )
 
-@Serializable
-@Doc("A full-screen background.")
+/**
+ * A background: a solid color, a gradient or an image. In JSON a plain color string such as
+ * `"#202020"` or `"@surface"` is a shorthand for `{"type": "color", "color": …}`.
+ */
+@Serializable(with = BackgroundSerializer::class)
 sealed interface Background
 
 @Serializable
 @SerialName("color")
-@Doc("A solid color background.")
+@Doc("A solid color.")
 data class ColorBackground(
     @ColorValue @Doc("Background color.")
     val color: String,
@@ -115,7 +166,7 @@ data class ColorBackground(
 
 @Serializable
 @SerialName("gradient")
-@Doc("A linear gradient background.")
+@Doc("A linear gradient.")
 data class GradientBackground(
     @ColorValue @Doc("Two or more colors, from start to end.")
     val colors: List<String>,
@@ -126,13 +177,15 @@ data class GradientBackground(
 
 @Serializable
 @SerialName("image")
-@Doc("An image background.")
+@Doc("An image.")
 data class ImageBackground(
     @Doc("Image location: an https:// URL or \"asset:<path>\" for an image bundled with the app.")
     val src: String,
     @Range(0.0, 1.0) @Doc("Darkens the image so text stays readable: 0 = none, 1 = black. Default 0.3.")
     val dim: Float = 0.3f,
-    @Doc("How the image fills the screen. Default cover.")
+    @Range(0.0, 60.0) @Doc("Blur radius in dp (Android 12 and newer). Default 0.")
+    val blur: Int = 0,
+    @Doc("How the image fills the area. Default cover.")
     val fit: ImageFit = ImageFit.Cover,
 ) : Background
 
@@ -141,4 +194,42 @@ enum class ImageFit {
     @SerialName("cover") Cover,
     @SerialName("contain") Contain,
     @SerialName("fill") Fill,
+}
+
+/** Reads a background from a color string or a `{"type": …}` object; writes solid colors as strings. */
+object BackgroundSerializer : KSerializer<Background> {
+    const val SERIAL_NAME = "dev.owntv.layout.Background"
+
+    val subtypes: Map<String, KSerializer<out Background>> = linkedMapOf(
+        "color" to ColorBackground.serializer(),
+        "gradient" to GradientBackground.serializer(),
+        "image" to ImageBackground.serializer(),
+    )
+
+    @OptIn(InternalSerializationApi::class)
+    override val descriptor: SerialDescriptor = buildSerialDescriptor(SERIAL_NAME, PolymorphicKind.SEALED)
+
+    override fun deserialize(decoder: Decoder): Background {
+        val input = decoder as? JsonDecoder ?: throw SerializationException("Backgrounds can only be read from JSON")
+        val element = input.decodeJsonElement()
+        if (element is JsonPrimitive && element.isString) return ColorBackground(element.content)
+        val obj = element as? JsonObject ?: throw SerializationException("A background must be a color string or an object")
+        val type = (obj["type"] as? JsonPrimitive)?.contentOrNull
+        val serializer = subtypes[type] ?: throw SerializationException("Unknown background type \"$type\"")
+        return input.json.decodeFromJsonElement(serializer, JsonObject(obj - "type"))
+    }
+
+    override fun serialize(encoder: Encoder, value: Background) {
+        val output = encoder as? JsonEncoder ?: throw SerializationException("Backgrounds can only be written as JSON")
+        if (value is ColorBackground) {
+            output.encodeJsonElement(JsonPrimitive(value.color))
+            return
+        }
+        val (type, body) = when (value) {
+            is GradientBackground -> "gradient" to output.json.encodeToJsonElement(GradientBackground.serializer(), value)
+            is ImageBackground -> "image" to output.json.encodeToJsonElement(ImageBackground.serializer(), value)
+            is ColorBackground -> error("handled above")
+        }
+        output.encodeJsonElement(JsonObject(linkedMapOf<String, JsonElement>("type" to JsonPrimitive(type)) + body.jsonObject))
+    }
 }

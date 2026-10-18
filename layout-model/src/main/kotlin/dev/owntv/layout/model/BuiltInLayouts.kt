@@ -9,22 +9,22 @@ object BuiltInLayouts {
                 id = "home",
                 root = ColumnNode(
                     id = "root",
-                    padding = Padding.symmetric(48, 32),
                     spacing = 24,
                     scroll = true,
+                    common = NodeCommon(padding = Padding.symmetric(48, 32)),
                     children = listOf(
                         RowNode(
                             id = "header",
-                            width = Size.Fill,
+                            common = NodeCommon(width = Size.Fill),
                             children = listOf(
                                 ClockNode(id = "clock"),
-                                SpacerNode(id = "header_gap", weight = 1f),
+                                SpacerNode(id = "header_gap", common = NodeCommon(weight = 1f)),
                                 ShortcutNode(
                                     id = "settings",
                                     label = "Launcher settings",
                                     icon = "settings",
                                     action = OpenLauncherSettingsAction,
-                                    tile = TileStyle(style = TileShape.Icon, size = TileSize.Small),
+                                    tile = TileStyle(shape = TileShape.Icon, size = TileSize.Small),
                                 ),
                             ),
                         ),

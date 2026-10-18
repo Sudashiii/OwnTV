@@ -15,7 +15,10 @@ import dev.owntv.layout.model.OpenUrlAction
 import dev.owntv.layout.model.SettingsScreen
 
 /** Runs the actions that leave the launcher (apps, URLs, intents, system settings). */
-class ActionExecutor(private val context: Context) {
+class ActionExecutor(
+    private val context: Context,
+    private val onLaunch: (packageName: String) -> Unit = {},
+) {
 
     /** Returns false for actions the UI handles itself (pages, drawer, launcher settings). */
     fun execute(action: Action): Boolean = when (action) {
@@ -34,7 +37,7 @@ class ActionExecutor(private val context: Context) {
             toast("$packageName is not installed")
             return false
         }
-        return start(intent, "Could not open $packageName")
+        return start(intent, "Could not open $packageName").also { if (it) onLaunch(packageName) }
     }
 
     fun openAppInfo(packageName: String) {

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "name": "Kids",
   "theme": {
     "colors": {
@@ -28,7 +28,7 @@
         "spacing": 28,
         "contentAlign": "center",
         "children": [
-          { "type": "text", "id": "hello", "text": "Hi there! What do you want to watch?", "style": "headline", "bold": true, "textAlign": "center" },
+          { "type": "text", "id": "hello", "text": "Hi there! What do you want to watch?", "textStyle": "headline", "bold": true, "textAlign": "center" },
           {
             "type": "grid",
             "id": "kids_grid",
@@ -43,7 +43,7 @@
                 "icon": "📺",
                 "color": "@pink",
                 "action": { "type": "launch_app", "package": "com.google.android.youtube.tvkids" },
-                "tile": { "style": "card", "size": "large" }
+                "tile": { "shape": "card", "size": "large" }
               },
               {
                 "type": "shortcut",
@@ -52,7 +52,7 @@
                 "icon": "🏰",
                 "color": "@violet",
                 "action": { "type": "launch_app", "package": "com.disney.disneyplus" },
-                "tile": { "style": "card", "size": "large" }
+                "tile": { "shape": "card", "size": "large" }
               },
               {
                 "type": "shortcut",
@@ -61,7 +61,7 @@
                 "icon": "🍿",
                 "color": "@orange",
                 "action": { "type": "launch_app", "package": "com.netflix.ninja" },
-                "tile": { "style": "card", "size": "large" }
+                "tile": { "shape": "card", "size": "large" }
               },
               {
                 "type": "shortcut",
@@ -70,7 +70,7 @@
                 "icon": "🎵",
                 "color": "@green",
                 "action": { "type": "launch_app", "package": "com.spotify.tv.android" },
-                "tile": { "style": "card", "size": "large" }
+                "tile": { "shape": "card", "size": "large" }
               },
               {
                 "type": "shortcut",
@@ -80,7 +80,7 @@
                 "action": { "type": "open_app_drawer" },
                 "span": 4,
                 "height": 56,
-                "tile": { "style": "card", "size": "small" }
+                "tile": { "shape": "card", "size": "small" }
               }
             ]
           }

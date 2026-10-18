@@ -41,9 +41,9 @@ class CodecTest {
             ),
         ).requireDocument()
         val root = assertIs<ColumnNode>(doc.pages[0].root)
-        assertEquals(Size.Fill, root.width)
-        assertEquals(Size.Fixed(300), root.height)
-        assertEquals(Padding(48, 32, 48, 32), root.padding)
+        assertEquals(Size.Fill, root.common.width)
+        assertEquals(Size.Fixed(300), root.common.height)
+        assertEquals(Padding(48, 32, 48, 32), root.common.padding)
         val shortcut = assertIs<ShortcutNode>(root.children[0])
         assertEquals(LaunchAppAction("com.google.android.youtube.tv"), shortcut.action)
     }
@@ -52,7 +52,7 @@ class CodecTest {
     fun `encoding writes type first, keeps schemaVersion and drops defaults`() {
         val doc = LayoutCodec.decode(docWithRoot(TILE)).requireDocument()
         val text = LayoutCodec.encode(doc)
-        assertTrue(text.contains("\"schemaVersion\": 1"))
+        assertTrue(text.contains("\"schemaVersion\": 2"))
         assertTrue(Regex("\\{\\s*\"type\": \"app_tile\",\\s*\"id\": \"tile\"").containsMatchIn(text), text)
         assertFalse(text.contains("\"visible\""), "Defaults should not be written")
     }
@@ -83,7 +83,7 @@ class CodecTest {
             docWithRoot(
                 """
                 { "type": "column", "id": "root", "spacing": "big", "children": [
-                  { "type": "app_row", "id": "r", "tile": { "style": "huge" } },
+                  { "type": "app_row", "id": "r", "tile": { "shape": "huge" } },
                   { "type": "text", "id": "t", "text": "Hi", "color": "red" },
                   { "type": "app_grid", "id": "g", "columns": 40, "source": { "type": "favourites" } }
                 ] }
@@ -95,7 +95,7 @@ class CodecTest {
         assertEquals(
             setOf(
                 "$.pages[0].root.spacing",
-                "$.pages[0].root.children[0].tile.style",
+                "$.pages[0].root.children[0].tile.shape",
                 "$.pages[0].root.children[0]", // missing source
                 "$.pages[0].root.children[1].color",
                 "$.pages[0].root.children[2].columns",
@@ -107,7 +107,7 @@ class CodecTest {
 
     @Test
     fun `missing pages is an error`() {
-        val result = LayoutCodec.decode("""{ "schemaVersion": 1, "name": "x" }""")
+        val result = LayoutCodec.decode("""{ "schemaVersion": 2, "name": "x" }""")
         assertNull(result.document)
         assertTrue(result.issues.any { it.severity == Severity.Error && it.message.contains("\"pages\"") })
     }
@@ -120,7 +120,7 @@ class CodecTest {
             ```json
             {
               // a comment
-              "schemaVersion": 1,
+              "schemaVersion": 2,
               "pages": [ { "id": "home", "root": $TILE, }, ],
             }
             ```

@@ -2,53 +2,88 @@ package dev.owntv.layout.model
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 
 /**
- * A node in the layout tree. Every node has the common properties below; their docs live in
- * [CommonNodeFields] so they are not repeated on every class. JSON objects carry a `"type"`
- * discriminator that [NodeSerializer] maps through [NodeRegistry].
+ * A node in the layout tree. In JSON every node is one flat object: `"type"`, `"id"`, the node's own
+ * properties and the [NodeCommon] properties. [NodeSerializer] splits and joins them.
  */
 @Serializable(with = NodeSerializer::class)
 sealed interface Node {
     val id: String
-    val width: Size?
-    val height: Size?
-    val weight: Float?
-    val padding: Padding?
-    val background: String?
-    val cornerRadius: Int?
-    val align: Alignment?
-    val span: Int?
-    val visible: Boolean
+    val common: NodeCommon
+
+    /** Returns this node with [common] replaced. */
+    fun withCommon(common: NodeCommon): Node
 }
 
 sealed interface ContainerNode : Node {
     val children: List<Node>
 }
 
-/** Docs and constraints for the properties every node shares. */
-object CommonNodeFields {
-    val docs: Map<String, String> = linkedMapOf(
-        "id" to "Unique id (letters, digits, _ . -). Used by initialFocus, the editor and AI edits.",
-        "width" to "\"fill\" (all available width), \"wrap\" (fit content) or a number in dp. Default depends on the widget.",
-        "height" to "\"fill\" (all available height), \"wrap\" (fit content) or a number in dp. Default depends on the widget.",
-        "weight" to "Share of the remaining space inside a row or column, like CSS flex-grow.",
-        "padding" to "Inner padding in dp: a number, [horizontal, vertical] or [start, top, end, bottom].",
-        "background" to "Background color behind this node.",
-        "cornerRadius" to "Corner radius in dp of this node's background.",
-        "align" to "Position inside the parent. In a stack all 9 values apply; in a column only the horizontal part is used; in a row only the vertical part.",
-        "span" to "Number of grid columns this node covers. Only used inside a grid. Default 1.",
-        "visible" to "Set to false to hide the node without deleting it. Default true.",
-    )
-    val colorFields = setOf("background")
-    val ranges: Map<String, ClosedFloatingPointRange<Double>> = mapOf(
-        "weight" to 0.0..100.0,
-        "cornerRadius" to 0.0..200.0,
-        "span" to 1.0..12.0,
-    )
+val Node.visible: Boolean get() = common.visible
+
+/** Properties every node accepts, written flat next to the node's own properties. */
+@Serializable
+@Doc("Properties every node accepts.")
+data class NodeCommon(
+    @Doc("\"fill\" (all available width), \"wrap\" (fit content) or a number in dp. Default depends on the widget.")
+    val width: Size? = null,
+    @Doc("\"fill\" (all available height), \"wrap\" (fit content) or a number in dp. Default depends on the widget.")
+    val height: Size? = null,
+    @Range(0.0, 100.0) @Doc("Share of the remaining space inside a row or column, like CSS flex-grow.")
+    val weight: Float? = null,
+    @Doc("Inner padding in dp: a number, [horizontal, vertical] or [start, top, end, bottom].")
+    val padding: Padding? = null,
+    @Doc("Background behind this node: a color like \"#202020\" or \"@surface\", or a gradient or image object.")
+    val background: Background? = null,
+    @Doc("Outline around this node.")
+    val border: BorderStyle? = null,
+    @Range(0.0, 200.0) @Doc("Corner radius in dp of the background, border and shadow.")
+    val cornerRadius: Int? = null,
+    @Range(0.0, 1.0) @Doc("Opacity of the whole node, 0 to 1. Default 1.")
+    val opacity: Float? = null,
+    @Range(0.0, 48.0) @Doc("Drop shadow size in dp. Default none.")
+    val shadow: Int? = null,
+    @Doc("Position inside the parent. In a stack all 9 values apply; in a column only the horizontal part is used; in a row only the vertical part.")
+    val align: Alignment? = null,
+    @Range(1.0, 12.0) @Doc("Number of grid columns this node covers. Only used inside a grid. Default 1.")
+    val span: Int? = null,
+    @Doc("Name of an entry in the document's styles. Its properties apply where this node does not set its own.")
+    val style: String? = null,
+    @Doc("Where the D-pad goes from this node: ids of other nodes on the same page. On a container it applies when focus leaves the container in that direction.")
+    val focus: FocusLinks? = null,
+    @Doc("When something inside this node gets focus, scroll so the whole node is visible (like the Apple TV top shelf). Default false.")
+    val revealOnFocus: Boolean = false,
+    @Doc("Set to false to hide the node without deleting it. Default true.")
+    val visible: Boolean = true,
+)
+
+@Serializable
+@Doc("Outline around a node.")
+data class BorderStyle(
+    @Range(0.0, 24.0) @Doc("Width in dp. Default 2.")
+    val width: Int = 2,
+    @ColorValue @Doc("Color. Default @textMuted.")
+    val color: String = "@textMuted",
+)
+
+@Serializable
+@Doc("Explicit D-pad targets. Each value is the id of a node on the same page.")
+data class FocusLinks(
+    @Doc("Node that gets focus when Up is pressed.")
+    val up: String? = null,
+    @Doc("Node that gets focus when Down is pressed.")
+    val down: String? = null,
+    @Doc("Node that gets focus when Left is pressed.")
+    val left: String? = null,
+    @Doc("Node that gets focus when Right is pressed.")
+    val right: String? = null,
+) {
+    val ids: List<String> get() = listOfNotNull(up, down, left, right)
 }
 
 // ---------------------------------------------------------------- containers
@@ -68,16 +103,14 @@ data class ColumnNode(
     val arrange: Arrange = Arrange.Start,
     @Doc("Scroll vertically when the content is taller than the column. The focused widget scrolls into view. Default false.")
     val scroll: Boolean = false,
-    override val width: Size? = null,
-    override val height: Size? = null,
-    override val weight: Float? = null,
-    override val padding: Padding? = null,
-    override val background: String? = null,
-    override val cornerRadius: Int? = null,
-    override val align: Alignment? = null,
-    override val span: Int? = null,
-    override val visible: Boolean = true,
-) : ContainerNode
+    @Doc("Where a focused child is scrolled to: nearest (just into view), start (to the top, minus scrollMargin) or center. Default nearest.")
+    val scrollAlign: ScrollAlign = ScrollAlign.Nearest,
+    @Range(0.0, 400.0) @Doc("Distance in dp from the top kept when scrollAlign is start. Default 32.")
+    val scrollMargin: Int = 32,
+    @Transient override val common: NodeCommon = NodeCommon(),
+) : ContainerNode {
+    override fun withCommon(common: NodeCommon) = copy(common = common)
+}
 
 @Serializable
 @SerialName("row")
@@ -94,16 +127,14 @@ data class RowNode(
     val arrange: Arrange = Arrange.Start,
     @Doc("Scroll horizontally when the content is wider than the row. Default false.")
     val scroll: Boolean = false,
-    override val width: Size? = null,
-    override val height: Size? = null,
-    override val weight: Float? = null,
-    override val padding: Padding? = null,
-    override val background: String? = null,
-    override val cornerRadius: Int? = null,
-    override val align: Alignment? = null,
-    override val span: Int? = null,
-    override val visible: Boolean = true,
-) : ContainerNode
+    @Doc("Where a focused child is scrolled to: nearest, start (to the left edge, minus scrollMargin) or center. Default nearest.")
+    val scrollAlign: ScrollAlign = ScrollAlign.Nearest,
+    @Range(0.0, 400.0) @Doc("Distance in dp from the left kept when scrollAlign is start. Default 32.")
+    val scrollMargin: Int = 32,
+    @Transient override val common: NodeCommon = NodeCommon(),
+) : ContainerNode {
+    override fun withCommon(common: NodeCommon) = copy(common = common)
+}
 
 @Serializable
 @SerialName("grid")
@@ -116,16 +147,10 @@ data class GridNode(
     override val children: List<Node> = emptyList(),
     @Range(0.0, 400.0) @Doc("Gap between cells in dp, both directions. Default 16.")
     val spacing: Int = 16,
-    override val width: Size? = null,
-    override val height: Size? = null,
-    override val weight: Float? = null,
-    override val padding: Padding? = null,
-    override val background: String? = null,
-    override val cornerRadius: Int? = null,
-    override val align: Alignment? = null,
-    override val span: Int? = null,
-    override val visible: Boolean = true,
-) : ContainerNode
+    @Transient override val common: NodeCommon = NodeCommon(),
+) : ContainerNode {
+    override fun withCommon(common: NodeCommon) = copy(common = common)
+}
 
 @Serializable
 @SerialName("stack")
@@ -136,16 +161,10 @@ data class StackNode(
     override val children: List<Node> = emptyList(),
     @Doc("Default position of children that do not set align. Default top_start.")
     val contentAlign: Alignment = Alignment.TopStart,
-    override val width: Size? = null,
-    override val height: Size? = null,
-    override val weight: Float? = null,
-    override val padding: Padding? = null,
-    override val background: String? = null,
-    override val cornerRadius: Int? = null,
-    override val align: Alignment? = null,
-    override val span: Int? = null,
-    override val visible: Boolean = true,
-) : ContainerNode
+    @Transient override val common: NodeCommon = NodeCommon(),
+) : ContainerNode {
+    override fun withCommon(common: NodeCommon) = copy(common = common)
+}
 
 // ---------------------------------------------------------------- app widgets
 
@@ -162,16 +181,10 @@ data class AppTileNode(
     val tile: TileStyle = TileStyle(),
     @Doc("What to show when the app is not installed. Default placeholder.")
     val missing: Missing = Missing.Placeholder,
-    override val width: Size? = null,
-    override val height: Size? = null,
-    override val weight: Float? = null,
-    override val padding: Padding? = null,
-    override val background: String? = null,
-    override val cornerRadius: Int? = null,
-    override val align: Alignment? = null,
-    override val span: Int? = null,
-    override val visible: Boolean = true,
-) : Node
+    @Transient override val common: NodeCommon = NodeCommon(),
+) : Node {
+    override fun withCommon(common: NodeCommon) = copy(common = common)
+}
 
 @Serializable
 @SerialName("app_row")
@@ -186,20 +199,20 @@ data class AppRowNode(
     val tile: TileStyle = TileStyle(),
     @Range(0.0, 200.0) @Doc("Gap between tiles in dp. Default 16.")
     val spacing: Int = 16,
+    @Range(0.0, 500.0) @Doc("Leave out the first N apps of the source, e.g. the ones a dock row above already shows. Default 0.")
+    val skip: Int = 0,
     @Range(1.0, 500.0) @Doc("Maximum number of tiles.")
     val limit: Int? = null,
     @Doc("For a packages source: what to show for apps that are not installed. Default hide.")
     val missing: Missing = Missing.Hide,
-    override val width: Size? = null,
-    override val height: Size? = null,
-    override val weight: Float? = null,
-    override val padding: Padding? = null,
-    override val background: String? = null,
-    override val cornerRadius: Int? = null,
-    override val align: Alignment? = null,
-    override val span: Int? = null,
-    override val visible: Boolean = true,
-) : Node
+    @Doc("Where the focused tile is scrolled to: nearest, start (Google TV style, focused tile stays at the left) or center. Default nearest.")
+    val scrollAlign: ScrollAlign = ScrollAlign.Nearest,
+    @Range(0.0, 400.0) @Doc("Distance in dp from the left kept when scrollAlign is start. Default 0.")
+    val scrollMargin: Int = 0,
+    @Transient override val common: NodeCommon = NodeCommon(),
+) : Node {
+    override fun withCommon(common: NodeCommon) = copy(common = common)
+}
 
 @Serializable
 @SerialName("app_grid")
@@ -216,20 +229,36 @@ data class AppGridNode(
     val tile: TileStyle = TileStyle(),
     @Range(0.0, 200.0) @Doc("Gap between tiles in dp. Default 16.")
     val spacing: Int = 16,
+    @Range(0.0, 500.0) @Doc("Leave out the first N apps of the source, e.g. the ones a dock row above already shows. Default 0.")
+    val skip: Int = 0,
     @Range(1.0, 500.0) @Doc("Maximum number of tiles.")
     val limit: Int? = null,
     @Doc("For a packages source: what to show for apps that are not installed. Default hide.")
     val missing: Missing = Missing.Hide,
-    override val width: Size? = null,
-    override val height: Size? = null,
-    override val weight: Float? = null,
-    override val padding: Padding? = null,
-    override val background: String? = null,
-    override val cornerRadius: Int? = null,
-    override val align: Alignment? = null,
-    override val span: Int? = null,
-    override val visible: Boolean = true,
-) : Node
+    @Transient override val common: NodeCommon = NodeCommon(),
+) : Node {
+    override fun withCommon(common: NodeCommon) = copy(common = common)
+}
+
+@Serializable
+@SerialName("folder")
+@Doc("A tile showing a few app icons that opens a panel with a group of apps, like Apple TV folders.")
+data class FolderNode(
+    override val id: String,
+    @Doc("Folder name, shown on and under the tile and as the panel title.")
+    val label: String,
+    @Doc("Which apps are in the folder.")
+    val source: AppSource,
+    @Doc("Look of the folder tile. Default banner, medium.")
+    val tile: TileStyle = TileStyle(),
+    @Doc("Look of the app tiles in the open panel. Default banner, medium.")
+    val itemTile: TileStyle = TileStyle(),
+    @Range(1.0, 12.0) @Doc("Columns in the open panel. Default 4.")
+    val columns: Int = 4,
+    @Transient override val common: NodeCommon = NodeCommon(),
+) : Node {
+    override fun withCommon(common: NodeCommon) = copy(common = common)
+}
 
 @Serializable
 @SerialName("shortcut")
@@ -247,47 +276,90 @@ data class ShortcutNode(
     @ColorValue @Doc("Tile color. Default @surface.")
     val color: String? = null,
     @Doc("Tile look. Default card, medium.")
-    val tile: TileStyle = TileStyle(style = TileShape.Card),
-    override val width: Size? = null,
-    override val height: Size? = null,
-    override val weight: Float? = null,
-    override val padding: Padding? = null,
-    override val background: String? = null,
-    override val cornerRadius: Int? = null,
-    override val align: Alignment? = null,
-    override val span: Int? = null,
-    override val visible: Boolean = true,
-) : Node
+    val tile: TileStyle = TileStyle(shape = TileShape.Card),
+    @Doc("Text a hero shows while this shortcut is focused.")
+    val description: String? = null,
+    @Doc("Image a hero shows while this shortcut is focused: an https:// URL or \"asset:<path>\".")
+    val backdrop: String? = null,
+    @Transient override val common: NodeCommon = NodeCommon(),
+) : Node {
+    override fun withCommon(common: NodeCommon) = copy(common = common)
+}
+
+@Serializable
+@SerialName("hero")
+@Doc("A large banner area. With follow \"focus\" it shows the focused app (Apple TV top shelf); with \"slides\" it rotates through slides (Google TV / Fire TV carousel). Default width fill, height 280.")
+data class HeroNode(
+    override val id: String,
+    @Doc("focus = show the focused app or shortcut (backdrop and description come from the apps map or the shortcut); slides = rotate through slides. Default focus.")
+    val follow: HeroFollow = HeroFollow.Focus,
+    @Doc("With follow focus: only react to focus inside the node with this id (e.g. the dock row). Default: the whole page.")
+    val target: String? = null,
+    @Doc("Slides. With follow focus they are shown until something is focused.")
+    val slides: List<HeroSlide> = emptyList(),
+    @Range(2.0, 120.0) @Doc("Seconds per slide. Default 8.")
+    val interval: Int = 8,
+    @Doc("Show title and description text. Default true.")
+    val showText: Boolean = true,
+    @Range(0.0, 1.0) @Doc("Darkness of the gradient behind the text, 0 to 1. Default 0.6.")
+    val scrim: Float = 0.6f,
+    @Doc("Where the text block sits. Default bottom_start.")
+    val contentAlign: Alignment = Alignment.BottomStart,
+    @Transient override val common: NodeCommon = NodeCommon(),
+) : Node {
+    override fun withCommon(common: NodeCommon) = copy(common = common)
+}
+
+@Serializable
+@Doc("One slide of a hero.")
+data class HeroSlide(
+    @Doc("Large text.")
+    val title: String? = null,
+    @Doc("Smaller text under the title.")
+    val description: String? = null,
+    @Doc("Slide background: a color, gradient or image.")
+    val background: Background? = null,
+    @Doc("Makes the hero clickable while this slide shows.")
+    val action: Action? = null,
+)
+
+@Serializable
+enum class HeroFollow {
+    @SerialName("focus") Focus,
+    @SerialName("slides") Slides,
+}
 
 // ---------------------------------------------------------------- content widgets
 
 @Serializable
 @SerialName("text")
-@Doc("Static text. Not focusable.")
+@Doc("Text, not focusable. May contain placeholders: {greeting}, {time}, {date}, {date:EEEE d MMMM}, {focused}, {page}. Write {{ for a literal {.")
 data class TextNode(
     override val id: String,
-    @Doc("The text.")
+    @Doc("The text, optionally with placeholders.")
     val text: String,
-    @Doc("Text size preset. Default body.")
-    val style: TextStyleName = TextStyleName.Body,
+    @Doc("Size preset. Default body.")
+    val textStyle: TextStyleName = TextStyleName.Body,
+    @Range(6.0, 200.0) @Doc("Font size in sp; overrides the preset size.")
+    val fontSize: Int? = null,
+    @Doc("Font family. Default: the theme's font.")
+    val font: FontName? = null,
     @ColorValue @Doc("Text color. Default @text.")
     val color: String? = null,
     @Doc("Bold text. Default false.")
     val bold: Boolean = false,
+    @Doc("Show the text in capital letters. Default false.")
+    val uppercase: Boolean = false,
+    @Range(-2.0, 20.0) @Doc("Extra space between letters in sp.")
+    val letterSpacing: Float? = null,
     @Doc("Alignment of the text inside its box. Default start.")
     val textAlign: TextAlignment = TextAlignment.Start,
     @Range(1.0, 20.0) @Doc("Maximum number of lines; longer text ends with an ellipsis.")
     val maxLines: Int? = null,
-    override val width: Size? = null,
-    override val height: Size? = null,
-    override val weight: Float? = null,
-    override val padding: Padding? = null,
-    override val background: String? = null,
-    override val cornerRadius: Int? = null,
-    override val align: Alignment? = null,
-    override val span: Int? = null,
-    override val visible: Boolean = true,
-) : Node
+    @Transient override val common: NodeCommon = NodeCommon(),
+) : Node {
+    override fun withCommon(common: NodeCommon) = copy(common = common)
+}
 
 @Serializable
 @SerialName("clock")
@@ -296,24 +368,24 @@ data class ClockNode(
     override val id: String,
     @Doc("java.time pattern, e.g. \"HH:mm\" (24h), \"h:mm a\" (12h) or \"EEEE, d MMMM\" (date). Default HH:mm.")
     val format: String = "HH:mm",
-    @Doc("Text size preset. Default display.")
-    val style: TextStyleName = TextStyleName.Display,
+    @Doc("Size preset. Default display.")
+    val textStyle: TextStyleName = TextStyleName.Display,
+    @Range(6.0, 200.0) @Doc("Font size in sp; overrides the preset size.")
+    val fontSize: Int? = null,
+    @Doc("Font family. Default: the theme's font.")
+    val font: FontName? = null,
     @ColorValue @Doc("Text color. Default @text.")
     val color: String? = null,
     @Doc("Bold text. Default false.")
     val bold: Boolean = false,
+    @Range(-2.0, 20.0) @Doc("Extra space between letters in sp.")
+    val letterSpacing: Float? = null,
     @Doc("Alignment of the text inside its box. Default start.")
     val textAlign: TextAlignment = TextAlignment.Start,
-    override val width: Size? = null,
-    override val height: Size? = null,
-    override val weight: Float? = null,
-    override val padding: Padding? = null,
-    override val background: String? = null,
-    override val cornerRadius: Int? = null,
-    override val align: Alignment? = null,
-    override val span: Int? = null,
-    override val visible: Boolean = true,
-) : Node
+    @Transient override val common: NodeCommon = NodeCommon(),
+) : Node {
+    override fun withCommon(common: NodeCommon) = copy(common = common)
+}
 
 @Serializable
 @SerialName("image")
@@ -326,58 +398,45 @@ data class ImageNode(
     val fit: ImageFit = ImageFit.Contain,
     @Range(0.0, 1.0) @Doc("Opacity, 0 to 1. Default 1.")
     val alpha: Float = 1f,
-    override val width: Size? = null,
-    override val height: Size? = null,
-    override val weight: Float? = null,
-    override val padding: Padding? = null,
-    override val background: String? = null,
-    override val cornerRadius: Int? = null,
-    override val align: Alignment? = null,
-    override val span: Int? = null,
-    override val visible: Boolean = true,
-) : Node
+    @Transient override val common: NodeCommon = NodeCommon(),
+) : Node {
+    override fun withCommon(common: NodeCommon) = copy(common = common)
+}
 
 @Serializable
 @SerialName("spacer")
 @Doc("Empty space. Use width/height for a fixed gap or weight to push siblings apart.")
 data class SpacerNode(
     override val id: String,
-    override val width: Size? = null,
-    override val height: Size? = null,
-    override val weight: Float? = null,
-    override val padding: Padding? = null,
-    override val background: String? = null,
-    override val cornerRadius: Int? = null,
-    override val align: Alignment? = null,
-    override val span: Int? = null,
-    override val visible: Boolean = true,
-) : Node
+    @Transient override val common: NodeCommon = NodeCommon(),
+) : Node {
+    override fun withCommon(common: NodeCommon) = copy(common = common)
+}
 
 /** A node whose `type` this version does not know. It is kept as-is and rendered as a placeholder. */
 data class UnknownNode(val type: String, val raw: JsonObject) : Node {
     override val id: String = (raw["id"] as? JsonPrimitive)?.contentOrNull ?: ""
-    override val width: Size? get() = null
-    override val height: Size? get() = null
-    override val weight: Float? get() = null
-    override val padding: Padding? get() = null
-    override val background: String? get() = null
-    override val cornerRadius: Int? get() = null
-    override val align: Alignment? get() = null
-    override val span: Int? get() = null
-    override val visible: Boolean get() = true
+    override val common: NodeCommon get() = NodeCommon()
+    override fun withCommon(common: NodeCommon) = this
 }
 
 // ---------------------------------------------------------------- shared value types
 
 @Serializable
-@Doc("Look of app and shortcut tiles.")
+@Doc("Look of app, folder and shortcut tiles.")
 data class TileStyle(
     @Doc("banner = 16:9 app banner; icon = square app icon with the label below; card = banner with the label always below. Default banner.")
-    val style: TileShape = TileShape.Banner,
+    val shape: TileShape = TileShape.Banner,
     @Doc("small, medium or large. Banner widths: 128, 160, 208 dp. Icon sizes: 56, 72, 96 dp. Default medium.")
     val size: TileSize = TileSize.Medium,
     @Doc("When to show the app name: always, focused or never. Default focused for banners, always for icon and card.")
     val showLabel: LabelMode? = null,
+    @Range(32.0, 600.0) @Doc("Exact tile width in dp; overrides size.")
+    val width: Int? = null,
+    @Range(0.3, 4.0) @Doc("Width divided by height, e.g. 1.78 (16:9), 1.67 (Apple TV 5:3), 1 (square), 0.67 (poster). Default 16:9, or 1 for icons.")
+    val aspectRatio: Float? = null,
+    @Range(0.0, 200.0) @Doc("Corner radius in dp; overrides the theme's cornerRadius.")
+    val cornerRadius: Int? = null,
 )
 
 @Serializable
@@ -417,6 +476,14 @@ enum class TextStyleName {
 }
 
 @Serializable
+enum class FontName {
+    @SerialName("sans") Sans,
+    @SerialName("serif") Serif,
+    @SerialName("mono") Mono,
+    @SerialName("cursive") Cursive,
+}
+
+@Serializable
 enum class TextAlignment {
     @SerialName("start") Start,
     @SerialName("center") Center,
@@ -445,6 +512,13 @@ enum class Arrange {
     @SerialName("space_between") SpaceBetween,
     @SerialName("space_around") SpaceAround,
     @SerialName("space_evenly") SpaceEvenly,
+}
+
+@Serializable
+enum class ScrollAlign {
+    @SerialName("nearest") Nearest,
+    @SerialName("start") Start,
+    @SerialName("center") Center,
 }
 
 @Serializable
