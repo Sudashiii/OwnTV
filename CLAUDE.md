@@ -2,6 +2,10 @@
 
 Android TV (Google TV) launcher in Kotlin + Jetpack Compose for TV. The whole home screen is one JSON document ("layout") that people or an AI write; the app validates and renders it natively.
 
+## Working in this repo
+
+Don't use git worktrees: no `git worktree add`, no isolated worktree sessions. Work in this checkout, on a branch when the change needs one.
+
 ## Modules
 
 - `layout-model/` – pure Kotlin, multiplatform (jvm for the app, wasmJs for the web preview). Layout model (`model/`), `LayoutCodec` (decode never throws; returns `ValidationIssue`s with JSON paths), `StructureValidator` (walks raw JSON against serial descriptors), `LayoutValidator` (references, ids, colors, focusability), `JsonSchemaGenerator`, `AiPromptBuilder`. `time/Clocks` formats clock patterns (java.time on the JVM, `TimePattern` on the web).
@@ -43,7 +47,7 @@ The editor (`app/.../ui/editor/`) builds its forms from the serial descriptors (
 ./gradlew :web:wasmJsBrowserDistribution   # static site in web/build/dist/wasmJs/productionExecutable
 ```
 
-Web preview: build the distribution, then serve it, e.g. `python3 -m http.server 8088 --directory web/build/dist/wasmJs/productionExecutable` (or the `owntv-web` entry in `.claude/launch.json`). `#looks/roku.json` in the URL opens that sample. The page calls Kotlin through `window.owntv` (`render`, `setPage`, `setMetrics`) and gets results as `owntv-result` events (`web/.../Browser.kt`, `resources/editor.js`).
+Web preview: `just web` builds it and serves it on http://localhost:8088 (`just web-build`, `just web-serve [port]` for the single steps; the `owntv-web` entry in `.claude/launch.json` serves the last build too). `#looks/roku.json` in the URL opens that sample. The page calls Kotlin through `window.owntv` (`render`, `setPage`, `setMetrics`) and gets results as `owntv-result` events (`web/.../Browser.kt`, `resources/editor.js`).
 
 Emulator: AVD `owntv_gtv` (Google TV, API 34, 1080p = 960x540 dp). Start with `~/Library/Android/sdk/emulator/emulator -avd owntv_gtv`. Google TV ignores third-party Home apps; on the emulator the stock launcher is disabled with `adb shell pm disable-user --user 0 com.google.android.apps.tv.launcherx` (undo: `pm enable`).
 

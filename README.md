@@ -31,11 +31,10 @@ Every import shows a preview first. Applied layouts go into a history, so **Reve
 The `web` module compiles the launcher's own renderer to WebAssembly, so a layout looks the same as on the TV without a TV. The page shows the layout on the left. On the right you pick an example or look, edit the JSON (autocomplete and hover docs come from the JSON Schema), and see the same validation errors the TV shows. If the JSON is broken, the last valid layout stays on screen. The **Metrics** toggle shows frame times, recompositions and how long parsing and validation took.
 
 ```bash
-./gradlew :web:wasmJsBrowserDistribution
-python3 -m http.server 8088 --directory web/build/dist/wasmJs/productionExecutable
+just web
 ```
 
-Then open http://localhost:8088. The preview uses made-up demo apps with drawn banners instead of your installed apps. Like the previews on the TV, it does not take focus. Fonts and the editor load from jsDelivr. Clock patterns support the common letters (`y M d E H h k K m s a`) with English names.
+Then open http://localhost:8088. `just web-build` only builds, and `just web-serve 9000` serves the last build on another port. Without [just](https://github.com/casey/just), run `./gradlew :web:wasmJsBrowserDistribution`, then `python3 -m http.server 8088 --directory web/build/dist/wasmJs/productionExecutable`. The preview uses made-up demo apps with drawn banners instead of your installed apps. Like the previews on the TV, it does not take focus. Fonts and the editor load from jsDelivr. Clock patterns support the common letters (`y M d E H h k K m s a`) with English names.
 
 ## Format
 
