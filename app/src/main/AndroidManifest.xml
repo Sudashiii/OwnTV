@@ -26,7 +26,7 @@
 
     <application
         android:name=".OwnTvApp"
-        android:banner="@drawable/banner"
+        android:banner="@drawable/banner_settings"
         android:icon="@drawable/ic_launcher"
         android:label="OwnTV"
         android:supportsRtl="true"
@@ -51,12 +51,20 @@
                 <category android:name="android.intent.category.HOME" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
+        </activity>
 
-            <!-- Shows OwnTV in the TV's app list. -->
+        <!-- A settings shortcut in app lists, backed by the existing launcher activity. -->
+        <activity-alias
+            android:name=".SettingsShortcut"
+            android:exported="true"
+            android:icon="@drawable/ic_settings"
+            android:label="OwnTV Settings"
+            android:targetActivity=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
+        </activity-alias>
     </application>
 </manifest>

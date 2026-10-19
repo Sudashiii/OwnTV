@@ -66,7 +66,8 @@ class InstalledAppsRepository(
             for (entry in entries) {
                 val activity = entry.activityInfo ?: continue
                 val pkg = activity.packageName
-                if (pkg == context.packageName || pkg in result) continue
+                // OwnTV's launchable entry is its settings shortcut, so include our own package.
+                if (pkg in result) continue
                 val app = activity.applicationInfo
                 val packageInfo = runCatching { pm.getPackageInfo(pkg, 0) }.getOrNull()
                 @Suppress("DEPRECATION")

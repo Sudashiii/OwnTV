@@ -15,13 +15,25 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        handleLaunchIntent(intent)
         setContent { OwnTvRoot(container, nav) }
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        // Pressing Home while OwnTV is in front returns to the first page.
-        if (intent.hasCategory(Intent.CATEGORY_HOME)) nav.home()
+        setIntent(intent)
+        handleLaunchIntent(intent)
+    }
+
+    private fun handleLaunchIntent(intent: Intent) {
+        when {
+            intent.component?.className == "$packageName.SettingsShortcut" -> {
+                nav.home()
+                nav.push(Screen.Settings)
+            }
+            // Pressing Home while OwnTV is in front returns to the first page.
+            intent.hasCategory(Intent.CATEGORY_HOME) -> nav.home()
+        }
     }
 
     override fun onResume() {

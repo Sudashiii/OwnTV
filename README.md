@@ -10,6 +10,8 @@ The entire home screen is described by one JSON document: rows, columns, grids a
 
 ## Editing on the TV
 
+Open **OwnTV Settings** in the app list to reach the editor and built-in looks. It also appears in rows and grids that show all apps, including the Apple TV dock. It is a shortcut provided by OwnTV itself; the Home button still opens your layout.
+
 Open **Launcher settings → Edit layout**, or long-press a tile and choose **Edit layout** to select its row or widget. Use the outline to select an item; the preview outlines it in pink and scrolls it into view. Press OK to edit its properties, add items, move them, duplicate them or delete them.
 
 Changes stay in the editor until you choose **Save**. **Undo** and **Redo** work while editing; Back returns through the panels and asks whether to save or discard unsaved changes. Validation errors must be fixed before saving. Saved edits go into layout history like imports.
