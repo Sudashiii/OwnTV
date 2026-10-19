@@ -21,7 +21,7 @@ import androidx.tv.material3.Button
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import dev.owntv.launcher.AppContainer
-import dev.owntv.launcher.data.apps.AppInfo
+import dev.owntv.launcher.ui.render.AppInfo
 import dev.owntv.launcher.data.layout.LayoutState
 import dev.owntv.launcher.ui.render.ActionHandler
 import dev.owntv.launcher.ui.render.AppCatalog

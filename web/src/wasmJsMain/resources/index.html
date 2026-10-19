@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OwnTV Preview</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs/editor/editor.main.css">
+</head>
+<body>
+  <main class="app">
+    <section class="stage" aria-label="TV preview">
+      <div id="tv"><p id="tv-loading" class="loading">Loading renderer…</p></div>
+    </section>
+
+    <aside class="panel">
+      <header class="panel-head">
+        <h1>OwnTV preview</h1>
+        <div class="fields">
+          <label class="field">
+            <span>Layout</span>
+            <select id="sample"></select>
+          </label>
+          <label class="field" id="page-field" hidden>
+            <span>Page</span>
+            <select id="page"></select>
+          </label>
+        </div>
+        <div class="toolbar">
+          <button id="reset" type="button" title="Discard your edits to this layout">Reset</button>
+          <button id="format" type="button">Format</button>
+          <button id="copy" type="button">Copy</button>
+          <button id="download" type="button">Download</button>
+          <label class="toggle"><input id="metrics" type="checkbox"> Metrics</label>
+        </div>
+      </header>
+
+      <div id="editor" class="editor"></div>
+
+      <section class="issues" aria-live="polite">
+        <h2><span id="status">Waiting for the renderer…</span></h2>
+        <ul id="issues"></ul>
+      </section>
+    </aside>
+  </main>
+
+  <!-- The Kotlin bundle loads before Monaco's AMD loader, which would otherwise capture it as an AMD module. -->
+  <script src="owntv-web.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs/loader.js"></script>
+  <script type="module" src="editor.js"></script>
+</body>
+</html>

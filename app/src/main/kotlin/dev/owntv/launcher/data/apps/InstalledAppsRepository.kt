@@ -9,6 +9,7 @@ import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
 import androidx.core.content.ContextCompat
+import dev.owntv.launcher.ui.render.AppInfo
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,16 +18,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-data class AppInfo(
-    val packageName: String,
-    val label: String,
-    val component: ComponentName,
-    val isGame: Boolean,
-    /** True when the app has a TV (leanback) launcher entry; false for phone apps sideloaded onto the TV. */
-    val isTvApp: Boolean,
-    val firstInstallTime: Long,
-    val lastUpdateTime: Long,
-)
+/** The app's launcher activity. */
+val AppInfo.component: ComponentName get() = ComponentName(packageName, activityName)
 
 /** The launchable apps on this TV, kept up to date when apps are installed, updated or removed. */
 class InstalledAppsRepository(
@@ -73,7 +66,8 @@ class InstalledAppsRepository(
             for (entry in entries) {
                 val activity = entry.activityInfo ?: continue
                 val pkg = activity.packageName
-                if (pkg == context.packageName || pkg in result) continue
+                // OwnTV's launchable entry is its settings shortcut, so include our own package.
+                if (pkg in result) continue
                 val app = activity.applicationInfo
                 val packageInfo = runCatching { pm.getPackageInfo(pkg, 0) }.getOrNull()
                 @Suppress("DEPRECATION")
@@ -81,7 +75,7 @@ class InstalledAppsRepository(
                 result[pkg] = AppInfo(
                     packageName = pkg,
                     label = entry.loadLabel(pm).toString(),
-                    component = ComponentName(pkg, activity.name),
+                    activityName = activity.name,
                     isGame = isGame,
                     isTvApp = tv,
                     firstInstallTime = packageInfo?.firstInstallTime ?: 0L,

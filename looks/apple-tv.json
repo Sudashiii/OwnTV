@@ -81,6 +81,7 @@
                     "id": "dock",
                     "source": { "type": "all" },
                     "limit": 5,
+                    "tile": { "showLabel": "never" },
                     "background": { "type": "glass", "tint": "#1AFFFFFF" },
                     "cornerRadius": 34,
                     "padding": [30, 14]

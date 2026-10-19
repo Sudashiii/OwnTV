@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -17,6 +18,7 @@ import androidx.tv.material3.darkColorScheme
 import dev.owntv.launcher.AppContainer
 import dev.owntv.launcher.ui.editor.EditorScreen
 import dev.owntv.launcher.ui.render.AppCatalog
+import dev.owntv.launcher.ui.render.LocalInteractiveSurfaces
 
 @Composable
 fun OwnTvRoot(container: AppContainer, nav: Navigator) {
@@ -39,19 +41,21 @@ fun OwnTvRoot(container: AppContainer, nav: Navigator) {
     BackHandler { nav.back() }
 
     MaterialTheme(colorScheme = darkColorScheme()) {
-        Box(Modifier.fillMaxSize().background(Color.Black)) {
-            when (val screen = nav.current) {
-                Screen.Home -> HomeScreen(container, nav, layoutState, catalog)
-                Screen.AppDrawer -> AppDrawerScreen(container, nav, layoutState, catalog)
-                Screen.Settings -> SettingsScreen(container, nav, layoutState)
-                is Screen.Editor -> EditorScreen(container, nav, layoutState, catalog, screen.selectId)
-                Screen.Import -> ImportScreen(container, nav)
-                Screen.Templates -> TemplatesScreen(container, nav)
-                Screen.Looks -> LooksScreen(container, nav)
-                is Screen.LookPreview -> LookPreviewScreen(container, nav, screen.fileName, layoutState, catalog)
-                Screen.History -> HistoryScreen(container, nav)
-                Screen.Help -> HelpScreen(container)
-                is Screen.Preview -> PreviewScreen(container, nav, screen.result, screen.source, catalog)
+        CompositionLocalProvider(LocalInteractiveSurfaces provides TvSurfaces) {
+            Box(Modifier.fillMaxSize().background(Color.Black)) {
+                when (val screen = nav.current) {
+                    Screen.Home -> HomeScreen(container, nav, layoutState, catalog)
+                    Screen.AppDrawer -> AppDrawerScreen(container, nav, layoutState, catalog)
+                    Screen.Settings -> SettingsScreen(container, nav, layoutState)
+                    is Screen.Editor -> EditorScreen(container, nav, layoutState, catalog, screen.selectId)
+                    Screen.Import -> ImportScreen(container, nav)
+                    Screen.Templates -> TemplatesScreen(container, nav)
+                    Screen.Looks -> LooksScreen(container, nav)
+                    is Screen.LookPreview -> LookPreviewScreen(container, nav, screen.fileName, layoutState, catalog)
+                    Screen.History -> HistoryScreen(container, nav)
+                    Screen.Help -> HelpScreen(container)
+                    is Screen.Preview -> PreviewScreen(container, nav, screen.result, screen.source, catalog)
+                }
             }
         }
     }

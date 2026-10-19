@@ -7,14 +7,15 @@ import android.util.LruCache
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.core.graphics.drawable.toBitmap
+import dev.owntv.launcher.ui.render.AppImages
+import dev.owntv.launcher.ui.render.AppImages.Kind
+import dev.owntv.launcher.ui.render.AppInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
 
 /** Loads app banners and icons as bitmaps, with a memory cache sized for low-RAM TV devices. */
-class AppImageLoader(context: Context) {
-    enum class Kind { Banner, Icon }
-
+class AppImageLoader(context: Context) : AppImages {
     private val pm: PackageManager = context.packageManager
 
     private val cache = object : LruCache<String, ImageBitmap>((Runtime.getRuntime().maxMemory() / 8).toInt()) {
@@ -24,11 +25,11 @@ class AppImageLoader(context: Context) {
     /** Keys of apps that have no banner, so we do not ask the package manager again. */
     private val noBanner = ConcurrentHashMap.newKeySet<String>()
 
-    fun cached(app: AppInfo, kind: Kind): ImageBitmap? = cache.get(key(app, kind))
+    override fun cached(app: AppInfo, kind: Kind): ImageBitmap? = cache.get(key(app, kind))
 
     fun hasNoBanner(app: AppInfo) = key(app, Kind.Banner) in noBanner
 
-    suspend fun load(app: AppInfo, kind: Kind): ImageBitmap? = withContext(Dispatchers.IO) {
+    override suspend fun load(app: AppInfo, kind: Kind): ImageBitmap? = withContext(Dispatchers.IO) {
         val key = key(app, kind)
         cache.get(key)?.let { return@withContext it }
         if (kind == Kind.Banner && key in noBanner) return@withContext null
