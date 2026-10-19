@@ -2,6 +2,7 @@ package dev.owntv.layout
 
 import dev.owntv.layout.codec.LayoutCodec
 import dev.owntv.layout.edit.FieldKind
+import dev.owntv.layout.edit.FieldSpec
 import dev.owntv.layout.edit.Fields
 import dev.owntv.layout.edit.LayoutOps
 import dev.owntv.layout.edit.NodeTemplates
@@ -13,12 +14,14 @@ import dev.owntv.layout.model.Background
 import dev.owntv.layout.model.ColumnNode
 import dev.owntv.layout.model.HeroNode
 import dev.owntv.layout.model.LayoutDocument
+import dev.owntv.layout.model.Page
 import dev.owntv.layout.model.NodeRegistry
 import dev.owntv.layout.model.RowNode
 import dev.owntv.layout.model.TextNode
 import dev.owntv.layout.model.children
 import dev.owntv.layout.validation.LayoutValidator
 import dev.owntv.layout.validation.Severity
+import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -222,5 +225,36 @@ class EditTest {
         assertNull(removed.at(listOf(PathStep.Key("tile"))))
         val created = obj.with(listOf(PathStep.Key("border"), PathStep.Key("width")), JsonPrimitive(3))
         assertEquals(JsonPrimitive(3), created.at(listOf(PathStep.Key("border"), PathStep.Key("width"))))
+    }
+
+    /**
+     * Every property reachable from the editor's forms must have an editor control. If this fails after
+     * adding a property, give it a [FieldKind] (see CLAUDE.md, "Editor rules") instead of extending the allow list.
+     */
+    @Test
+    fun `every editor field has a control`() {
+        val unsupported = mutableSetOf<String>()
+        val seen = mutableSetOf<String>()
+        fun visit(owner: String, fields: List<FieldSpec>) {
+            for (field in fields) {
+                val where = "$owner.${field.name}"
+                val nested = when (field.kind) {
+                    FieldKind.Unsupported -> emptyMap<String, SerialDescriptor>().also { unsupported += where }
+                    FieldKind.Object -> mapOf(where to field.descriptor)
+                    FieldKind.ObjectList -> mapOf(where to field.descriptor.getElementDescriptor(0))
+                    FieldKind.Sealed -> Fields.subtypes(field.descriptor).mapKeys { (type, _) -> "$where<$type>" }
+                    else -> emptyMap()
+                }
+                nested.forEach { (path, descriptor) ->
+                    if (seen.add(descriptor.serialName.removeSuffix("?"))) visit(path, Fields.forDescriptor(descriptor))
+                }
+            }
+        }
+        NodeRegistry.types.forEach { visit(it, Fields.forNode(it)) }
+        visit("page", Fields.forDescriptors(listOf(Page.serializer().descriptor), skip = setOf("root", "id")))
+        visit("layout", Fields.forDescriptors(listOf(LayoutDocument.serializer().descriptor), skip = setOf("pages", "styles", "defaults", "apps", "schemaVersion")))
+        // Maps are edited in the JSON for now (docs/HANDOFF-phase2.md, "Deliberate boundaries").
+        val allowed = setOf("shortcut.action<intent>.extras", "layout.theme.colors.custom")
+        assertEquals(allowed, unsupported, "Fields without an editor control (update the list when one gains a control)")
     }
 }

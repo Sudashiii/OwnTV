@@ -18,6 +18,20 @@ Android TV (Google TV) launcher in Kotlin + Jetpack Compose for TV. The whole ho
 3. `./gradlew :layout-model:generateSchema`, then update `docs/layout-spec.md`.
 4. For breaking changes, bump `CURRENT_SCHEMA_VERSION` and add a step to `codec/Migrations.kt` (see the 1 to 2 step), rename the schema file and update examples and looks.
 5. Every file in `examples/` and `looks/` must stay valid and warning free (tests check this).
+6. Keep the on-TV editor working with the change (rules below).
+
+## Editor rules
+
+The editor (`app/.../ui/editor/`) builds its forms from the serial descriptors (`layout-model/.../edit/Fields.kt`), so most new properties show up without editor code. Check these when the model changes:
+
+- **New node type:** add a valid palette template in `NodeTemplates.create` and a branch in `NodeTemplates.withId`. Containers also need a branch in `LayoutOps.withChildren`. `EditTest` checks that every registered type has a valid template.
+- **New property that points at a node id** (focus link, target, ...): add its name to `nodeRefNames` in `Fields.kt` and handle it in `LayoutOps.retarget`, so rename and duplicate keep the link. Add a case to the rename/duplicate tests. Page ids work the same way (`PageRef`).
+- **New kind of value** (anything that is not text, number, bool, enum, color, size, padding, background, nested object, sealed type or list): add a `FieldKind`, detect it in `Fields.kindOf` and give it a control in `PropertyPanel.kt`. The `every editor field has a control` test fails for fields that end up `Unsupported`. Only add to its allow list on purpose (maps are the current exception).
+- **Colors, ranges, docs:** use `@ColorValue`, `@Range` and `@Doc`. The editor shows a color picker, clamps steppers to the range and uses the doc text as help.
+- **New sealed subtype** (source, action, background): it appears automatically. `Fields.newSealed` must build a value that decodes (see `new sealed values decode`).
+- **Edits stay pure:** tree changes go through `LayoutOps` (returns a new document or null, with a unit test). Never mutate state in the UI. That keeps undo and redo working.
+- **Remote first:** every control must work with D-pad and OK. Disabled controls also get `focusProperties { canFocus = false }`.
+- Run `./gradlew :layout-model:test :app:testDebugUnitTest :app:assembleDebug`. For UI changes, also try the change in the editor on the emulator.
 
 ## Commands
 
