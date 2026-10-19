@@ -6,6 +6,17 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
+val releaseVersion: String? = providers.gradleProperty("owntv.version").orNull
+val releaseKeystore: String? = providers.environmentVariable("OWNTV_KEYSTORE_FILE").orNull
+
+/** 1.2.3 -> 1002003, so every release has a higher versionCode than the last and installs as an update. */
+fun versionCodeOf(version: String): Int {
+    val parts = version.split(".").map { it.toIntOrNull() }
+    require(parts.size == 3 && parts.all { it != null && it in 0..999 }) { "Expected a version like 1.2.3, got $version" }
+    val (major, minor, patch) = parts.map { it!! }
+    return major * 1_000_000 + minor * 1_000 + patch
+}
+
 android {
     namespace = "dev.owntv.launcher"
     compileSdk = 37
@@ -14,13 +25,27 @@ android {
         applicationId = "dev.owntv.launcher"
         minSdk = 29
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        // The release workflow passes -Powntv.version=1.2.3 (the release tag); local builds are 0.0.0-dev.
+        versionName = releaseVersion ?: "0.0.0-dev"
+        versionCode = releaseVersion?.let(::versionCodeOf) ?: 1
+    }
+
+    signingConfigs {
+        // Set by the release workflow from repository secrets. Without them release APKs stay unsigned.
+        if (releaseKeystore != null) {
+            create("release") {
+                storeFile = file(releaseKeystore)
+                storePassword = providers.environmentVariable("OWNTV_KEYSTORE_PASSWORD").get()
+                keyAlias = providers.environmentVariable("OWNTV_KEY_ALIAS").get()
+                keyPassword = providers.environmentVariable("OWNTV_KEY_PASSWORD").get()
+            }
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.findByName("release")
         }
     }
 

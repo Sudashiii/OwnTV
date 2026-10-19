@@ -1,0 +1,110 @@
+name: Release
+
+# Every push to main that brings a feat, fix or perf commit becomes a GitHub release. The version
+# and notes come from the conventional commits since the last vX.Y.Z tag (scripts/release.py).
+# The release has the signed APK and update.json, which describes it for an in-app updater:
+# https://github.com/<owner>/<repo>/releases/latest/download/update.json
+#
+# Pull requests run the same tests and build and show the notes their merge would release.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to release, like 1.0.0. Leave empty to work it out from the commits.
+        type: string
+        required: false
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      PUBLISH: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # all commits and tags, for the version and notes
+
+      - name: Work out the version and notes
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
+        run: |
+          version=$(python3 scripts/release.py --version "$REQUESTED_VERSION" --notes "$RUNNER_TEMP/notes.md")
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          if [ -z "$version" ]; then
+            echo "No feat, fix or perf commits since the last release, so nothing to release." >> "$GITHUB_STEP_SUMMARY"
+          else
+            if [ "$PUBLISH" = true ]; then printf '## Releasing %s\n\n' "$version" >> "$GITHUB_STEP_SUMMARY"
+            else printf '## Merging this would release %s\n\n' "$version" >> "$GITHUB_STEP_SUMMARY"; fi
+            cat "$RUNNER_TEMP/notes.md" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Load the release key
+        if: env.PUBLISH == 'true' && env.VERSION != ''
+        env:
+          KEYSTORE_BASE64: ${{ secrets.OWNTV_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::error::The OWNTV_KEYSTORE_BASE64 secret is missing. See Releases in README.md."
+            exit 1
+          fi
+          echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.jks"
+          echo "OWNTV_KEYSTORE_FILE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-java@v6
+        if: env.VERSION != '' || github.event_name == 'pull_request'
+        with:
+          distribution: temurin
+          java-version: 25
+
+      - uses: gradle/actions/setup-gradle@v6
+        if: env.VERSION != '' || github.event_name == 'pull_request'
+        with:
+          cache-provider: basic
+          cache-read-only: ${{ env.PUBLISH != 'true' }}
+
+      - name: Test and build the APK
+        if: env.VERSION != '' || github.event_name == 'pull_request'
+        env:
+          OWNTV_KEYSTORE_PASSWORD: ${{ secrets.OWNTV_KEYSTORE_PASSWORD }}
+          OWNTV_KEY_ALIAS: ${{ secrets.OWNTV_KEY_ALIAS }}
+          OWNTV_KEY_PASSWORD: ${{ secrets.OWNTV_KEY_PASSWORD }}
+        run: ./gradlew :layout-model:test :app:testDebugUnitTest :app:assembleRelease ${VERSION:+-Powntv.version=$VERSION}
+
+      - name: Collect the APK and update.json
+        if: env.PUBLISH == 'true' && env.VERSION != ''
+        run: |
+          out=app/build/outputs/apk/release
+          apk="$out/$(jq -r '.elements[0].outputFile' "$out/output-metadata.json")"
+          case "$apk" in *-unsigned.apk) echo "::error::The APK is not signed."; exit 1 ;; esac
+          mkdir "$RUNNER_TEMP/dist"
+          cp "$apk" "$RUNNER_TEMP/dist/owntv-$VERSION.apk"
+          jq -n \
+            --arg versionName "$VERSION" \
+            --argjson versionCode "$(jq '.elements[0].versionCode' "$out/output-metadata.json")" \
+            --arg apk "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/download/v$VERSION/owntv-$VERSION.apk" \
+            --arg sha256 "$(sha256sum "$apk" | cut -d ' ' -f 1)" \
+            --rawfile notes "$RUNNER_TEMP/notes.md" \
+            '{versionName: $versionName, versionCode: $versionCode, apk: $apk, sha256: $sha256, notes: $notes}' \
+            > "$RUNNER_TEMP/dist/update.json"
+          cat "$RUNNER_TEMP/dist/update.json"
+
+      - name: Publish the release
+        if: env.PUBLISH == 'true' && env.VERSION != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh release create "v$VERSION" "$RUNNER_TEMP"/dist/*
+          --target "$GITHUB_SHA"
+          --title "OwnTV $VERSION"
+          --notes-file "$RUNNER_TEMP/notes.md"
