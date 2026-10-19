@@ -131,7 +131,7 @@ Widgets:
 - A slide: `{ "title": "…", "description": "…", "background": <background>, "action": <action> }`. Titles and descriptions may use placeholders.
 - `showText` (default true), `scrim` 0–1 (darkness behind the text, default 0.6), `contentAlign` (where the text sits, default `bottom_start`), `fade` 0–1 (share of the height at the bottom that fades out into what is behind, default 0), `cornerRadius` via the common property.
 
-Apple TV pattern (tvOS 26/27): a column with `"scroll": true, "scrollAlign": "start"` holding a `stack` with `"revealOnFocus": true` and a fixed height. In the stack, a hero fills everything (`"target": "dock"`, `"fade": 0.3`), and the `dock` app_row (`"limit": 5`, a `glass` background and a `cornerRadius`) sits at the bottom, so the Top Shelf runs full-bleed behind the glass dock. An `app_grid` with `"skip": 5` follows the stack. See the built-in Apple TV look.
+Apple TV pattern (tvOS 26/27): a column with `"scroll": true, "scrollAlign": "start"` holding a `stack` with `"revealOnFocus": true` and a fixed height. In the stack, a hero fills everything (`"target": "dock"`, `"fade": 0.3`), and the `dock` app_row (`"limit": 5`, a `glass` background and a `cornerRadius`) sits at the bottom, so the Top Shelf runs full-bleed behind the glass dock. Give the dock `"tile": { "showLabel": "never" }`: the Top Shelf already shows the focused app's name, and a label would take room below the tiles, so they would not sit centered in the glass. An `app_grid` with `"skip": 5` follows the stack. See the built-in Apple TV look.
 
 ## Content widgets (not focusable)
 
