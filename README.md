@@ -63,3 +63,43 @@ adb shell pm disable-user --user 0 com.google.android.apps.tv.launcherx
 ```
 
 See [CLAUDE.md](CLAUDE.md) for the project layout and development notes.
+
+## Releases
+
+Every merge to `main` with a `feat`, `fix` or `perf` commit becomes a GitHub release ([release.yml](.github/workflows/release.yml)). The version comes from the [conventional commits](https://www.conventionalcommits.org/) since the last tag: a breaking change (`feat!:` or a `BREAKING CHANGE:` footer) bumps the major version (the minor one before 1.0), `feat` the minor version, `fix` and `perf` the patch. The release notes list the breaking changes, features and fixes, so commit messages, and pull request titles when you squash-merge, need the conventional format to show up. Pull requests show the notes their merge would release in the job summary. To release a chosen version, like 1.0.0, run the workflow by hand and enter it.
+
+Each release has the signed `owntv-<version>.apk` and an `update.json` for an in-app updater, always at `releases/latest/download/update.json`:
+
+```json
+{ "versionName": "0.2.0", "versionCode": 2000, "apk": "https://github.com/…/owntv-0.2.0.apk", "sha256": "…", "notes": "### Features …" }
+```
+
+`versionCode` is `major * 1000000 + minor * 1000 + patch`. Preview the next version and notes locally with `python3 scripts/release.py --notes -`.
+
+### Release key
+
+Android only installs an update that is signed with the same key, so every release is signed with one key kept in repository secrets. Create it once and keep a copy of the file and the password outside GitHub; without it, released apps can no longer be updated.
+
+```bash
+keytool -genkeypair -keystore owntv-release.jks -alias owntv -keyalg RSA -keysize 4096 -validity 10000 -dname "CN=OwnTV"
+```
+
+Then store it in the repository (the key password is the keystore password, keytool uses one for both):
+
+```bash
+base64 -i owntv-release.jks | gh secret set OWNTV_KEYSTORE_BASE64
+```
+
+```bash
+gh secret set OWNTV_KEYSTORE_PASSWORD
+```
+
+```bash
+gh secret set OWNTV_KEY_PASSWORD
+```
+
+```bash
+gh secret set OWNTV_KEY_ALIAS --body owntv
+```
+
+Debug builds use the debug key, so uninstall a debug build before installing a release APK on the same device.

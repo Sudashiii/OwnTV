@@ -55,6 +55,10 @@ Fastest way to try a layout on the emulator (debug build): `cat my.json | adb sh
 
 Paste server for testing from the Mac: open Import on the TV, then `adb forward tcp:8765 tcp:8765` and `curl -X POST --data-binary @examples/kids.json "http://localhost:8765/api/layout?t=<token shown on TV>"`.
 
+## Releases
+
+Merges to `main` release automatically (`.github/workflows/release.yml`, README "Releases"). `scripts/release.py` works out the version and notes from the conventional commits since the last `vX.Y.Z` tag, so write commit messages (and squash-merge PR titles) as `feat(scope): ...`, `fix(scope): ...` or `perf: ...`, and mark breaking changes with `!` plus a `BREAKING CHANGE:` footer that says what breaks. Other types (`chore`, `test`, `docs`, `refactor`, ...) stay out of the notes. Preview with `python3 scripts/release.py --notes -`. The workflow builds with `-Powntv.version=X.Y.Z`, which sets `versionName` and `versionCode` (`app/build.gradle.kts`), and signs with the key from the `OWNTV_KEY*` secrets.
+
 ## Toolchain notes
 
 AGP 9.4 (built-in Kotlin, so no `kotlin-android` plugin), Kotlin 2.4, Gradle 9.8 on JDK 25. Current Compose and Coil require `compileSdk = 37`.
