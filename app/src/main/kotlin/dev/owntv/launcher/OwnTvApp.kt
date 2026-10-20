@@ -2,12 +2,14 @@ package dev.owntv.launcher
 
 import android.app.Application
 import android.content.Context
+import coil3.SingletonImageLoader
 import dev.owntv.launcher.actions.ActionExecutor
 import dev.owntv.launcher.data.apps.AppImageLoader
 import dev.owntv.launcher.data.apps.AppListsRepository
 import dev.owntv.launcher.data.apps.InstalledAppsRepository
 import dev.owntv.launcher.data.apps.RecentAppsRepository
 import dev.owntv.launcher.data.layout.BundledAssets
+import dev.owntv.launcher.data.layout.LayoutImageLoader
 import dev.owntv.launcher.data.layout.LayoutRepository
 import dev.owntv.launcher.importexport.FileImporter
 import dev.owntv.launcher.importexport.PasteSession
@@ -18,7 +20,7 @@ import dev.owntv.layout.codec.DecodeResult
 import dev.owntv.layout.codec.LayoutCodec
 import kotlinx.coroutines.MainScope
 
-class OwnTvApp : Application() {
+class OwnTvApp : Application(), SingletonImageLoader.Factory {
     lateinit var container: AppContainer
         private set
 
@@ -26,6 +28,9 @@ class OwnTvApp : Application() {
         super.onCreate()
         container = AppContainer(this)
     }
+
+    /** Images linked from a layout are cached on the TV, see [LayoutImageLoader]. */
+    override fun newImageLoader(context: coil3.PlatformContext) = LayoutImageLoader.create(this)
 }
 
 /** Creates and holds the app's long-lived objects. */

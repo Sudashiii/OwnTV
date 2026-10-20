@@ -39,6 +39,7 @@ Then open http://localhost:8088. `just web-build` only builds, and `just web-ser
 ## Format
 
 - Reference: [docs/layout-spec.md](docs/layout-spec.md)
+- How the engine works: [docs/layout-engine.md](docs/layout-engine.md)
 - JSON Schema: [schema/owntv-layout.v3.schema.json](schema/owntv-layout.v3.schema.json)
 - Examples: [examples/](examples/)
 
