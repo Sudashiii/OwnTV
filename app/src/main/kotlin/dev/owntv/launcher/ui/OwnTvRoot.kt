@@ -20,6 +20,7 @@ import dev.owntv.launcher.ui.editor.EditorScreen
 import dev.owntv.launcher.ui.render.AppCatalog
 import dev.owntv.launcher.ui.render.LocalAppArranger
 import dev.owntv.launcher.ui.render.LocalInteractiveSurfaces
+import dev.owntv.launcher.ui.render.LocalNetworkState
 
 @Composable
 fun OwnTvRoot(container: AppContainer, nav: Navigator) {
@@ -44,7 +45,11 @@ fun OwnTvRoot(container: AppContainer, nav: Navigator) {
     BackHandler { nav.back() }
 
     MaterialTheme(colorScheme = darkColorScheme()) {
-        CompositionLocalProvider(LocalInteractiveSurfaces provides TvSurfaces, LocalAppArranger provides arranger) {
+        CompositionLocalProvider(
+            LocalInteractiveSurfaces provides TvSurfaces,
+            LocalAppArranger provides arranger,
+            LocalNetworkState provides rememberNetworkState(),
+        ) {
             Box(Modifier.fillMaxSize().background(Color.Black)) {
                 when (val screen = nav.current) {
                     Screen.Home -> HomeScreen(container, nav, layoutState, catalog, arranger)

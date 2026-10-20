@@ -46,6 +46,8 @@ data class NodeCommon(
     val cornerRadius: Int? = null,
     @Range(0.0, 1.0) @Doc("Opacity of the whole node, 0 to 1. Default 1.")
     val opacity: Float? = null,
+    @Range(0.0, 1.0) @Doc("Opacity of the whole node while focus is not inside it, e.g. 0.5 dims every section except the focused one (Projectivy style). Default: no dimming.")
+    val unfocusedOpacity: Float? = null,
     @Range(0.0, 48.0) @Doc("Drop shadow size in dp. Default none.")
     val shadow: Int? = null,
     @Doc("Position inside the parent. In a stack all 9 values apply; in a column only the horizontal part is used; in a row only the vertical part.")
@@ -58,6 +60,8 @@ data class NodeCommon(
     val focus: FocusLinks? = null,
     @Doc("When something inside this node gets focus, scroll so the whole node is visible (like the Apple TV top shelf). Default false.")
     val revealOnFocus: Boolean = false,
+    @Doc("Id of a node on the same page: this node is only shown (and takes space) while focus is inside that node, e.g. the name and description of the focused tile under its section. Default: always shown.")
+    val showWhenFocused: String? = null,
     @Doc("Set to false to hide the node without deleting it. Default true.")
     val visible: Boolean = true,
 )
@@ -195,6 +199,8 @@ data class AppRowNode(
     val source: AppSource,
     @Doc("Title above the row.")
     val title: String? = null,
+    @Doc("Icon before the title: a shortcut icon name such as tv or smartphone, or an emoji.")
+    val titleIcon: String? = null,
     @Doc("Tile look. Default banner, medium, label on focus.")
     val tile: TileStyle = TileStyle(),
     @Range(0.0, 200.0) @Doc("Gap between tiles in dp. Default 16.")
@@ -223,6 +229,8 @@ data class AppGridNode(
     val source: AppSource,
     @Doc("Title above the grid.")
     val title: String? = null,
+    @Doc("Icon before the title: a shortcut icon name such as tv or smartphone, or an emoji.")
+    val titleIcon: String? = null,
     @Range(1.0, 12.0) @Doc("Number of columns. Default 5.")
     val columns: Int = 5,
     @Doc("Tile look. Default banner, medium, label on focus. Banner and card tiles stretch to the column width.")
@@ -271,12 +279,18 @@ data class ShortcutNode(
     val label: String,
     @Doc("What happens on click.")
     val action: Action,
-    @Doc("Icon: one of settings, home, search, star, info, play, favorite, apps, add, refresh, notifications, person, lock, menu, or any emoji such as \"🎬\".")
+    @Doc("Icon: one of settings, home, search, star, info, info_outline, play, favorite, apps, add, add_circle, refresh, notifications, person, lock, menu, tv, live_tv, input, hdmi, smartphone, display, system, accessibility, android, wallpaper, wifi, wifi_off, ethernet, or any emoji such as \"🎬\".")
     val icon: String? = null,
     @Doc("Image instead of an icon: an https:// URL or \"asset:<path>\".")
     val image: String? = null,
     @ColorValue @Doc("Tile color. Default @surface.")
     val color: String? = null,
+    @ColorValue @Doc("Color of the icon and the label on the tile. Default @text.")
+    val iconColor: String? = null,
+    @ColorValue @Doc("Tile color while focused, e.g. a dark tile that is light when idle. Default: color.")
+    val focusColor: String? = null,
+    @ColorValue @Doc("Icon and label color while focused. Default: iconColor.")
+    val focusIconColor: String? = null,
     @Doc("Tile look. Default card, medium.")
     val tile: TileStyle = TileStyle(shape = TileShape.Card),
     @Doc("Text a hero shows while this shortcut is focused.")
@@ -337,7 +351,7 @@ enum class HeroFollow {
 
 @Serializable
 @SerialName("text")
-@Doc("Text, not focusable. May contain placeholders: {greeting}, {time}, {date}, {date:EEEE d MMMM}, {focused}, {page}. Write {{ for a literal {.")
+@Doc("Text, not focusable. May contain placeholders: {greeting}, {time}, {date}, {date:EEEE d MMMM}, {focused}, {description}, {page}. Write {{ for a literal {.")
 data class TextNode(
     override val id: String,
     @Doc("The text, optionally with placeholders.")
@@ -360,6 +374,8 @@ data class TextNode(
     val textAlign: TextAlignment = TextAlignment.Start,
     @Range(1.0, 20.0) @Doc("Maximum number of lines; longer text ends with an ellipsis.")
     val maxLines: Int? = null,
+    @Doc("Icon before the text, in the text's size and color: a shortcut icon name such as tv or input, or an emoji.")
+    val icon: String? = null,
     @Transient override val common: NodeCommon = NodeCommon(),
 ) : Node {
     override fun withCommon(common: NodeCommon) = copy(common = common)
@@ -386,6 +402,20 @@ data class ClockNode(
     val letterSpacing: Float? = null,
     @Doc("Alignment of the text inside its box. Default start.")
     val textAlign: TextAlignment = TextAlignment.Start,
+    @Transient override val common: NodeCommon = NodeCommon(),
+) : Node {
+    override fun withCommon(common: NodeCommon) = copy(common = common)
+}
+
+@Serializable
+@SerialName("network")
+@Doc("Connection indicator: a Wi-Fi, Ethernet or offline icon that follows the TV's network. Not focusable.")
+data class NetworkNode(
+    override val id: String,
+    @Range(12.0, 96.0) @Doc("Icon size in dp. Default 24.")
+    val size: Int = 24,
+    @ColorValue @Doc("Icon color. Default @text.")
+    val color: String? = null,
     @Transient override val common: NodeCommon = NodeCommon(),
 ) : Node {
     override fun withCommon(common: NodeCommon) = copy(common = common)

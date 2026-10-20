@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -57,6 +58,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -70,7 +72,9 @@ import dev.owntv.layout.model.HeroNode
 import dev.owntv.layout.model.HeroSlide
 import dev.owntv.layout.model.ListSource
 import dev.owntv.layout.model.Missing
+import dev.owntv.layout.model.NetworkNode
 import dev.owntv.layout.model.Placeholders
+import dev.owntv.layout.model.TextAlignment
 import dev.owntv.layout.model.TextNode
 import dev.owntv.layout.model.TextStyleName
 import dev.owntv.layout.time.Clocks
@@ -369,7 +373,7 @@ fun rememberPlaceholderText(raw: String): String {
             }
         }
     }
-    val focused = if (tokens.any { it.name == "focused" }) LocalFocusTracker.current?.current else null
+    val focused = if (tokens.any { it.name == "focused" || it.name == "description" }) LocalFocusTracker.current?.current else null
     val page = LocalPageTitle.current
     return buildString {
         parts.forEach { part ->
@@ -381,6 +385,7 @@ fun rememberPlaceholderText(raw: String): String {
                         "time" -> formatOrRaw(now, part.argument ?: "HH:mm")
                         "date" -> formatOrRaw(now, part.argument ?: "EEEE, d MMMM")
                         "focused" -> focused?.label.orEmpty()
+                        "description" -> focused?.description.orEmpty()
                         "page" -> page.orEmpty()
                         else -> "{${part.name}${part.argument?.let { ":$it" }.orEmpty()}}"
                     },
@@ -395,19 +400,55 @@ fun TextView(node: TextNode, modifier: Modifier) {
     val theme = LocalOwnTheme.current
     val text = rememberPlaceholderText(node.text)
     val base = theme.textStyle(node.textStyle, node.bold, node.font)
-    Text(
-        text = if (node.uppercase) text.uppercase() else text,
-        style = base.copy(
-            fontSize = node.fontSize?.let { (it * theme.theme.fontScale).sp } ?: base.fontSize,
-            lineHeight = node.fontSize?.let { (it * theme.theme.fontScale * 1.2f).sp } ?: base.lineHeight,
-            letterSpacing = node.letterSpacing?.sp ?: base.letterSpacing,
-            textAlign = node.textAlign.toComposeTextAlign(),
-        ),
-        color = theme.color(node.color) ?: theme.text,
-        maxLines = node.maxLines ?: Int.MAX_VALUE,
-        overflow = TextOverflow.Ellipsis,
-        modifier = modifier,
+    val style = base.copy(
+        fontSize = node.fontSize?.let { (it * theme.theme.fontScale).sp } ?: base.fontSize,
+        lineHeight = node.fontSize?.let { (it * theme.theme.fontScale * 1.2f).sp } ?: base.lineHeight,
+        letterSpacing = node.letterSpacing?.sp ?: base.letterSpacing,
+        textAlign = node.textAlign.toComposeTextAlign(),
     )
+    val color = theme.color(node.color) ?: theme.text
+    val icon = node.icon
+    if (icon == null) {
+        Text(
+            text = if (node.uppercase) text.uppercase() else text,
+            style = style,
+            color = color,
+            maxLines = node.maxLines ?: Int.MAX_VALUE,
+            overflow = TextOverflow.Ellipsis,
+            modifier = modifier,
+        )
+        return
+    }
+    // The icon sits before the text, about as tall as a capital letter plus a little.
+    val iconSize = with(LocalDensity.current) { style.fontSize.toDp() } * 1.15f
+    val arrangement = when (node.textAlign) {
+        TextAlignment.Start -> Arrangement.Start
+        TextAlignment.Center -> Arrangement.Center
+        TextAlignment.End -> Arrangement.End
+    }
+    Row(modifier, horizontalArrangement = arrangement, verticalAlignment = Alignment.CenterVertically) {
+        ShortcutIcon(icon, iconSize, tint = color)
+        Spacer(Modifier.width(iconSize * 0.45f))
+        Text(
+            text = if (node.uppercase) text.uppercase() else text,
+            style = style,
+            color = color,
+            maxLines = node.maxLines ?: Int.MAX_VALUE,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+/** A Wi-Fi, Ethernet or offline icon that follows the device's connection. */
+@Composable
+fun NetworkView(node: NetworkNode, modifier: Modifier) {
+    val theme = LocalOwnTheme.current
+    val icon = when (LocalNetworkState.current) {
+        NetworkState.Wifi -> ExtraIcons.Wifi
+        NetworkState.Ethernet -> ExtraIcons.Ethernet
+        NetworkState.Offline -> ExtraIcons.WifiOff
+    }
+    Icon(icon, contentDescription = null, tint = theme.color(node.color) ?: theme.text, modifier = modifier.size(node.size.dp))
 }
 
 private fun formatOrRaw(time: WallClock, pattern: String): String = Clocks.format(pattern, time) ?: pattern

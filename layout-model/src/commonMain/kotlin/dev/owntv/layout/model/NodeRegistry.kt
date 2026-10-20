@@ -53,6 +53,7 @@ object NodeRegistry {
         NodeType(HeroNode::class, HeroNode.serializer(), NodeCategory.Content),
         NodeType(TextNode::class, TextNode.serializer(), NodeCategory.Content),
         NodeType(ClockNode::class, ClockNode.serializer(), NodeCategory.Content),
+        NodeType(NetworkNode::class, NetworkNode.serializer(), NodeCategory.Content),
         NodeType(ImageNode::class, ImageNode.serializer(), NodeCategory.Content),
         NodeType(SpacerNode::class, SpacerNode.serializer(), NodeCategory.Content),
     )

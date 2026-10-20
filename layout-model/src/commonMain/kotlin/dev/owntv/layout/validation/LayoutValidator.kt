@@ -20,11 +20,13 @@ import dev.owntv.layout.model.GridNode
 import dev.owntv.layout.model.HeroFollow
 import dev.owntv.layout.model.HeroNode
 import dev.owntv.layout.model.ImageBackground
+import dev.owntv.layout.model.IconNames
 import dev.owntv.layout.model.ImageNode
 import dev.owntv.layout.model.IntentAction
 import dev.owntv.layout.model.LaunchAppAction
 import dev.owntv.layout.model.ListSource
 import dev.owntv.layout.model.LayoutDocument
+import dev.owntv.layout.model.NetworkNode
 import dev.owntv.layout.model.Node
 import dev.owntv.layout.model.OpenUrlAction
 import dev.owntv.layout.model.Page
@@ -182,6 +184,9 @@ object LayoutValidator {
                     if (id != null && page.findNode(id) == null) out.error("$path.focus.$dir", "No node with id \"$id\" on page \"${page.id}\".")
                 }
             }
+            node.common.showWhenFocused?.let { id ->
+                if (page.findNode(id) == null) out.error("$path.showWhenFocused", "No node with id \"$id\" on page \"${page.id}\".")
+            }
             if (node is HeroNode) {
                 node.target?.let { id ->
                     if (page.findNode(id) == null) out.error("$path.target", "No node with id \"$id\" on page \"${page.id}\".")
@@ -199,8 +204,14 @@ object LayoutValidator {
                     }
                 }
                 is AppTileNode -> checkPackage(node.packageName, "$path.package")
-                is AppRowNode -> checkSource(node.source, "$path.source")
-                is AppGridNode -> checkSource(node.source, "$path.source")
+                is AppRowNode -> {
+                    checkSource(node.source, "$path.source")
+                    node.titleIcon?.let { checkIcon(it, "$path.titleIcon") }
+                }
+                is AppGridNode -> {
+                    checkSource(node.source, "$path.source")
+                    node.titleIcon?.let { checkIcon(it, "$path.titleIcon") }
+                }
                 is FolderNode -> {
                     checkSource(node.source, "$path.source")
                     node.color?.let { checkColorRef(it, "$path.color") }
@@ -208,6 +219,10 @@ object LayoutValidator {
                 is ShortcutNode -> {
                     checkAction(node.action, "$path.action")
                     node.color?.let { checkColorRef(it, "$path.color") }
+                    node.iconColor?.let { checkColorRef(it, "$path.iconColor") }
+                    node.focusColor?.let { checkColorRef(it, "$path.focusColor") }
+                    node.focusIconColor?.let { checkColorRef(it, "$path.focusIconColor") }
+                    node.icon?.let { checkIcon(it, "$path.icon") }
                     node.image?.let { checkImageSrc(it, "$path.image") }
                     node.backdrop?.let { checkImageSrc(it, "$path.backdrop") }
                     if (node.icon != null && node.image != null) out.info(path, "Both icon and image are set; the image is used.")
@@ -225,14 +240,23 @@ object LayoutValidator {
                 }
                 is TextNode -> {
                     node.color?.let { checkColorRef(it, "$path.color") }
+                    node.icon?.let { checkIcon(it, "$path.icon") }
                     checkPlaceholders(node.text, "$path.text")
                 }
+                is NetworkNode -> node.color?.let { checkColorRef(it, "$path.color") }
                 is ClockNode -> {
                     node.color?.let { checkColorRef(it, "$path.color") }
                     checkPattern(node.format, "$path.format")
                 }
                 is ImageNode -> checkImageSrc(node.src, "$path.src")
                 else -> Unit
+            }
+        }
+
+        fun checkIcon(icon: String, path: String) {
+            // Plain words are meant as icon names; anything else (emoji, symbols) is drawn as text.
+            if (icon !in IconNames.all && icon.all { it.isLetterOrDigit() || it == '_' }) {
+                out.warning(path, "Unknown icon \"$icon\"; it is shown as text. Known icons: ${IconNames.all.joinToString(", ")}, or use an emoji.")
             }
         }
 

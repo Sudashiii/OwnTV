@@ -93,7 +93,7 @@ object Placeholders {
         data class Token(val name: String, val argument: String?) : Part
     }
 
-    val names = listOf("greeting", "time", "date", "focused", "page")
+    val names = listOf("greeting", "time", "date", "focused", "description", "page")
 
     fun parse(text: String): List<Part> {
         val parts = mutableListOf<Part>()

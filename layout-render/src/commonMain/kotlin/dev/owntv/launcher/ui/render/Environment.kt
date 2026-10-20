@@ -80,7 +80,7 @@ class AppCatalog(
                 .sortedWith(source.sort.comparator())
                 .map(AppEntry::Installed)
             is CategorySource -> apps
-                .filter { it.isTvApp && it.isGame == (source.category == AppCategory.Games) && it.packageName !in source.exclude }
+                .filter { it.packageName !in source.exclude && source.category.matches(it) }
                 .filterNot(::isHidden)
                 .sortedWith(source.sort.comparator())
                 .map(AppEntry::Installed)
@@ -101,6 +101,12 @@ class AppCatalog(
         AppSort.RecentlyInstalled -> compareByDescending { it.firstInstallTime }
         AppSort.Custom -> compareBy<AppInfo> { customRank[it.packageName] ?: Int.MAX_VALUE }.thenBy { labelOf(it).lowercase() }
     }
+}
+
+private fun AppCategory.matches(app: AppInfo): Boolean = when (this) {
+    AppCategory.Games -> app.isTvApp && app.isGame
+    AppCategory.Apps -> app.isTvApp && !app.isGame
+    AppCategory.Mobile -> !app.isTvApp
 }
 
 sealed interface AppEntry {

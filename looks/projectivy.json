@@ -1,0 +1,368 @@
+{
+  "schemaVersion": 3,
+  "name": "Projectivy",
+  "description": "Projectivy Launcher style: a tinted wallpaper, one section per category stacked vertically, the focused section bright and the others dimmed, with the name and description of the focused tile under its row.",
+  "theme": {
+    "colors": {
+      "background": "#2A0715",
+      "surface": "#99F38BB0",
+      "primary": "#FF5C93",
+      "text": "#FFE6EE",
+      "textMuted": "#F2AFC6",
+      "focus": "#FF8AB3",
+      "custom": { "tile": "#F7A3C0", "tileIcon": "#9C1C4C", "tileFocused": "#6E1235", "tileIconFocused": "#FFC9DA" }
+    },
+    "cornerRadius": 10,
+    "focus": { "scale": 1.25, "borderWidth": 3, "borderColor": "@focus", "glow": true, "glowColor": "#B3FF3F7F", "glowSize": 16 }
+  },
+  "background": {
+    "type": "image",
+    "src": "https://images.unsplash.com/photo-1565479715608-5338dec5ff7a?w=1920&q=80&fm=jpg",
+    "fit": "cover"
+  },
+  "styles": {
+    "section": { "width": "fill", "spacing": 8, "unfocusedOpacity": 0.5, "revealOnFocus": true },
+    "section_title": { "textStyle": "title", "bold": true, "color": "@text" },
+    "section_row": { "spacing": 14, "padding": [0, 4] },
+    "details": { "spacing": 2, "padding": [0, 10, 0, 0] },
+    "focused_name": { "textStyle": "title", "color": "@text", "maxLines": 1 },
+    "focused_description": { "fontSize": 13, "color": "@textMuted", "maxLines": 3, "width": 440 },
+    "card": { "tile": { "shape": "card", "width": 104, "aspectRatio": 1.65, "showLabel": "never" } },
+    "input": { "tile": { "shape": "card", "width": 72, "aspectRatio": 1, "cornerRadius": 36 } }
+  },
+  "defaults": {
+    "shortcut": {
+      "color": "@tile",
+      "iconColor": "@tileIcon",
+      "focusColor": "@tileFocused",
+      "focusIconColor": "@tileIconFocused"
+    },
+    "app_row": { "spacing": 14, "tile": { "showLabel": "never" } }
+  },
+  "pages": [
+    {
+      "id": "home",
+      "initialFocus": "inputs",
+      "root": {
+        "type": "column",
+        "id": "root",
+        "scroll": true,
+        "scrollAlign": "start",
+        "scrollMargin": 240,
+        "spacing": 16,
+        "padding": [56, 20, 56, 0],
+        "background": { "type": "gradient", "colors": ["#EB2A0718", "#99640E3A", "#5CE8337F"], "angle": 90 },
+        "children": [
+          {
+            "type": "row",
+            "id": "status",
+            "width": "fill",
+            "height": 36,
+            "spacing": 16,
+            "children": [
+              { "type": "spacer", "id": "status_gap", "weight": 1 },
+              { "type": "network", "id": "network", "size": 22 },
+              {
+                "type": "shortcut",
+                "id": "launcher_settings",
+                "label": "OwnTV settings",
+                "icon": "settings",
+                "color": "#00000000",
+                "iconColor": "@text",
+                "focusColor": "#33FFFFFF",
+                "focusIconColor": "@text",
+                "tile": { "shape": "icon", "width": 32, "cornerRadius": 16, "showLabel": "never" },
+                "focus": { "down": "inputs" },
+                "action": { "type": "open_launcher_settings" }
+              },
+              { "type": "clock", "id": "clock", "format": "HH:mm", "fontSize": 30, "color": "@text" }
+            ]
+          },
+          { "type": "spacer", "id": "top_gap", "height": 152 },
+          {
+            "type": "column",
+            "id": "inputs",
+            "style": "section",
+            "children": [
+              { "type": "text", "id": "inputs_title", "text": "Inputs", "icon": "input", "style": "section_title" },
+              {
+                "type": "row",
+                "id": "inputs_row",
+                "style": "section_row",
+                "children": [
+                  { "type": "shortcut", "id": "hdmi1", "label": "HDMI 1", "icon": "hdmi", "style": "input", "action": { "type": "open_input", "input": "hdmi1" } },
+                  { "type": "shortcut", "id": "hdmi2", "label": "HDMI 2", "icon": "hdmi", "style": "input", "action": { "type": "open_input", "input": "hdmi2" } },
+                  { "type": "shortcut", "id": "hdmi3", "label": "HDMI 3", "icon": "hdmi", "style": "input", "action": { "type": "open_input", "input": "hdmi3" } },
+                  { "type": "shortcut", "id": "av", "label": "AV", "icon": "input", "style": "input", "action": { "type": "open_input", "input": "av" } }
+                ]
+              },
+              {
+                "type": "column",
+                "id": "inputs_details",
+                "style": "details",
+                "showWhenFocused": "inputs",
+                "children": [
+                  { "type": "text", "id": "inputs_name", "text": "{focused}", "style": "focused_name" }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "column",
+            "id": "tv_section",
+            "style": "section",
+            "children": [
+              {
+                "type": "app_row",
+                "id": "tv_apps",
+                "title": "TV apps",
+                "titleIcon": "tv",
+                "source": { "type": "all" },
+                "tile": { "shape": "banner", "width": 136 }
+              },
+              {
+                "type": "column",
+                "id": "tv_details",
+                "style": "details",
+                "showWhenFocused": "tv_section",
+                "children": [
+                  { "type": "text", "id": "tv_name", "text": "{focused}", "style": "focused_name" }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "column",
+            "id": "mobile_section",
+            "style": "section",
+            "children": [
+              {
+                "type": "app_row",
+                "id": "mobile_apps",
+                "title": "Mobile apps",
+                "titleIcon": "smartphone",
+                "source": { "type": "category", "category": "mobile" },
+                "tile": { "shape": "icon", "width": 72, "aspectRatio": 1.15 }
+              },
+              {
+                "type": "column",
+                "id": "mobile_details",
+                "style": "details",
+                "showWhenFocused": "mobile_section",
+                "children": [
+                  { "type": "text", "id": "mobile_name", "text": "{focused}", "style": "focused_name" }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "column",
+            "id": "selection_section",
+            "style": "section",
+            "children": [
+              {
+                "type": "app_row",
+                "id": "selection",
+                "title": "My selection",
+                "titleIcon": "live_tv",
+                "source": { "type": "list", "list": "favorites" },
+                "tile": { "shape": "banner", "width": 176 }
+              },
+              {
+                "type": "column",
+                "id": "selection_details",
+                "style": "details",
+                "showWhenFocused": "selection_section",
+                "children": [
+                  { "type": "text", "id": "selection_name", "text": "{focused}", "style": "focused_name" }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "column",
+            "id": "settings",
+            "style": "section",
+            "children": [
+              { "type": "text", "id": "settings_title", "text": "Settings", "icon": "settings", "style": "section_title" },
+              {
+                "type": "row",
+                "id": "settings_row",
+                "style": "section_row",
+                "children": [
+                  {
+                    "type": "shortcut",
+                    "id": "settings_owntv",
+                    "label": "Settings - OwnTV",
+                    "icon": "settings",
+                    "style": "card",
+                    "description": "Import a layout, pick a look, edit this screen or restore an earlier version.",
+                    "action": { "type": "open_launcher_settings" }
+                  },
+                  {
+                    "type": "shortcut",
+                    "id": "settings_android",
+                    "label": "Android settings",
+                    "icon": "android",
+                    "style": "card",
+                    "description": "The TV's own settings: network, remotes, accounts and apps.",
+                    "action": { "type": "open_system_settings" }
+                  },
+                  {
+                    "type": "shortcut",
+                    "id": "settings_all_apps",
+                    "label": "All apps",
+                    "icon": "add_circle",
+                    "style": "card",
+                    "description": "Every installed app. Long-press a tile to add it to My selection.",
+                    "action": { "type": "open_app_drawer" }
+                  }
+                ]
+              },
+              {
+                "type": "column",
+                "id": "settings_details",
+                "style": "details",
+                "showWhenFocused": "settings",
+                "children": [
+                  { "type": "text", "id": "settings_name", "text": "{focused}", "style": "focused_name" },
+                  { "type": "text", "id": "settings_description", "text": "{description}", "style": "focused_description" }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "column",
+            "id": "display",
+            "style": "section",
+            "children": [
+              { "type": "text", "id": "display_title", "text": "Display", "icon": "display", "style": "section_title" },
+              {
+                "type": "row",
+                "id": "display_row",
+                "style": "section_row",
+                "children": [
+                  {
+                    "type": "shortcut",
+                    "id": "display_settings",
+                    "label": "Picture and display",
+                    "icon": "display",
+                    "style": "card",
+                    "description": "Resolution, brightness, picture mode and screen saver.",
+                    "action": { "type": "open_system_settings", "screen": "display" }
+                  }
+                ]
+              },
+              {
+                "type": "column",
+                "id": "display_details",
+                "style": "details",
+                "showWhenFocused": "display",
+                "children": [
+                  { "type": "text", "id": "display_name", "text": "{focused}", "style": "focused_name" },
+                  { "type": "text", "id": "display_description", "text": "{description}", "style": "focused_description" }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "column",
+            "id": "system",
+            "style": "section",
+            "children": [
+              { "type": "text", "id": "system_title", "text": "System", "icon": "system", "style": "section_title" },
+              {
+                "type": "row",
+                "id": "system_row",
+                "style": "section_row",
+                "children": [
+                  {
+                    "type": "shortcut",
+                    "id": "system_accessibility",
+                    "label": "Accessibility",
+                    "icon": "accessibility",
+                    "style": "card",
+                    "description": "Captions, text size, high contrast and screen reader.",
+                    "action": { "type": "open_system_settings", "screen": "accessibility" }
+                  },
+                  {
+                    "type": "shortcut",
+                    "id": "system_network",
+                    "label": "Network and internet",
+                    "icon": "wifi",
+                    "style": "card",
+                    "description": "Wi-Fi, Ethernet and proxy settings.",
+                    "action": { "type": "open_system_settings", "screen": "network" }
+                  }
+                ]
+              },
+              {
+                "type": "column",
+                "id": "system_details",
+                "style": "details",
+                "showWhenFocused": "system",
+                "children": [
+                  { "type": "text", "id": "system_name", "text": "{focused}", "style": "focused_name" },
+                  { "type": "text", "id": "system_description", "text": "{description}", "style": "focused_description" }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "column",
+            "id": "about",
+            "style": "section",
+            "children": [
+              { "type": "text", "id": "about_title", "text": "About", "icon": "info", "style": "section_title" },
+              {
+                "type": "row",
+                "id": "about_row",
+                "style": "section_row",
+                "children": [
+                  {
+                    "type": "shortcut",
+                    "id": "about_owntv",
+                    "label": "OwnTV",
+                    "icon": "info_outline",
+                    "style": "card",
+                    "description": "This home screen is one JSON layout. Paste a new one from your phone or let an AI write it: open the settings and choose Import.",
+                    "action": { "type": "open_launcher_settings" }
+                  },
+                  {
+                    "type": "shortcut",
+                    "id": "about_device",
+                    "label": "Device",
+                    "icon": "tv",
+                    "style": "card",
+                    "description": "Model, Android version, storage and system updates.",
+                    "action": { "type": "open_system_settings" }
+                  },
+                  {
+                    "type": "shortcut",
+                    "id": "about_wallpaper",
+                    "label": "Looks and wallpaper",
+                    "icon": "wallpaper",
+                    "style": "card",
+                    "description": "Try another look, or change the wallpaper in this layout's background.",
+                    "action": { "type": "open_launcher_settings" }
+                  }
+                ]
+              },
+              {
+                "type": "column",
+                "id": "about_details",
+                "style": "details",
+                "showWhenFocused": "about",
+                "children": [
+                  { "type": "text", "id": "about_name", "text": "{focused}", "style": "focused_name" },
+                  { "type": "text", "id": "about_description", "text": "{description}", "style": "focused_description" }
+                ]
+              }
+            ]
+          },
+          { "type": "spacer", "id": "bottom_gap", "height": 200 }
+        ]
+      }
+    }
+  ]
+}

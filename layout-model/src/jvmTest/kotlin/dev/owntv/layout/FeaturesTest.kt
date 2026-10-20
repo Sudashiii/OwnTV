@@ -183,6 +183,44 @@ class FeaturesTest {
     }
 
     @Test
+    fun `showWhenFocused must point at a node on the page`() {
+        val result = LayoutCodec.decode(
+            docWithRoot(
+                """
+                { "type": "column", "id": "root", "children": [ $TILE,
+                  { "type": "text", "id": "name", "text": "{focused} {description}", "showWhenFocused": "root" },
+                  { "type": "text", "id": "lost", "text": "x", "showWhenFocused": "ghost" }
+                ] }
+                """,
+            ),
+        )
+        assertEquals(listOf("$.pages[0].root.children[2].showWhenFocused"), result.paths(Severity.Error))
+        assertEquals(emptyList(), result.paths(Severity.Warning))
+    }
+
+    @Test
+    fun `icons, inputs, mobile apps and the network widget decode`() {
+        val result = LayoutCodec.decode(
+            docWithRoot(
+                """
+                { "type": "column", "id": "root", "unfocusedOpacity": 0.5, "children": [
+                  { "type": "text", "id": "title", "text": "Inputs", "icon": "input" },
+                  { "type": "text", "id": "emoji", "text": "Movies", "icon": "🎬" },
+                  { "type": "text", "id": "typo", "text": "Oops", "icon": "hdmii" },
+                  { "type": "shortcut", "id": "hdmi", "label": "HDMI 1", "icon": "hdmi", "focusColor": "@nope", "action": { "type": "open_input", "input": "hdmi1" } },
+                  { "type": "app_row", "id": "mobile", "titleIcon": "smartphone", "source": { "type": "category", "category": "mobile" } },
+                  { "type": "network", "id": "net", "size": 20 }
+                ] }
+                """,
+            ),
+        )
+        assertEquals(listOf("$.pages[0].root.children[2].icon"), result.paths(Severity.Warning))
+        assertEquals(listOf("$.pages[0].root.children[3].focusColor"), result.paths(Severity.Error))
+        val bad = LayoutCodec.decode(docWithRoot("""{ "type": "shortcut", "id": "s", "label": "x", "action": { "type": "open_input", "input": "hdmi9" } }"""))
+        assertEquals(listOf("$.pages[0].root.action.input"), bad.paths(Severity.Error))
+    }
+
+    @Test
     fun `hero slides need content and folders, recent sources and app overrides decode`() {
         val result = LayoutCodec.decode(
             """

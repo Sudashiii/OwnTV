@@ -208,6 +208,7 @@ object LayoutOps {
                 result.common.copy(focus = links.copy(up = swap(links.up), down = swap(links.down), left = swap(links.left), right = swap(links.right))),
             )
         }
+        if (result.common.showWhenFocused == oldId) result = result.withCommon(result.common.copy(showWhenFocused = newId))
         if (result is HeroNode && result.target == oldId) result = result.copy(target = newId)
         return result
     }

@@ -50,6 +50,23 @@ data class GoToPageAction(
 ) : Action
 
 @Serializable
+@SerialName("open_input")
+@Doc("Switches the TV to one of its inputs, e.g. HDMI 1. Only TVs have inputs; streaming boxes show a message.")
+data class OpenInputAction(
+    @Doc("hdmi1 to hdmi4, or av (composite).")
+    val input: TvInput,
+) : Action
+
+@Serializable
+enum class TvInput {
+    @SerialName("hdmi1") Hdmi1,
+    @SerialName("hdmi2") Hdmi2,
+    @SerialName("hdmi3") Hdmi3,
+    @SerialName("hdmi4") Hdmi4,
+    @SerialName("av") Av,
+}
+
+@Serializable
 @SerialName("open_app_drawer")
 @Doc("Opens the built-in list of all installed apps.")
 data object OpenAppDrawerAction : Action
@@ -115,7 +132,7 @@ data class RecentSource(
 @SerialName("category")
 @Doc("Installed TV apps of one category.")
 data class CategorySource(
-    @Doc("games = apps marked as games; apps = everything that is not a game.")
+    @Doc("games = apps marked as games; apps = everything that is not a game; mobile = phone apps sideloaded onto the TV (no TV launcher entry).")
     val category: AppCategory,
     @Doc("Order of the apps. Default alphabetical.")
     val sort: AppSort = AppSort.Alphabetical,
@@ -134,4 +151,5 @@ enum class AppSort {
 enum class AppCategory {
     @SerialName("games") Games,
     @SerialName("apps") Apps,
+    @SerialName("mobile") Mobile,
 }

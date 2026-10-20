@@ -81,12 +81,14 @@ Every node has `type` and `id` (both required) and may use:
 | `border` | `{ "width": 2, "color": "@textMuted" }`. |
 | `cornerRadius` | Radius of background, border and shadow, 0–200. |
 | `opacity` | 0–1. |
+| `unfocusedOpacity` | 0–1: opacity while focus is not inside the node; it fades to full opacity when focus enters. `0.5` on every section dims all but the focused one (Projectivy). |
 | `shadow` | Drop shadow size in dp, 0–48. |
 | `align` | `top_start`, `top`, `top_end`, `start`, `center`, `end`, `bottom_start`, `bottom`, `bottom_end`. In a stack all apply; in a column only the horizontal part; in a row only the vertical part. |
 | `span` | Inside a `grid`: how many columns the node covers (default 1). |
 | `style` | Name of an entry in `styles`. |
 | `focus` | `{ "up": "id", "down": "id", "left": "id", "right": "id" }` — where the D-pad goes. On a tile it applies when that tile is focused; on a container or row it applies when focus leaves it in that direction. Ids must be on the same page. |
 | `revealOnFocus` | `true`: when something inside gets focus, scroll so the whole node is visible (e.g. a hero plus the row under it). |
+| `showWhenFocused` | Id of a node on the same page: this node is only shown, and only takes space, while focus is inside that node. It slides open and closed. E.g. a `{focused}` text under a row that appears only while the row has focus. |
 | `visible` | `false` hides the node. |
 
 ## Containers
@@ -111,16 +113,16 @@ The page `root` fills the screen. Other containers wrap their content unless you
 
 - `{ "type": "list", "list": "favorites" }` — a named app list (see "App lists" below). The layout only names the list; the TV stores its apps.
 - `{ "type": "all", "sort": "custom" | "alphabetical" | "recently_installed", "exclude": ["…"], "includeNonTvApps": false }` — every TV app. `custom` (default) is the order arranged on the TV; apps never moved follow alphabetically.
-- `{ "type": "category", "category": "games" | "apps", "sort": "alphabetical", "exclude": [] }` — games, or everything that is not a game.
+- `{ "type": "category", "category": "games" | "apps" | "mobile", "sort": "alphabetical", "exclude": [] }` — games, everything that is not a game, or `mobile`: phone apps sideloaded onto the TV (no TV launcher entry).
 - `{ "type": "recent", "exclude": [] }` — most recently used first. Starts empty and fills as apps are opened.
 
 Widgets:
 
-- **`app_row`**: horizontally scrolling tiles. `source` (required), `title`, `tile`, `spacing` (16), `skip` (leave out the first N apps), `limit`, `missing` (`hide` default, or `placeholder` for apps in a list that are not installed), `scrollAlign` (`start` keeps the focused tile at the left like Google TV; `center`; `nearest` default), `scrollMargin`. Width fills by default. A row on an empty list shows an "Add apps" tile; other rows with no apps are hidden.
+- **`app_row`**: horizontally scrolling tiles. `source` (required), `title`, `titleIcon` (icon before the title, see `shortcut`), `tile`, `spacing` (16), `skip` (leave out the first N apps), `limit`, `missing` (`hide` default, or `placeholder` for apps in a list that are not installed), `scrollAlign` (`start` keeps the focused tile at the left like Google TV; `center`; `nearest` default), `scrollMargin`. Width fills by default. A row on an empty list shows an "Add apps" tile; other rows with no apps are hidden.
 - **`app_grid`**: tiles in `columns` (default 5) that wrap onto new rows. Same properties as `app_row` except scrolling. Put it in a scrolling column if it may be taller than the screen. `skip` lets a grid continue where a row above stopped: a row with `"limit": 5` and a grid with `"skip": 5` on the same source show every app once.
 - **`app_tile`**: one app. `package` (required), `label`, `tile`, `missing` (`placeholder` default, or `hide`).
 - **`folder`**: a tile with small app images (a 3 × 3 grid of mini banners, or six icons with an `icon` tile) that opens a panel with its apps. `label` and `source` (both required), `tile`, `itemTile` (tiles in the panel), `columns` (default 4), `color` (tile color; a translucent color such as `#33FFFFFF` looks like tvOS glass).
-- **`shortcut`**: a custom tile. `label` and `action` (both required), `icon`, `image` (URL or `asset:`), `color` (tile color), `tile` (default `card`), and `description` / `backdrop` for a hero. Icons: `settings`, `home`, `search`, `star`, `info`, `play`, `favorite`, `apps`, `add`, `refresh`, `notifications`, `person`, `lock`, `menu`, or any emoji such as `"🎬"`. `card`/`banner` tiles show icon and label inside; `icon` tiles show the label below.
+- **`shortcut`**: a custom tile. `label` and `action` (both required), `icon`, `image` (URL or `asset:`), `color` (tile color), `iconColor` (icon and label on the tile, default `@text`), `focusColor` and `focusIconColor` (the same while focused, e.g. a light tile that turns dark), `tile` (default `card`), and `description` / `backdrop` for a hero or the `{description}` placeholder. Icons: `settings`, `home`, `search`, `star`, `info`, `info_outline`, `play`, `favorite`, `apps`, `add`, `add_circle`, `refresh`, `notifications`, `person`, `lock`, `menu`, `tv`, `live_tv`, `input`, `hdmi`, `smartphone`, `display`, `system`, `accessibility`, `android`, `wallpaper`, `wifi`, `wifi_off`, `ethernet`, or any emoji such as `"🎬"`. `card`/`banner` tiles show icon and label inside (`"showLabel": "never"` leaves only the icon); `icon` tiles show the label below.
 
 ## Hero (Top Shelf / carousel)
 
@@ -133,11 +135,15 @@ Widgets:
 
 Apple TV pattern (tvOS 26/27): a column with `"scroll": true, "scrollAlign": "start"` holding a `stack` with `"revealOnFocus": true` and a fixed height. In the stack, a hero fills everything (`"target": "dock"`, `"fade": 0.3`), and the `dock` app_row (`"limit": 5`, a `glass` background and a `cornerRadius`) sits at the bottom, so the Top Shelf runs full-bleed behind the glass dock. Give the dock `"tile": { "showLabel": "never" }`: the Top Shelf already shows the focused app's name, and a label would take room below the tiles, so they would not sit centered in the glass. An `app_grid` with `"skip": 5` follows the stack. See the built-in Apple TV look.
 
+Projectivy pattern: a column with `"scroll": true, "scrollAlign": "start"` and a large `scrollMargin` (about 240) holds one column per category ("section"), each with `"unfocusedOpacity": 0.5` and `"revealOnFocus": true`. A section holds a title (an `app_row` `title` with `titleIcon`, or a `text` with `icon`), the row, and a details column with `"showWhenFocused": "<section id>"` holding `{focused}` and `{description}` texts. The focused section then sits at the same height every time, bright, with the name and description of the focused tile under it. Shortcut sections use `card` tiles with `"showLabel": "never"` and `focusColor` / `focusIconColor` so the focused tile turns dark. Give the page `root` a translucent gradient `background` to tint a wallpaper image. See the built-in Projectivy look.
+
 ## Content widgets (not focusable)
 
 - **`text`**: `text` (required), `textStyle` (`display` 56, `headline` 34, `title` 22, `body` 16, `caption` 12), `fontSize` (sp, overrides the preset), `font` (`sans` / `serif` / `mono` / `cursive`), `color`, `bold`, `uppercase`, `letterSpacing` (sp), `textAlign` (`start` / `center` / `end`), `maxLines`.
-  Placeholders: `{greeting}` (Good morning/afternoon/evening/night), `{time}` (HH:mm) or `{time:h:mm a}`, `{date}` (e.g. "Sunday, 18 October") or `{date:d MMM}`, `{focused}` (name of the focused tile), `{page}` (page title). `{{` and `}}` write literal braces.
+  `icon`: an icon before the text in its size and color (names as for `shortcut`, or an emoji).
+  Placeholders: `{greeting}` (Good morning/afternoon/evening/night), `{time}` (HH:mm) or `{time:h:mm a}`, `{date}` (e.g. "Sunday, 18 October") or `{date:d MMM}`, `{focused}` (name of the focused tile), `{description}` (its `description`, from the shortcut or `apps`), `{page}` (page title). `{{` and `}}` write literal braces.
 - **`clock`**: `format` (java.time pattern; `"HH:mm"` default, `"h:mm a"`, `"EEEE, d MMMM"` for a date), `textStyle` (default `display`), `fontSize`, `font`, `color`, `bold`, `letterSpacing`, `textAlign`.
+- **`network`**: a Wi-Fi, Ethernet or offline icon that follows the TV's connection. `size` (dp, default 24), `color`.
 - **`image`**: `src` (required; `https://…` or `asset:<path>`), `fit` (`contain` default, `cover`, `fill`), `alpha` 0–1. Give it a `width` and `height`.
 - **`spacer`**: empty space; use `width`/`height` or `weight`.
 
@@ -187,6 +193,7 @@ On the TV, long-press an app tile for:
 - `{ "type": "launch_app", "package": "com.netflix.ninja" }`
 - `{ "type": "open_url", "url": "https://example.com" }` (also deep links)
 - `{ "type": "intent", "action": "android.intent.action.VIEW", "data": "…", "package": "…", "component": "pkg/.Activity", "categories": [], "extras": { "key": "value" } }` — needs at least one of action, package, component.
+- `{ "type": "open_input", "input": "hdmi1" }` — switches the TV to an input: `hdmi1` to `hdmi4` or `av`. Only TVs have inputs; other devices show a message.
 - `{ "type": "go_to_page", "page": "apps" }`
 - `{ "type": "open_app_drawer" }` — built-in list of all apps.
 - `{ "type": "open_system_settings", "screen": "main" | "network" | "bluetooth" | "display" | "sound" | "apps" | "date_time" | "accessibility" }`

@@ -45,7 +45,7 @@ data class FieldSpec(
 
 /** Builds editor forms from the layout model's serial descriptors. */
 object Fields {
-    private val nodeRefNames = setOf("initialFocus", "target", "up", "down", "left", "right")
+    private val nodeRefNames = setOf("initialFocus", "target", "showWhenFocused", "up", "down", "left", "right")
 
     /** Fields of a node type: its own properties, then the common ones. Children are edited in the outline. */
     fun forNode(type: String): List<FieldSpec> {

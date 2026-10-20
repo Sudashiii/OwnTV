@@ -33,7 +33,7 @@ import kotlin.test.assertTrue
 
 class EditTest {
 
-    /** root column: [a (row: [a1, a2]), b (text), c (column: []), d (hero, target a)] */
+    /** root column: [a (row: [a1, a2]), b2 (shortcut), c (column: [c_name, shown with focus in a]), d (hero, target a)] */
     private fun sample(): LayoutDocument = LayoutCodec.decode(
         """
         { "schemaVersion": 3, "pages": [ { "id": "home", "initialFocus": "a1", "root":
@@ -42,7 +42,7 @@ class EditTest {
               { "type": "app_tile", "id": "a1", "package": "x.y", "focus": { "down": "b2" } },
               { "type": "app_tile", "id": "a2", "package": "x.z" } ] },
             { "type": "shortcut", "id": "b2", "label": "B", "action": { "type": "open_app_drawer" } },
-            { "type": "column", "id": "c" },
+            { "type": "column", "id": "c", "children": [ { "type": "text", "id": "c_name", "text": "{focused}", "showWhenFocused": "a" } ] },
             { "type": "hero", "id": "d", "target": "a" }
           ] } }, { "id": "settings_page", "root": $SETTINGS_LINK } ] }
         """,
@@ -126,6 +126,7 @@ class EditTest {
         val doc = sample()
         val renamed = LayoutOps.rename(doc, "a", "dock")!!
         assertEquals("dock", (LayoutOps.node(renamed, "d") as HeroNode).target)
+        assertEquals("dock", LayoutOps.node(renamed, "c_name")!!.common.showWhenFocused)
         val renamedTile = LayoutOps.rename(doc, "b2", "button")!!
         assertEquals("button", LayoutOps.node(renamedTile, "a1")!!.common.focus!!.down)
         assertEquals("first", LayoutOps.rename(doc, "a1", "first")!!.pages[0].initialFocus)
@@ -146,6 +147,8 @@ class EditTest {
         assertEquals("a_2", (LayoutOps.node(copy, "inside_hero_2") as HeroNode).target)
         assertEquals("a", (LayoutOps.node(copy, "inside_hero") as HeroNode).target)
         copy.assertValid()
+        val (section, _) = LayoutOps.duplicate(doc, "c")!!
+        assertEquals("a", LayoutOps.node(section, "c_name_2")!!.common.showWhenFocused)
     }
 
     @Test
@@ -172,7 +175,7 @@ class EditTest {
             doc = LayoutOps.insert(doc, "c", -1, node)!!
         }
         doc.assertValid()
-        assertEquals(NodeRegistry.types.size, (LayoutOps.node(doc, "c") as ColumnNode).children.size)
+        assertEquals(NodeRegistry.types.size + 1, (LayoutOps.node(doc, "c") as ColumnNode).children.size) // + c_name
         assertTrue(LayoutCodec.decode(LayoutCodec.encode(doc)).ok)
     }
 
