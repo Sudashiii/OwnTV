@@ -215,6 +215,8 @@ val LocalAppImages = staticCompositionLocalOf<AppImages?> { null }
 val LocalActionHandler = staticCompositionLocalOf<ActionHandler> { ActionHandler.None }
 val LocalFocusRegistry = staticCompositionLocalOf<FocusRegistry?> { null }
 val LocalFocusTracker = staticCompositionLocalOf<FocusTracker?> { null }
+/** The tile {focused} and {description} name inside a showWhenFocused node; null means the page's focus. */
+val LocalPlaceholderFocus = staticCompositionLocalOf<FocusTracker?> { null }
 val LocalListContext = staticCompositionLocalOf<ListContext?> { null }
 val LocalAppArranger = staticCompositionLocalOf<AppArranger?> { null }
 

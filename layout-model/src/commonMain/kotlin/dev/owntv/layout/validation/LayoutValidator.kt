@@ -187,6 +187,9 @@ object LayoutValidator {
             node.common.showWhenFocused?.let { id ->
                 if (page.findNode(id) == null) out.error("$path.showWhenFocused", "No node with id \"$id\" on page \"${page.id}\".")
             }
+            if (node.common.keepSpace && node.common.showWhenFocused == null) {
+                out.warning("$path.keepSpace", "keepSpace only does something together with showWhenFocused.")
+            }
             if (node is HeroNode) {
                 node.target?.let { id ->
                     if (page.findNode(id) == null) out.error("$path.target", "No node with id \"$id\" on page \"${page.id}\".")

@@ -373,7 +373,11 @@ fun rememberPlaceholderText(raw: String): String {
             }
         }
     }
-    val focused = if (tokens.any { it.name == "focused" || it.name == "description" }) LocalFocusTracker.current?.current else null
+    val focused = if (tokens.any { it.name == "focused" || it.name == "description" }) {
+        (LocalPlaceholderFocus.current ?: LocalFocusTracker.current)?.current
+    } else {
+        null
+    }
     val page = LocalPageTitle.current
     return buildString {
         parts.forEach { part ->

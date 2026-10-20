@@ -24,9 +24,11 @@
     "section": { "width": "fill", "spacing": 8, "unfocusedOpacity": 0.5, "revealOnFocus": true },
     "section_title": { "textStyle": "title", "bold": true, "color": "@text" },
     "section_row": { "spacing": 14, "padding": [0, 4] },
-    "details": { "spacing": 2, "padding": [0, 10, 0, 0] },
+    "details_collapsing": { "spacing": 2, "padding": [0, 10, 0, 0] },
+    "details": { "style": "details_collapsing", "keepSpace": true },
+    "details_long": { "style": "details", "height": 72 },
     "focused_name": { "textStyle": "title", "color": "@text", "maxLines": 1 },
-    "focused_description": { "fontSize": 13, "color": "@textMuted", "maxLines": 3, "width": 440 },
+    "focused_description": { "fontSize": 13, "color": "@textMuted", "maxLines": 2, "width": 440 },
     "card": { "tile": { "shape": "card", "width": 104, "aspectRatio": 1.65, "showLabel": "never" } },
     "input": { "tile": { "shape": "card", "width": 72, "aspectRatio": 1, "cornerRadius": 36 } }
   },
@@ -147,7 +149,7 @@
               {
                 "type": "column",
                 "id": "mobile_details",
-                "style": "details",
+                "style": "details_collapsing",
                 "showWhenFocused": "mobile_section",
                 "children": [
                   { "type": "text", "id": "mobile_name", "text": "{focused}", "style": "focused_name" }
@@ -222,7 +224,7 @@
               {
                 "type": "column",
                 "id": "settings_details",
-                "style": "details",
+                "style": "details_long",
                 "showWhenFocused": "settings",
                 "children": [
                   { "type": "text", "id": "settings_name", "text": "{focused}", "style": "focused_name" },
@@ -256,7 +258,7 @@
               {
                 "type": "column",
                 "id": "display_details",
-                "style": "details",
+                "style": "details_long",
                 "showWhenFocused": "display",
                 "children": [
                   { "type": "text", "id": "display_name", "text": "{focused}", "style": "focused_name" },
@@ -299,7 +301,7 @@
               {
                 "type": "column",
                 "id": "system_details",
-                "style": "details",
+                "style": "details_long",
                 "showWhenFocused": "system",
                 "children": [
                   { "type": "text", "id": "system_name", "text": "{focused}", "style": "focused_name" },
@@ -351,7 +353,7 @@
               {
                 "type": "column",
                 "id": "about_details",
-                "style": "details",
+                "style": "details_long",
                 "showWhenFocused": "about",
                 "children": [
                   { "type": "text", "id": "about_name", "text": "{focused}", "style": "focused_name" },
