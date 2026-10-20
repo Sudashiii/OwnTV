@@ -11,6 +11,7 @@ import dev.owntv.launcher.data.layout.LayoutRepository
 import dev.owntv.launcher.importexport.FileImporter
 import dev.owntv.launcher.importexport.PasteSession
 import dev.owntv.launcher.importexport.UrlImporter
+import dev.owntv.launcher.update.Updater
 import dev.owntv.layout.ai.AiPromptBuilder
 import dev.owntv.layout.codec.DecodeResult
 import dev.owntv.layout.codec.LayoutCodec
@@ -37,6 +38,7 @@ class AppContainer(context: Context) {
     val actions = ActionExecutor(context, onLaunch = recent::recordLaunch)
     val urlImporter = UrlImporter()
     val files = FileImporter(context)
+    val updater = Updater(context, scope, BuildConfig.UPDATE_URL)
 
     val paste = PasteSession(context, scope, object : PasteSession.Provider {
         override fun pastePage() = assets.pastePage()

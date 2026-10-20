@@ -4,6 +4,10 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Settings > Updates installs new OwnTV releases; the user allows it once in Android's settings. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- Android 12+: later updates install without the confirmation dialog. -->
+    <uses-permission android:name="android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION" />
     <!-- Optional, granted by the user with adb: lets the "recent" source see apps opened outside OwnTV. -->
     <uses-permission
         android:name="android.permission.PACKAGE_USAGE_STATS"
@@ -66,5 +70,14 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity-alias>
+
+        <!-- Gets the package installer's result for an update and brings OwnTV back once it is installed (update/Updater.kt). -->
+        <receiver
+            android:name=".update.UpdateInstallReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>

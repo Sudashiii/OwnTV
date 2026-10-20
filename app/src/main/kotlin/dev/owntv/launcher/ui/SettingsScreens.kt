@@ -6,19 +6,21 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.focusable
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import dev.owntv.launcher.AppContainer
 import dev.owntv.launcher.data.layout.HistoryEntry
 import dev.owntv.launcher.data.layout.LayoutState
+import dev.owntv.launcher.update.UpdateState
 import dev.owntv.layout.model.CURRENT_SCHEMA_VERSION
 import dev.owntv.layout.validation.Severity
 import kotlinx.coroutines.Dispatchers
@@ -32,10 +34,14 @@ fun SettingsScreen(container: AppContainer, nav: Navigator, state: LayoutState) 
     val scope = rememberCoroutineScope()
     val hasHistory by produceState(false, state) { value = withContext(Dispatchers.IO) { container.layouts.hasHistory() } }
     val problems = state.issues.count { it.severity != Severity.Info }
-    val context = LocalContext.current
-    val version = runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull() ?: "?"
+    val update by container.updater.state.collectAsStateWithLifecycle()
+    LaunchedEffect(Unit) { container.updater.checkIfStale() }
+    val available = (update as? UpdateState.Available)?.update?.versionName
 
-    SettingsScaffold("OwnTV settings", "Layout: ${state.document.name}") {
+    SettingsScaffold(
+        "OwnTV settings",
+        "Layout: ${state.document.name}" + if (available != null) " · OwnTV $available is available in Updates" else "",
+    ) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
             SettingsItem("Edit layout", "Add, move and customize items with your remote", modifier = rememberInitialFocus()) { nav.push(Screen.Editor()) }
             SettingsItem(
@@ -62,7 +68,8 @@ fun SettingsScreen(container: AppContainer, nav: Navigator, state: LayoutState) 
             SettingsItem("All apps", "Every installed app") { nav.push(Screen.AppDrawer) }
             SettingsItem("Make OwnTV your Home screen", "What to do on Google TV") { nav.push(Screen.Help) }
             SettingsItem("Android settings", "Open the TV's system settings") { container.actions.openSystemSettings() }
-            SettingsItem("About", "OwnTV $version, layout format v$CURRENT_SCHEMA_VERSION") {}
+            SettingsItem("Updates", updateSummary(update, container.updater)) { nav.push(Screen.Updates) }
+            SettingsItem("About", "OwnTV ${container.updater.installedVersionName}, layout format v$CURRENT_SCHEMA_VERSION") {}
         }
     }
 }

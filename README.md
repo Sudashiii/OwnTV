@@ -68,13 +68,21 @@ See [CLAUDE.md](CLAUDE.md) for the project layout and development notes.
 
 Every merge to `main` with a `feat`, `fix` or `perf` commit becomes a GitHub release ([release.yml](.github/workflows/release.yml)). The version comes from the [conventional commits](https://www.conventionalcommits.org/) since the last tag: a breaking change (`feat!:` or a `BREAKING CHANGE:` footer) bumps the major version (the minor one before 1.0), `feat` the minor version, `fix` and `perf` the patch. The release notes list the breaking changes, features and fixes, so commit messages, and pull request titles when you squash-merge, need the conventional format to show up. Pull requests show the notes their merge would release in the job summary. To release a chosen version, like 1.0.0, run the workflow by hand and enter it.
 
-Each release has the signed `owntv-<version>.apk` and an `update.json` for an in-app updater, always at `releases/latest/download/update.json`:
+Each release has the signed `owntv-<version>.apk` and an `update.json` for the in-app updater, always at `releases/latest/download/update.json`:
 
 ```json
 { "versionName": "0.2.0", "versionCode": 2000, "apk": "https://github.com/…/owntv-0.2.0.apk", "sha256": "…", "notes": "### Features …" }
 ```
 
 `versionCode` is `major * 1000000 + minor * 1000 + patch`. Preview the next version and notes locally with `python3 scripts/release.py --notes -`.
+
+### Updating on the TV
+
+Settings > Updates reads that `update.json` (Settings checks it when it opens, at most once an hour), shows the release notes and installs the new APK: it downloads it, checks the SHA-256 and the signing key, and hands it to Android's package installer. The first time, Android asks to allow OwnTV to "install unknown apps" and to confirm the update; on Android 12 and later, updates after that can install without the confirmation. The TV downloads without signing in, so the releases have to be public. Builds read the URL from `-Powntv.updateUrl` (the release workflow passes its own repository's), which also makes it easy to try the updater against a local server:
+
+```bash
+./gradlew :app:installDebug -Powntv.updateUrl=http://10.0.2.2:8799/update.json
+```
 
 ### Release key
 

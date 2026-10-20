@@ -40,6 +40,7 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         container.apps.refresh()
         container.recent.refresh()
+        container.updater.takeUpdateNotice()?.let(container.actions::toast)
     }
 
     override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {

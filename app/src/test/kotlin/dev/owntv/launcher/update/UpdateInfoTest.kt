@@ -1,0 +1,55 @@
+package dev.owntv.launcher.update
+
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
+
+class UpdateInfoTest {
+    private val sha = "AB".repeat(32)
+
+    private fun json(apk: String = "https://github.com/o/r/releases/download/v0.2.0/owntv-0.2.0.apk", sha256: String = sha) =
+        """{"versionName":"0.2.0","versionCode":2000,"apk":"$apk","sha256":"$sha256","notes":"### Features\n\n- x","extra":1}"""
+
+    @Test
+    fun `parses the release workflow's update json`() {
+        val info = UpdateInfo.parse(json()).getOrThrow()
+        assertEquals("0.2.0", info.versionName)
+        assertEquals(2000, info.versionCode)
+        assertEquals("ab".repeat(32), info.sha256, "the checksum is compared in lower case")
+        assertTrue(info.isNewerThan(1000))
+        assertFalse(info.isNewerThan(2000))
+    }
+
+    @Test
+    fun `rejects update json without a usable apk link or checksum`() {
+        assertTrue(UpdateInfo.parse(json(apk = "file:///sdcard/evil.apk")).isFailure)
+        assertTrue(UpdateInfo.parse(json(sha256 = "abc")).isFailure)
+        assertTrue(UpdateInfo.parse("""{"versionName":"0.2.0"}""").isFailure)
+        assertTrue(UpdateInfo.parse("<html>Not Found</html>").isFailure)
+    }
+
+    @Test
+    fun `release notes drop commit links and markdown`() {
+        val notes = """
+            ### Breaking changes
+
+            - **layout:** schemaVersion is now 2. ([3af4a73](https://github.com/o/r/commit/3af4a73484fd3e166ddc75a649d37ae7f521d4ca))
+
+            ### Features
+
+            - **app:** Add a [settings](https://example.com) shortcut ([c723166](https://github.com/o/r/commit/c723166))
+            - Add OwnTV launcher ([d43fb9c](https://github.com/o/r/commit/d43fb9c))
+
+            **Full changelog:** [v0.1.0...v0.2.0](https://github.com/o/r/compare/v0.1.0...v0.2.0)
+        """.trimIndent()
+        assertEquals(
+            listOf(
+                ReleaseNotes.Section("Breaking changes", listOf("layout: schemaVersion is now 2.")),
+                ReleaseNotes.Section("Features", listOf("app: Add a settings shortcut", "Add OwnTV launcher")),
+            ),
+            ReleaseNotes.parse(notes),
+        )
+        assertEquals(listOf(ReleaseNotes.Section(null, listOf("No new features or fixes."))), ReleaseNotes.parse("No new features or fixes.\n"))
+    }
+}

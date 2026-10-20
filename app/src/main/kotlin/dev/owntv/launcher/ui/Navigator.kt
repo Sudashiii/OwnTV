@@ -18,6 +18,7 @@ sealed interface Screen {
     data class LookPreview(val fileName: String) : Screen
     data object History : Screen
     data object Help : Screen
+    data object Updates : Screen
     data class Preview(val result: DecodeResult, val source: String) : Screen
 }
 
