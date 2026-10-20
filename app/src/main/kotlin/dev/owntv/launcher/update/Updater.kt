@@ -148,7 +148,9 @@ class Updater(
             if (_releases.value !is ReleasesState.Loaded) _releases.value = ReleasesState.Loading
             try {
                 val text = fetchText(releasesUrl, MAX_RELEASES_BYTES, "The release list")
-                val list = ReleaseEntry.parseGitHub(text).getOrElse { error("The release list is not valid: ${it.message}") }
+                // Up to 100 releases with their notes: parsing them took about 40 ms, too long for the main thread.
+                val list = withContext(Dispatchers.Default) { ReleaseEntry.parseGitHub(text) }
+                    .getOrElse { error("The release list is not valid: ${it.message}") }
                 _releases.value = ReleasesState.Loaded(list)
             } catch (e: Exception) {
                 if (e is CancellationException) throw e

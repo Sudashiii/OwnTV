@@ -49,12 +49,18 @@ class LayoutRepository(
     private val _state = MutableStateFlow(LayoutState(BuiltInLayouts.fallback(), loaded = false))
     val state: StateFlow<LayoutState> = _state.asStateFlow()
 
+    private val _hasHistory = MutableStateFlow(false)
+
+    /** Whether there is a layout to revert to; kept up to date so Settings does not have to look on the disk. */
+    val hasHistory: StateFlow<Boolean> = _hasHistory.asStateFlow()
+
     init {
         scope.launch { load() }
     }
 
     private suspend fun load() = withContext(Dispatchers.IO) {
         historyDir.mkdirs()
+        _hasHistory.value = historyFiles().isNotEmpty()
         val text = runCatching {
             if (currentFile.exists()) currentFile.readText() else assets.template(BundledAssets.DEFAULT_TEMPLATE)
         }.getOrNull()
@@ -92,6 +98,7 @@ class LayoutRepository(
             if (previous.loaded && previous.problem == null) {
                 File(historyDir, "${System.currentTimeMillis()}.json").writeText(LayoutCodec.encode(previous.document))
                 prune()
+                _hasHistory.value = true
             }
             writeAtomically(currentFile, LayoutCodec.encode(doc))
             _state.value = LayoutState(doc, LayoutValidator.validate(doc))
@@ -105,8 +112,6 @@ class LayoutRepository(
         }
     }
 
-    fun hasHistory(): Boolean = historyFiles().isNotEmpty()
-
     /** Restores the newest history entry. Returns false when there is none. */
     suspend fun revert(): Boolean {
         val latest = withContext(Dispatchers.IO) { historyFiles().firstOrNull() } ?: return false
@@ -116,7 +121,10 @@ class LayoutRepository(
     suspend fun restore(file: File): Boolean {
         val result = withContext(Dispatchers.IO) { LayoutCodec.decode(file.readText()) }
         apply(result.document ?: return false, result.extractedLists)
-        withContext(Dispatchers.IO) { file.delete() }
+        withContext(Dispatchers.IO) {
+            file.delete()
+            _hasHistory.value = historyFiles().isNotEmpty()
+        }
         return true
     }
 
