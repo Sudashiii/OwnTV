@@ -17,7 +17,17 @@
         "contentAlign": "center",
         "arrange": "space_between",
         "children": [
-          { "type": "clock", "id": "clock", "format": "HH:mm", "textStyle": "display", "bold": true },
+          {
+            "type": "row",
+            "id": "header",
+            "width": "fill",
+            "contentAlign": "top",
+            "children": [
+              { "type": "clock", "id": "clock", "format": "HH:mm", "textStyle": "display", "bold": true },
+              { "type": "spacer", "id": "header_gap", "weight": 1 },
+              { "type": "shortcut", "id": "settings_button", "label": "Settings", "icon": "settings", "action": { "type": "open_launcher_settings" }, "tile": { "shape": "icon", "size": "small" } }
+            ]
+          },
           {
             "type": "app_row",
             "id": "apps",

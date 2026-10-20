@@ -39,6 +39,7 @@ import dev.owntv.layout.model.ThemeColors
 import dev.owntv.layout.model.UnknownNode
 import dev.owntv.layout.model.containsFocusable
 import dev.owntv.layout.model.findNode
+import dev.owntv.layout.model.opensLauncherSettings
 import dev.owntv.layout.model.walk
 import dev.owntv.layout.model.walkNodes
 import dev.owntv.layout.time.Clocks
@@ -103,6 +104,12 @@ object LayoutValidator {
             checkApps()
             doc.background?.let { checkBackground(it, "$.background") }
             if (doc.pages.isEmpty()) out.error("$.pages", "Add at least one page.")
+            else if (doc.pages.none { it.root.opensLauncherSettings() }) {
+                out.error(
+                    "$.pages",
+                    "No visible link to OwnTV's settings. Add a shortcut with the action { \"type\": \"open_launcher_settings\" } (for example a settings icon in the header), so the TV can never get stuck on this layout.",
+                )
+            }
 
             val seenPages = mutableSetOf<String>()
             doc.pages.forEachIndexed { i, page ->

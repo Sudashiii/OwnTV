@@ -2467,7 +2467,7 @@
     },
     "Action.open_launcher_settings": {
       "type": "object",
-      "description": "Opens OwnTV's own settings (import, templates, history).",
+      "description": "Opens OwnTV's own settings (import, templates, history, Android settings). Every layout needs at least one visible shortcut with this action, or it is rejected.",
       "properties": {
         "type": {
           "const": "open_launcher_settings"

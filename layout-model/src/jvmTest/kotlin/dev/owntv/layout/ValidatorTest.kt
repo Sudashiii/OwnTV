@@ -26,7 +26,7 @@ class ValidatorTest {
         val result = LayoutCodec.decode(
             """
             { "schemaVersion": 3, "pages": [ { "id": "home", "initialFocus": "nope", "root":
-              { "type": "shortcut", "id": "s", "label": "Go", "action": { "type": "go_to_page", "page": "missing" } } } ] }
+              { "type": "shortcut", "id": "s", "label": "Go", "action": { "type": "go_to_page", "page": "missing" } } }, { "id": "settings_page", "root": $SETTINGS_LINK } ] }
             """,
         )
         assertEquals(setOf("$.pages[0].initialFocus", "$.pages[0].root.action.page"), result.paths(Severity.Error).toSet())
@@ -107,6 +107,63 @@ class ValidatorTest {
         val feedback = result.issues.toAiFeedback()
         assertTrue(feedback.contains("ERROR at $.pages[0].root.color"), feedback)
         assertTrue(!feedback.contains("INFO"), feedback)
+    }
+
+    private fun singlePage(root: String) =
+        """{ "schemaVersion": 3, "pages": [ { "id": "home", "root": $root } ] }"""
+
+    private val settingsShortcut = """{ "type": "shortcut", "id": "s", "label": "Settings", "action": { "type": "open_launcher_settings" } }"""
+
+    @Test
+    fun `a layout without a link to launcher settings is rejected`() {
+        val result = LayoutCodec.decode(singlePage("""{ "type": "column", "id": "root", "children": [ $TILE ] }"""))
+        assertNull(result.document)
+        assertEquals(listOf("$.pages"), result.paths(Severity.Error))
+        assertTrue(result.issues.toAiFeedback().contains("open_launcher_settings"))
+
+        // Other settings and system settings links do not count.
+        val other = LayoutCodec.decode(
+            singlePage("""{ "type": "column", "id": "root", "children": [
+                { "type": "shortcut", "id": "a", "label": "A", "action": { "type": "open_system_settings" } },
+                { "type": "shortcut", "id": "b", "label": "B", "action": { "type": "open_app_drawer" } } ] }"""),
+        )
+        assertEquals(listOf("$.pages"), other.paths(Severity.Error))
+    }
+
+    @Test
+    fun `a visible link to launcher settings anywhere in the layout is enough`() {
+        assertTrue(LayoutCodec.decode(singlePage(settingsShortcut)).ok)
+        assertTrue(LayoutCodec.decode(singlePage("""{ "type": "column", "id": "root", "children": [ { "type": "row", "id": "r", "children": [ $settingsShortcut ] } ] }""")).ok)
+
+        val onSecondPage = LayoutCodec.decode(docWithRoot(TILE))
+        assertTrue(onSecondPage.ok, onSecondPage.issues.joinToString())
+
+        val slide = LayoutCodec.decode(
+            singlePage("""{ "type": "hero", "id": "h", "follow": "slides", "slides": [ { "title": "Hi", "action": { "type": "open_launcher_settings" } } ] }"""),
+        )
+        assertTrue(slide.ok, slide.issues.joinToString())
+    }
+
+    @Test
+    fun `a hidden link to launcher settings does not count`() {
+        val hidden = LayoutCodec.decode(
+            singlePage("""{ "type": "column", "id": "root", "children": [ $TILE,
+                { "type": "shortcut", "id": "s", "label": "Settings", "visible": false, "action": { "type": "open_launcher_settings" } } ] }"""),
+        )
+        assertEquals(listOf("$.pages"), hidden.paths(Severity.Error))
+
+        val hiddenParent = LayoutCodec.decode(
+            singlePage("""{ "type": "column", "id": "root", "children": [ $TILE,
+                { "type": "row", "id": "r", "visible": false, "children": [ $settingsShortcut ] } ] }"""),
+        )
+        assertEquals(listOf("$.pages"), hiddenParent.paths(Severity.Error))
+
+        // A hero that follows a target is not focusable, so its slides cannot be clicked.
+        val unfocusableHero = LayoutCodec.decode(
+            singlePage("""{ "type": "column", "id": "root", "children": [ $TILE,
+                { "type": "hero", "id": "h", "target": "tile", "slides": [ { "title": "Hi", "action": { "type": "open_launcher_settings" } } ] } ] }"""),
+        )
+        assertEquals(listOf("$.pages"), unfocusableHero.paths(Severity.Error))
     }
 
     @Test

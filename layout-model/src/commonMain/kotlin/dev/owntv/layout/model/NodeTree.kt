@@ -20,6 +20,13 @@ val Node.isSingleTile: Boolean
 fun Node.containsFocusable(): Boolean =
     visible && (isFocusableWidget || children.any { it.containsFocusable() })
 
+/** True when this node or one of its visible descendants is a focusable link to OwnTV's own settings. */
+fun Node.opensLauncherSettings(): Boolean = visible && when (this) {
+    is ShortcutNode -> action is OpenLauncherSettingsAction
+    is HeroNode -> follow == HeroFollow.Slides && slides.any { it.action is OpenLauncherSettingsAction }
+    else -> children.any { it.opensLauncherSettings() }
+}
+
 /** Visits this node and all descendants depth-first, with their JSON path. */
 fun Node.walk(path: String, depth: Int = 0, visit: (node: Node, path: String, depth: Int) -> Unit) {
     visit(this, path, depth)

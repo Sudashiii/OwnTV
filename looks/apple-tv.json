@@ -70,6 +70,16 @@
                 ]
               },
               {
+                "type": "shortcut",
+                "id": "settings_button",
+                "label": "Settings",
+                "icon": "settings",
+                "align": "top_end",
+                "padding": [0, 24, 50, 0],
+                "action": { "type": "open_launcher_settings" },
+                "tile": { "shape": "icon", "size": "small" }
+              },
+              {
                 "type": "column",
                 "id": "dock_area",
                 "width": "fill",

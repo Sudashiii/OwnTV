@@ -78,7 +78,16 @@
                 "label": "Grown-ups: all apps",
                 "icon": "lock",
                 "action": { "type": "open_app_drawer" },
-                "span": 4,
+                "span": 3,
+                "height": 56,
+                "tile": { "shape": "card", "size": "small" }
+              },
+              {
+                "type": "shortcut",
+                "id": "grown_ups_settings",
+                "label": "Grown-ups: settings",
+                "icon": "settings",
+                "action": { "type": "open_launcher_settings" },
                 "height": 56,
                 "tile": { "shape": "card", "size": "small" }
               }

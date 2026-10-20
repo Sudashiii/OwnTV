@@ -28,7 +28,7 @@ class EditorStateTest {
             {"type":"app_row","id":"apps","style":"row","source":{"type":"all"},"focus":{"down":"apps"}},
             {"type":"hero","id":"hero","target":"root"}
           ]}},
-          {"id":"other","root":{"type":"shortcut","id":"other_root","label":"Apps","action":{"type":"open_app_drawer"}}}
+          {"id":"other","root":{"type":"shortcut","id":"other_root","label":"Apps","action":{"type":"open_launcher_settings"}}}
         ]}
         """,
     ).document!!
