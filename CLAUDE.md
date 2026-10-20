@@ -6,6 +6,8 @@ Android TV (Google TV) launcher in Kotlin + Jetpack Compose for TV. The whole ho
 
 Don't use git worktrees: no `git worktree add`, no isolated worktree sessions. Work in this checkout, on a branch when the change needs one.
 
+Never install or run debug builds on a physical TV (a device in `adb devices` with an IP address). Test on the emulator (`emulator-5554`, AVD `owntv_gtv`) and pass `-s emulator-5554` to `adb` when more than one device is connected.
+
 ## Modules
 
 - `layout-model/` – pure Kotlin, multiplatform (jvm for the app, wasmJs for the web preview). Layout model (`model/`), `LayoutCodec` (decode never throws; returns `ValidationIssue`s with JSON paths), `StructureValidator` (walks raw JSON against serial descriptors), `LayoutValidator` (references, ids, colors, focusability), `JsonSchemaGenerator`, `AiPromptBuilder`. `time/Clocks` formats clock patterns (java.time on the JVM, `TimePattern` on the web).
