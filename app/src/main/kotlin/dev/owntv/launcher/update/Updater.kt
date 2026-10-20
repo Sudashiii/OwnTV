@@ -16,6 +16,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -49,7 +50,22 @@ sealed interface UpdateState {
 
     /** Handed to Android's package installer, which may ask the user to confirm. */
     data class Installing(val update: UpdateInfo) : UpdateState
-    data class Failed(val message: String, val update: UpdateInfo? = null, val detail: String? = null) : UpdateState
+
+    /** [update] is the version that did not install; [retry] is the version in the list whose details could not be loaded. */
+    data class Failed(
+        val message: String,
+        val update: UpdateInfo? = null,
+        val detail: String? = null,
+        val retry: ReleaseEntry? = null,
+    ) : UpdateState
+}
+
+/** The version list in Settings > Updates, from GitHub's releases. */
+sealed interface ReleasesState {
+    data object Idle : ReleasesState
+    data object Loading : ReleasesState
+    data class Loaded(val releases: List<ReleaseEntry>) : ReleasesState
+    data class Failed(val message: String) : ReleasesState
 }
 
 /**
@@ -61,6 +77,7 @@ class Updater(
     private val context: Context,
     private val scope: CoroutineScope,
     private val updateUrl: String,
+    private val releasesUrl: String,
 ) {
     private val client = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
@@ -76,8 +93,13 @@ class Updater(
     private val _state = MutableStateFlow<UpdateState>(UpdateState.Idle)
     val state: StateFlow<UpdateState> = _state.asStateFlow()
 
+    private val _releases = MutableStateFlow<ReleasesState>(ReleasesState.Idle)
+    val releases: StateFlow<ReleasesState> = _releases.asStateFlow()
+
     private var job: Job? = null
+    private var releasesJob: Job? = null
     private var lastCheck = 0L
+
     @Volatile private var sessionId: Int? = null
 
     /** This process is the first run of a version the updater installed. */
@@ -91,23 +113,69 @@ class Updater(
     /** Checks for an update unless one was found or ruled out in the last hour. Settings calls this when it opens. */
     fun checkIfStale() {
         when (state.value) {
-            is UpdateState.Available, is UpdateState.UpToDate -> if (System.currentTimeMillis() - lastCheck < STALE_MS) return
+            is UpdateState.Available, is UpdateState.UpToDate -> {
+                if (System.currentTimeMillis() - lastCheck < STALE_MS) {
+                    if (releases.value !is ReleasesState.Loaded) loadReleases()
+                    return
+                }
+            }
             UpdateState.Idle, is UpdateState.Failed -> Unit
             else -> return
         }
         check()
     }
 
-    fun check() = launchExclusive {
-        _state.value = UpdateState.Checking
-        _state.value = try {
-            val info = fetchInfo()
-            lastCheck = System.currentTimeMillis()
-            if (info.isNewerThan(installedVersionCode)) UpdateState.Available(info) else UpdateState.UpToDate(info)
+    /** Looks for a newer release and refreshes the version list. */
+    fun check() {
+        loadReleases()
+        launchExclusive {
+            _state.value = UpdateState.Checking
+            _state.value = try {
+                val info = fetchInfo()
+                lastCheck = System.currentTimeMillis()
+                if (info.isNewerThan(installedVersionCode)) UpdateState.Available(info) else UpdateState.UpToDate(info)
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                UpdateState.Failed(describe(e))
+            }
+        }
+    }
+
+    /** Loads the list of all releases. A list that is already there stays on screen while it refreshes or when that fails. */
+    fun loadReleases() {
+        if (releasesUrl.isEmpty() || releasesJob?.isActive == true) return
+        releasesJob = scope.launch {
+            if (_releases.value !is ReleasesState.Loaded) _releases.value = ReleasesState.Loading
+            try {
+                val text = fetchText(releasesUrl, MAX_RELEASES_BYTES, "The release list")
+                val list = ReleaseEntry.parseGitHub(text).getOrElse { error("The release list is not valid: ${it.message}") }
+                _releases.value = ReleasesState.Loaded(list)
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                if (_releases.value !is ReleasesState.Loaded) _releases.value = ReleasesState.Failed(describe(e))
+            }
+        }
+    }
+
+    /**
+     * Installs a newer version from the list: loads its `update.json` (APK link and checksum), then goes on as [install] does.
+     * Older versions are ignored; Android does not install them over a newer one.
+     */
+    fun install(entry: ReleaseEntry) {
+        if (entry.versionCode > installedVersionCode) installFromList(entry)
+    }
+
+    private fun installFromList(entry: ReleaseEntry) = launchExclusive {
+        val info = try {
+            fetchInfo(entry.updateJsonUrl).also {
+                if (it.versionCode != entry.versionCode) error("update.json is for OwnTV ${it.versionName}, not ${entry.versionName}.")
+            }
         } catch (e: Exception) {
             if (e is CancellationException) throw e
-            UpdateState.Failed(describe(e))
+            _state.value = UpdateState.Failed(describe(e), retry = entry)
+            return@launchExclusive
         }
+        installNow(info, skipPermissionCheck = false)
     }
 
     /**
@@ -115,18 +183,22 @@ class Updater(
      * [skipPermissionCheck] is for TVs without the "install unknown apps" screen; the installer asks itself then.
      */
     fun install(update: UpdateInfo, skipPermissionCheck: Boolean = false) = launchExclusive {
+        installNow(update, skipPermissionCheck)
+    }
+
+    private suspend fun installNow(update: UpdateInfo, skipPermissionCheck: Boolean) {
         if (!skipPermissionCheck && !context.packageManager.canRequestPackageInstalls()) {
             _state.value = UpdateState.NeedsPermission(update)
-            return@launchExclusive
+            return
         }
         try {
             val apk = download(update)
-            withContext(Dispatchers.IO) { verify(apk) }
+            withContext(Dispatchers.IO) { verify(apk, update) }
             _state.value = UpdateState.Installing(update)
             withContext(Dispatchers.IO) { commit(apk, update) }
         } catch (e: Exception) {
             // A cancelled download ends in an IOException from OkHttp, so look at the job, not the exception.
-            _state.value = if (isActive) UpdateState.Failed(describe(e), update) else UpdateState.Available(update)
+            _state.value = if (currentCoroutineContext().isActive) UpdateState.Failed(describe(e), update) else UpdateState.Available(update)
             if (e is CancellationException) throw e
         }
     }
@@ -201,10 +273,13 @@ class Updater(
         }
     }
 
-    private suspend fun fetchInfo(): UpdateInfo = withContext(Dispatchers.IO) {
-        val request = Request.Builder().url(updateUrl).header("Cache-Control", "no-cache").build()
-        val text = client.newCall(request).execute().use { response ->
-            if (response.code == 404) error("No release was found at $updateUrl.")
+    private suspend fun fetchInfo(url: String = updateUrl): UpdateInfo =
+        UpdateInfo.parse(fetchText(url, MAX_INFO_BYTES, "update.json")).getOrElse { error("update.json is not valid: ${it.message}") }
+
+    private suspend fun fetchText(url: String, maxBytes: Int, what: String): String = withContext(Dispatchers.IO) {
+        val request = Request.Builder().url(url).header("Cache-Control", "no-cache").build()
+        client.newCall(request).execute().use { response ->
+            if (response.code == 404) error("No release was found at $url.")
             if (!response.isSuccessful) error("The server answered HTTP ${response.code}.")
             val out = ByteArrayOutputStream()
             response.body.byteStream().use { input ->
@@ -213,12 +288,11 @@ class Updater(
                     val read = input.read(buffer)
                     if (read < 0) break
                     out.write(buffer, 0, read)
-                    if (out.size() > MAX_INFO_BYTES) error("update.json is too large.")
+                    if (out.size() > maxBytes) error("$what is too large.")
                 }
             }
             out.toString(Charsets.UTF_8.name())
         }
-        UpdateInfo.parse(text).getOrElse { error("update.json is not valid: ${it.message}") }
     }
 
     private suspend fun download(update: UpdateInfo): File = withContext(Dispatchers.IO) {
@@ -268,10 +342,11 @@ class Updater(
     }
 
     /** Catches APKs Android would refuse anyway, with a message that says why. */
-    private fun verify(apk: File) {
+    private fun verify(apk: File, update: UpdateInfo) {
         val pm = context.packageManager
         val archive = archiveInfo(pm, apk) ?: error("The download is not a valid APK.")
         if (archive.packageName != context.packageName) error("The download is not an OwnTV update.")
+        if (archive.longVersionCode != update.versionCode) error("The download is not OwnTV ${update.versionName}.")
         if (archive.longVersionCode <= installedVersionCode) error("The download is not newer than the installed version.")
         val ours = pm.getPackageInfo(context.packageName, PackageManager.GET_SIGNING_CERTIFICATES).signers()
         val theirs = archive.signers()
@@ -378,6 +453,7 @@ class Updater(
     private companion object {
         const val STALE_MS = 60 * 60 * 1000L
         const val MAX_INFO_BYTES = 64 * 1024
+        const val MAX_RELEASES_BYTES = 2 * 1024 * 1024
         const val MAX_APK_BYTES = 200L * 1024 * 1024
         const val PROGRESS_STEP_BYTES = 256 * 1024
         const val PENDING_CODE = "pending_version_code"

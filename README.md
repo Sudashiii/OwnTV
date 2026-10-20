@@ -78,10 +78,14 @@ Each release has the signed `owntv-<version>.apk` and an `update.json` for the i
 
 ### Updating on the TV
 
-Settings > Updates reads that `update.json` (Settings checks it when it opens, at most once an hour), shows the release notes and installs the new APK: it downloads it, checks the SHA-256 and the signing key, and hands it to Android's package installer. The first time, Android asks to allow OwnTV to "install unknown apps" and to confirm the update; on Android 12 and later, updates after that can install without the confirmation. The TV downloads without signing in, so the releases have to be public. Builds read the URL from `-Powntv.updateUrl` (the release workflow passes its own repository's), which also makes it easy to try the updater against a local server:
+Settings > Updates reads that `update.json` (Settings checks it when it opens, at most once an hour), shows the release notes and installs the new APK: it downloads it, checks the SHA-256 and the signing key, and hands it to Android's package installer. The first time, Android asks to allow OwnTV to "install unknown apps" and to confirm the update; on Android 12 and later, updates after that can install without the confirmation. The TV downloads without signing in, so the releases have to be public. Check again stays available while an update is waiting.
+
+The right side lists every release with its notes, newest first (up and down scroll the list and long notes; OK on a newer version installs it). The list comes from GitHub's releases API for the same repository, and each version's own `update.json` supplies its APK link and checksum. Older versions show their notes only: Android refuses to install an older version over a newer one, so the updater never downgrades.
+
+Builds read the URLs from `-Powntv.updateUrl` and `-Powntv.releasesUrl` (the release workflow passes its own repository's; the release list URL is derived from the update URL when only that is set), which also makes it easy to try the updater against a local server that serves `update.json`, a GitHub-shaped `releases.json` and the APKs:
 
 ```bash
-./gradlew :app:installDebug -Powntv.updateUrl=http://10.0.2.2:8799/update.json
+./gradlew :app:installDebug -Powntv.updateUrl=http://10.0.2.2:8799/update.json -Powntv.releasesUrl=http://10.0.2.2:8799/releases.json
 ```
 
 ### Release key

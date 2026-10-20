@@ -13,6 +13,12 @@ val releaseKeystore: String? = providers.environmentVariable("OWNTV_KEYSTORE_FIL
 val updateUrl: String = providers.gradleProperty("owntv.updateUrl").orNull
     ?: "https://github.com/Sudashiii/OwnTV/releases/latest/download/update.json"
 
+/** The release list behind the version list in Settings > Updates: GitHub's releases API of the same repository. */
+val releasesUrl: String = providers.gradleProperty("owntv.releasesUrl").orNull
+    ?: Regex("^https://github\\.com/([^/]+)/([^/]+)/releases/").find(updateUrl)
+        ?.let { "https://api.github.com/repos/${it.groupValues[1]}/${it.groupValues[2]}/releases?per_page=100" }
+    ?: ""
+
 /** 1.2.3 -> 1002003, so every release has a higher versionCode than the last and installs as an update. */
 fun versionCodeOf(version: String): Int {
     val parts = version.split(".").map { it.toIntOrNull() }
@@ -33,6 +39,7 @@ android {
         versionName = releaseVersion ?: "0.0.0-dev"
         versionCode = releaseVersion?.let(::versionCodeOf) ?: 1
         buildConfigField("String", "UPDATE_URL", "\"$updateUrl\"")
+        buildConfigField("String", "RELEASES_URL", "\"$releasesUrl\"")
     }
 
     signingConfigs {

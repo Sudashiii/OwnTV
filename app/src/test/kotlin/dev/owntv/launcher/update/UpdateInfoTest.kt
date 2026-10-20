@@ -52,4 +52,24 @@ class UpdateInfoTest {
         )
         assertEquals(listOf(ReleaseNotes.Section(null, listOf("No new features or fixes."))), ReleaseNotes.parse("No new features or fixes.\n"))
     }
+
+    @Test
+    fun `lists GitHub releases newest first and skips what the updater cannot use`() {
+        fun release(tag: String, draft: Boolean = false, asset: String = "update.json") =
+            """{"tag_name":"$tag","draft":$draft,"body":"notes $tag","assets":[{"name":"$asset","browser_download_url":"https://github.com/o/r/releases/download/$tag/$asset","size":1}],"x":1}"""
+        val text = "[" + listOf(
+            release("v0.2.1"),
+            release("v0.3.0"),
+            release("v0.4.0", draft = true),
+            release("v0.5.0", asset = "owntv-0.5.0.apk"),
+            release("nightly"),
+            release("v0.1.0"),
+        ).joinToString(",") + "]"
+        val list = ReleaseEntry.parseGitHub(text).getOrThrow()
+        assertEquals(listOf("0.3.0", "0.2.1", "0.1.0"), list.map { it.versionName })
+        assertEquals(listOf(3000L, 2001L, 1000L), list.map { it.versionCode })
+        assertEquals("notes v0.3.0", list.first().notes)
+        assertEquals("https://github.com/o/r/releases/download/v0.3.0/update.json", list.first().updateJsonUrl)
+        assertTrue(ReleaseEntry.parseGitHub("""{"message":"API rate limit exceeded"}""").isFailure)
+    }
 }
