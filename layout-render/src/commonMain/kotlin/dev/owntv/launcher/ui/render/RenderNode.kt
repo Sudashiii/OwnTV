@@ -79,6 +79,7 @@ import dev.owntv.layout.model.StackNode
 import dev.owntv.layout.model.TextAlignment
 import dev.owntv.layout.model.TextNode
 import dev.owntv.layout.model.TextStyleName
+import dev.owntv.layout.model.TileStyle
 import dev.owntv.layout.model.UnknownNode
 import dev.owntv.layout.model.VAlign
 import dev.owntv.layout.model.isSingleTile
@@ -139,20 +140,23 @@ fun RenderNode(node: Node, modifier: Modifier = Modifier, fillByDefault: Boolean
         if (image != null) {
             Box(outer, propagateMinConstraints = true) {
                 BackgroundFill(image, Modifier.matchParentSize().glassSource(IMAGE_GLASS_LAYER), shape)
-                NodeContent(node, padding, sizing)
+                NodeContent(node, Modifier, padding, sizing)
             }
         } else {
-            NodeContent(node, outer.then(padding), sizing)
+            NodeContent(node, outer, padding, sizing)
         }
     }
 }
 
 @Composable
-private fun NodeContent(node: Node, modifier: Modifier, sizing: TileSizing) {
+private fun NodeContent(node: Node, outer: Modifier, padding: Modifier, sizing: TileSizing) {
     val theme = LocalOwnTheme.current
+    val modifier = outer.then(padding)
     when (node) {
-        is ColumnNode -> ColumnView(node, modifier)
-        is RowNode -> RowView(node, modifier)
+        // Scrolling containers clip to their viewport, so their padding goes inside it: otherwise
+        // a focused tile at the edge (scaled up, with its glow) is cut off at the padding's edge.
+        is ColumnNode -> ColumnView(node, outer, padding)
+        is RowNode -> RowView(node, outer, padding)
         is GridNode -> GridView(node, modifier)
         is StackNode -> StackView(node, modifier)
         is AppTileNode -> {
@@ -202,11 +206,11 @@ private fun ScrollSpecScope(align: ScrollAlign, margin: Dp, container: @Composab
 }
 
 @Composable
-private fun ColumnView(node: ColumnNode, modifier: Modifier) {
+private fun ColumnView(node: ColumnNode, modifier: Modifier, padding: Modifier) {
     ScrollSpecScope(node.scrollAlign, node.scrollMargin.dp) { restore ->
         val scroll = if (node.scroll) Modifier.verticalScroll(rememberScrollState()) else Modifier
         Column(
-            modifier = modifier.then(scroll),
+            modifier = modifier.then(scroll).then(padding),
             verticalArrangement = node.arrange.vertical(node.spacing.dp),
             horizontalAlignment = node.contentAlign.toCompose(),
         ) {
@@ -220,11 +224,11 @@ private fun ColumnView(node: ColumnNode, modifier: Modifier) {
 }
 
 @Composable
-private fun RowView(node: RowNode, modifier: Modifier) {
+private fun RowView(node: RowNode, modifier: Modifier, padding: Modifier) {
     ScrollSpecScope(node.scrollAlign, node.scrollMargin.dp) { restore ->
         val scroll = if (node.scroll) Modifier.horizontalScroll(rememberScrollState()) else Modifier
         Row(
-            modifier = modifier.then(scroll),
+            modifier = modifier.then(scroll).then(padding),
             horizontalArrangement = node.arrange.horizontal(node.spacing.dp),
             verticalAlignment = node.contentAlign.toCompose(),
         ) {
@@ -300,6 +304,7 @@ private fun AppRowView(node: AppRowNode, modifier: Modifier) {
     val catalog = LocalApps.current
     val entries = remember(catalog, node.source, node.missing, node.limit, node.skip) { catalog.resolve(node.source, node.missing, node.limit, node.skip) }
     val list = rememberListContext(node.source, node.missing, node.title, 1)
+    val bleed = focusBleed(LocalOwnTheme.current, node.tile)
     val empty = entries.isEmpty()
     if (empty && node.source !is ListSource) return
     Column(modifier) {
@@ -311,8 +316,8 @@ private fun AppRowView(node: AppRowNode, modifier: Modifier) {
         CompositionLocalProvider(LocalListContext provides list) {
             ScrollSpecScope(node.scrollAlign, node.scrollMargin.dp) { restore ->
                 LazyRow(
-                    modifier = Modifier.fillMaxWidth().bleedHorizontally(TILE_BLEED).focusRestorer(),
-                    contentPadding = PaddingValues(horizontal = TILE_BLEED, vertical = 6.dp),
+                    modifier = Modifier.fillMaxWidth().bleed(bleed, bleed).focusRestorer(),
+                    contentPadding = PaddingValues(horizontal = bleed, vertical = bleed),
                     horizontalArrangement = Arrangement.spacedBy(node.spacing.dp),
                 ) {
                     items(entries, key = { it.packageName }) { entry ->
@@ -401,22 +406,33 @@ private fun ClockView(node: ClockNode, modifier: Modifier) {
 
 // ---------------------------------------------------------------- modifiers and mappings
 
-private val TILE_BLEED = 14.dp
+private val MIN_TILE_BLEED = 14.dp
+
+/** How far a focused tile reaches past its bounds: its scale-up, border and glow. */
+private fun focusBleed(theme: OwnTheme, tile: TileStyle): Dp {
+    val grow = tile.fixedWidth() * ((theme.focusScale - 1f).coerceAtLeast(0f) / 2f)
+    return maxOf(MIN_TILE_BLEED, grow + theme.focusBorderWidth + if (theme.glow) theme.glowSize else 0.dp)
+}
 
 /** Images sit above the page background in the glass source order. */
 private const val IMAGE_GLASS_LAYER = 1f
 
-/** Widens a child by [amount] on both sides so focus scaling is not clipped at the row's edges. */
-private fun Modifier.bleedHorizontally(amount: Dp) = layout { measurable, constraints ->
-    if (!constraints.hasBoundedWidth) {
-        val placeable = measurable.measure(constraints)
-        return@layout layout(placeable.width, placeable.height) { placeable.place(0, 0) }
-    }
-    val extra = amount.roundToPx()
+/**
+ * Grows a child by [horizontal] and [vertical] on every side without changing the space it takes
+ * in the layout, so focus scaling and glow are not clipped at the edges of a lazy row.
+ */
+private fun Modifier.bleed(horizontal: Dp, vertical: Dp) = layout { measurable, constraints ->
+    val extraX = if (constraints.hasBoundedWidth) horizontal.roundToPx() else 0
+    val extraY = vertical.roundToPx()
     val placeable = measurable.measure(
-        constraints.copy(minWidth = constraints.minWidth + 2 * extra, maxWidth = constraints.maxWidth + 2 * extra),
+        constraints.copy(
+            minWidth = constraints.minWidth + 2 * extraX,
+            maxWidth = if (constraints.hasBoundedWidth) constraints.maxWidth + 2 * extraX else constraints.maxWidth,
+            minHeight = 0,
+            maxHeight = if (constraints.hasBoundedHeight) constraints.maxHeight + 2 * extraY else constraints.maxHeight,
+        ),
     )
-    layout(placeable.width - 2 * extra, placeable.height) { placeable.place(-extra, 0) }
+    layout(placeable.width - 2 * extraX, (placeable.height - 2 * extraY).coerceAtLeast(0)) { placeable.place(-extraX, -extraY) }
 }
 
 private fun Modifier.nodeSize(node: Node, fillWidth: Boolean, fillHeight: Boolean): Modifier {
