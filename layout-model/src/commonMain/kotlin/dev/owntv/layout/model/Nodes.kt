@@ -203,7 +203,7 @@ data class AppRowNode(
     val skip: Int = 0,
     @Range(1.0, 500.0) @Doc("Maximum number of tiles.")
     val limit: Int? = null,
-    @Doc("For a packages source: what to show for apps that are not installed. Default hide.")
+    @Doc("For a list source: what to show for apps in the list that are not installed. Default hide.")
     val missing: Missing = Missing.Hide,
     @Doc("Where the focused tile is scrolled to: nearest, start (Google TV style, focused tile stays at the left) or center. Default nearest.")
     val scrollAlign: ScrollAlign = ScrollAlign.Nearest,
@@ -233,7 +233,7 @@ data class AppGridNode(
     val skip: Int = 0,
     @Range(1.0, 500.0) @Doc("Maximum number of tiles.")
     val limit: Int? = null,
-    @Doc("For a packages source: what to show for apps that are not installed. Default hide.")
+    @Doc("For a list source: what to show for apps in the list that are not installed. Default hide.")
     val missing: Missing = Missing.Hide,
     @Transient override val common: NodeCommon = NodeCommon(),
 ) : Node {

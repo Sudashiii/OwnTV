@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "name": "Google TV",
   "description": "Google TV style: tabs at the top, a featured carousel, then rows of apps that keep the focused tile at the left.",
   "theme": {

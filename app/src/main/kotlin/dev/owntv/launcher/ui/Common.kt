@@ -30,7 +30,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.tv.material3.ListItem
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
-import dev.owntv.launcher.ui.render.ContextTarget
 
 val ScreenBackground = Color(0xFF101115)
 
@@ -82,12 +81,9 @@ fun SettingsItem(
 
 @Composable
 fun ContextMenu(
-    target: ContextTarget,
+    title: String,
+    items: List<Pair<String, () -> Unit>>,
     onDismiss: () -> Unit,
-    onOpen: () -> Unit,
-    onAppInfo: () -> Unit,
-    onLauncherSettings: () -> Unit,
-    onEditLayout: (() -> Unit)? = null,
 ) {
     // The menu opens while OK is still held from the long press. Swallow that press (its repeats and
     // its release) so letting go does not click the first item; the next fresh press goes through.
@@ -116,18 +112,11 @@ fun ContextMenu(
                 .background(Color(0xFF1C1E24), RoundedCornerShape(16.dp))
                 .padding(16.dp),
         ) {
-            Text(target.title, style = MaterialTheme.typography.titleLarge, color = Color.White, modifier = Modifier.padding(8.dp))
-            val items = buildList<Pair<String, () -> Unit>> {
-                if (target.app != null) add("Open" to onOpen)
-                if (target.packageName != null) add("App info" to onAppInfo)
-                if (onEditLayout != null) add("Edit layout" to onEditLayout)
-                add("Launcher settings" to onLauncherSettings)
-                add("Cancel" to {})
-            }
+            Text(title, style = MaterialTheme.typography.titleLarge, color = Color.White, modifier = Modifier.padding(8.dp))
             items.forEachIndexed { index, (label, action) ->
                 ListItem(
                     selected = false,
-                    onClick = { onDismiss(); action() },
+                    onClick = { action(); onDismiss() },
                     modifier = if (index == 0) rememberInitialFocus() else Modifier,
                     headlineContent = { Text(label) },
                 )

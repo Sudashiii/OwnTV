@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "name": "LG webOS",
   "description": "LG webOS style: a launcher bar of app icons along the bottom over a colorful full-screen background.",
   "theme": {

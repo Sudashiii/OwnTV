@@ -1,11 +1,9 @@
 package dev.owntv.layout.edit
 
 import dev.owntv.layout.model.AllAppsSource
-import dev.owntv.layout.model.AppCategory
 import dev.owntv.layout.model.AppGridNode
 import dev.owntv.layout.model.AppRowNode
 import dev.owntv.layout.model.AppTileNode
-import dev.owntv.layout.model.CategorySource
 import dev.owntv.layout.model.ClockNode
 import dev.owntv.layout.model.ColumnNode
 import dev.owntv.layout.model.FolderNode
@@ -15,6 +13,7 @@ import dev.owntv.layout.model.HeroFollow
 import dev.owntv.layout.model.HeroNode
 import dev.owntv.layout.model.HeroSlide
 import dev.owntv.layout.model.ImageNode
+import dev.owntv.layout.model.ListSource
 import dev.owntv.layout.model.Node
 import dev.owntv.layout.model.NodeCommon
 import dev.owntv.layout.model.OpenAppDrawerAction
@@ -38,9 +37,9 @@ object NodeTemplates {
         "grid" -> GridNode(id, columns = 3)
         "stack" -> StackNode(id)
         "app_tile" -> AppTileNode(id, packageName = samplePackage ?: "com.google.android.youtube.tv")
-        "app_row" -> AppRowNode(id, source = AllAppsSource(), title = "Apps")
+        "app_row" -> AppRowNode(id, source = ListSource(id.toListName()), title = "Apps")
         "app_grid" -> AppGridNode(id, source = AllAppsSource(), title = "All apps")
-        "folder" -> FolderNode(id, label = "Folder", source = CategorySource(AppCategory.Games))
+        "folder" -> FolderNode(id, label = "Folder", source = ListSource(id.toListName()))
         "shortcut" -> ShortcutNode(id, label = "Shortcut", icon = "star", action = OpenAppDrawerAction)
         "hero" -> HeroNode(
             id,
@@ -74,3 +73,6 @@ object NodeTemplates {
         is UnknownNode -> node
     }
 }
+
+/** A list name made from a node id: letters, digits, _ and - only. */
+private fun String.toListName(): String = map { if (it.isLetterOrDigit() || it == '_' || it == '-') it else '_' }.joinToString("")

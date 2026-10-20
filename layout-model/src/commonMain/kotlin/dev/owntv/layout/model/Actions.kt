@@ -84,25 +84,23 @@ enum class SettingsScreen {
 sealed interface AppSource
 
 @Serializable
-@SerialName("packages")
-@Doc("An explicit list of apps, shown in this order.")
-data class PackagesSource(
-    @Doc("Package names, e.g. [\"com.netflix.ninja\", \"com.google.android.youtube.tv\"].")
-    val packages: List<String>,
+@SerialName("list")
+@Doc("A named app list such as \"favorites\". The layout only names the list; the TV stores which apps are in it and in what order, and you add, remove and move apps with a long press. Lists with the same name share their apps, so switching layouts keeps them.")
+data class ListSource(
+    @Doc("List name, e.g. \"favorites\", \"games\" or \"kids\". Letters, digits, _ and -.")
+    val list: String,
 ) : AppSource
 
 @Serializable
 @SerialName("all")
 @Doc("All installed TV apps.")
 data class AllAppsSource(
-    @Doc("Order of the apps. Default alphabetical.")
-    val sort: AppSort = AppSort.Alphabetical,
+    @Doc("Order of the apps: custom (default: the order arranged on the TV, apps never moved follow alphabetically), alphabetical or recently_installed.")
+    val sort: AppSort = AppSort.Custom,
     @Doc("Package names to leave out.")
     val exclude: List<String> = emptyList(),
     @Doc("Also show phone apps that have no TV launcher entry. Default false.")
     val includeNonTvApps: Boolean = false,
-    @Doc("Also show apps marked hidden in the apps map. Default false.")
-    val includeHidden: Boolean = false,
 ) : AppSource
 
 @Serializable
@@ -129,6 +127,7 @@ data class CategorySource(
 enum class AppSort {
     @SerialName("alphabetical") Alphabetical,
     @SerialName("recently_installed") RecentlyInstalled,
+    @SerialName("custom") Custom,
 }
 
 @Serializable

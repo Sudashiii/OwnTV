@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://owntv.dev/schema/owntv-layout.v2.schema.json",
+  "$id": "https://owntv.dev/schema/owntv-layout.v3.schema.json",
   "title": "OwnTV layout",
   "description": "Home screen layout for the OwnTV Android TV launcher. Generated from the Kotlin model; do not edit by hand.",
   "$ref": "#/$defs/LayoutDocument",
@@ -10,7 +10,7 @@
       "description": "An OwnTV launcher layout. The screen is 960 x 540 dp; all sizes are in dp.",
       "properties": {
         "schemaVersion": {
-          "description": "Format version. Use 2.",
+          "description": "Format version. Use 3.",
           "type": "integer"
         },
         "name": {
@@ -64,7 +64,7 @@
           }
         },
         "apps": {
-          "description": "Per-app settings keyed by package name: label, artwork, hero backdrop and description, hidden.",
+          "description": "Per-app settings keyed by package name: label, artwork, hero backdrop and description.",
           "type": "object",
           "additionalProperties": {
             "$ref": "#/$defs/AppOverride"
@@ -360,10 +360,6 @@
           "description": "Tile background color behind the app's artwork.",
           "type": "string",
           "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
-        },
-        "hidden": {
-          "description": "Leave the app out of all, category, recent and folder sources. Explicit package lists still show it. Default false.",
-          "type": "boolean"
         }
       },
       "additionalProperties": false
@@ -1503,7 +1499,7 @@
           "maximum": 500
         },
         "missing": {
-          "description": "For a packages source: what to show for apps that are not installed. Default hide.",
+          "description": "For a list source: what to show for apps in the list that are not installed. Default hide.",
           "type": "string",
           "enum": [
             "hide",
@@ -1676,7 +1672,7 @@
           "$ref": "#/$defs/AppSource.category"
         },
         {
-          "$ref": "#/$defs/AppSource.packages"
+          "$ref": "#/$defs/AppSource.list"
         },
         {
           "$ref": "#/$defs/AppSource.recent"
@@ -1691,11 +1687,12 @@
           "const": "all"
         },
         "sort": {
-          "description": "Order of the apps. Default alphabetical.",
+          "description": "Order of the apps: custom (default: the order arranged on the TV, apps never moved follow alphabetically), alphabetical or recently_installed.",
           "type": "string",
           "enum": [
             "alphabetical",
-            "recently_installed"
+            "recently_installed",
+            "custom"
           ]
         },
         "exclude": {
@@ -1707,10 +1704,6 @@
         },
         "includeNonTvApps": {
           "description": "Also show phone apps that have no TV launcher entry. Default false.",
-          "type": "boolean"
-        },
-        "includeHidden": {
-          "description": "Also show apps marked hidden in the apps map. Default false.",
           "type": "boolean"
         }
       },
@@ -1739,7 +1732,8 @@
           "type": "string",
           "enum": [
             "alphabetical",
-            "recently_installed"
+            "recently_installed",
+            "custom"
           ]
         },
         "exclude": {
@@ -1756,24 +1750,21 @@
       ],
       "additionalProperties": false
     },
-    "AppSource.packages": {
+    "AppSource.list": {
       "type": "object",
-      "description": "An explicit list of apps, shown in this order.",
+      "description": "A named app list such as \"favorites\". The layout only names the list; the TV stores which apps are in it and in what order, and you add, remove and move apps with a long press. Lists with the same name share their apps, so switching layouts keeps them.",
       "properties": {
         "type": {
-          "const": "packages"
+          "const": "list"
         },
-        "packages": {
-          "description": "Package names, e.g. [\"com.netflix.ninja\", \"com.google.android.youtube.tv\"].",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
+        "list": {
+          "description": "List name, e.g. \"favorites\", \"games\" or \"kids\". Letters, digits, _ and -.",
+          "type": "string"
         }
       },
       "required": [
         "type",
-        "packages"
+        "list"
       ],
       "additionalProperties": false
     },
@@ -1844,7 +1835,7 @@
           "maximum": 500
         },
         "missing": {
-          "description": "For a packages source: what to show for apps that are not installed. Default hide.",
+          "description": "For a list source: what to show for apps in the list that are not installed. Default hide.",
           "type": "string",
           "enum": [
             "hide",

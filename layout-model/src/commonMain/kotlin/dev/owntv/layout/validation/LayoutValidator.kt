@@ -23,10 +23,10 @@ import dev.owntv.layout.model.ImageBackground
 import dev.owntv.layout.model.ImageNode
 import dev.owntv.layout.model.IntentAction
 import dev.owntv.layout.model.LaunchAppAction
+import dev.owntv.layout.model.ListSource
 import dev.owntv.layout.model.LayoutDocument
 import dev.owntv.layout.model.Node
 import dev.owntv.layout.model.OpenUrlAction
-import dev.owntv.layout.model.PackagesSource
 import dev.owntv.layout.model.Page
 import dev.owntv.layout.model.Placeholders
 import dev.owntv.layout.model.RecentSource
@@ -50,6 +50,7 @@ import kotlinx.serialization.json.contentOrNull
 object LayoutValidator {
     const val MAX_DEPTH = 24
     private val idPattern = Regex("^[A-Za-z0-9_.-]+$")
+    private val listNamePattern = Regex("^[A-Za-z0-9_-]+$")
     private val packagePattern = Regex("^[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z0-9_]+)+$")
 
     /** @param installedPackages when given, packages that are not installed produce warnings. */
@@ -244,9 +245,8 @@ object LayoutValidator {
 
         fun checkSource(source: AppSource, path: String) {
             when (source) {
-                is PackagesSource -> {
-                    if (source.packages.isEmpty()) out.warning("$path.packages", "The package list is empty.")
-                    source.packages.forEachIndexed { i, pkg -> checkPackage(pkg, "$path.packages[$i]") }
+                is ListSource -> if (!listNamePattern.matches(source.list)) {
+                    out.error("$path.list", "\"${source.list}\" is not a list name. Use letters, digits, _ and -, e.g. \"favorites\".")
                 }
                 is AllAppsSource, is CategorySource, is RecentSource -> Unit
             }

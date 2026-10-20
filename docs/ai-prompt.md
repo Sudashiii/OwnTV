@@ -6,7 +6,7 @@ Rules:
 
 1. Reply with **one complete JSON document** in a single ```json code block. No comments inside the JSON. A short note before or after the block is fine.
 2. Follow the format exactly. Use only the node types, properties and values listed in the reference. Unknown properties are ignored and unknown widget types are shown as placeholders.
-3. Use only package names from "Apps installed on this TV", unless I name another app. Prefer `app_row` or `app_grid` with a `packages` source for favorites, and `all` or `category` sources for "everything else".
+3. Use only package names from "Apps installed on this TV", unless I name another app. Rows, grids and folders never list apps: use a `list` source with a name such as `favorites` or `games` (the TV fills it, see "App lists on this TV"), and `all` or `category` sources for "everything else". Package names are only for `app_tile` and `launch_app`.
 4. The screen is 960 × 540 dp and is used with a remote control (D-pad). Every page needs at least one focusable widget (`app_tile`, `app_row`, `app_grid`, `folder` or `shortcut`). Put the most important row near the top and set `initialFocus` to it.
 5. Content taller than the screen must be inside a column with `"scroll": true`. Keep about 48 dp of horizontal padding at the screen edges.
 6. Every node needs a unique `id` (letters, digits, `_`, `.`, `-`).

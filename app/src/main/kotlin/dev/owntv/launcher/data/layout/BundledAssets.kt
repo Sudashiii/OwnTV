@@ -2,7 +2,7 @@ package dev.owntv.launcher.data.layout
 
 import android.content.Context
 
-/** Files packed into the APK: layout templates, built-in looks, AI docs and the phone paste page. */
+/** Files packed into the APK: layout templates, built-in looks, AI docs, the phone paste page and the first app lists. */
 class BundledAssets(private val context: Context) {
     fun templateFiles(): List<String> = context.assets.list(TEMPLATES)?.filter { it.endsWith(".json") }?.sorted().orEmpty()
 
@@ -17,6 +17,9 @@ class BundledAssets(private val context: Context) {
     fun layoutSpec(): String = read("ai/layout-spec.md")
 
     fun pastePage(): String = read("web/paste.html")
+
+    /** The app lists a new TV starts with. */
+    fun defaultAppLists(): String = read("app-lists.json")
 
     private fun read(path: String): String = context.assets.open(path).bufferedReader().use { it.readText() }
 

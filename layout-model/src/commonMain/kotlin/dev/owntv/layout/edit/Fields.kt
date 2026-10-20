@@ -97,7 +97,9 @@ object Fields {
         for (i in 0 until descriptor.elementsCount) {
             if (descriptor.isElementOptional(i)) continue
             val element = descriptor.getElementDescriptor(i)
-            entries[descriptor.getElementName(i)] = placeholder(element)
+            val name = descriptor.getElementName(i)
+            // A list source needs a valid list name; favorites is the one most layouts share.
+            entries[name] = if (name == "list" && element.kind == PrimitiveKind.STRING) JsonPrimitive("favorites") else placeholder(element)
         }
         return JsonObject(entries)
     }
@@ -153,7 +155,7 @@ object Fields {
 
     private fun itemKindOf(name: String, color: Boolean): FieldKind = when {
         color -> FieldKind.Color
-        name == "packages" || name == "exclude" -> FieldKind.Package
+        name == "exclude" -> FieldKind.Package
         else -> FieldKind.Text
     }
 

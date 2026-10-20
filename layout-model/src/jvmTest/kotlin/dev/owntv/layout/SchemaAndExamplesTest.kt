@@ -20,12 +20,12 @@ class SchemaAndExamplesTest {
 
     @Test
     fun `checked-in schema matches the model`() {
-        val file = File(rootDir, "schema/owntv-layout.v2.schema.json")
+        val file = File(rootDir, "schema/owntv-layout.v3.schema.json")
         assertTrue(file.exists(), "Run ./gradlew :layout-model:generateSchema")
         assertEquals(
             JsonSchemaGenerator.generateText(),
             file.readText(),
-            "schema/owntv-layout.v2.schema.json is out of date. Run ./gradlew :layout-model:generateSchema",
+            "schema/owntv-layout.v3.schema.json is out of date. Run ./gradlew :layout-model:generateSchema",
         )
     }
 

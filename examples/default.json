@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "name": "OwnTV default",
   "background": { "type": "gradient", "colors": ["#0E0F13", "#16203A"], "angle": 160 },
   "pages": [
@@ -43,17 +43,7 @@
             "type": "app_row",
             "id": "favorites",
             "title": "Favorites",
-            "source": {
-              "type": "packages",
-              "packages": [
-                "com.google.android.youtube.tv",
-                "com.netflix.ninja",
-                "com.disney.disneyplus",
-                "com.amazon.amazonvideo.livingroom",
-                "com.plexapp.android",
-                "com.spotify.tv.android"
-              ]
-            },
+            "source": { "type": "list", "list": "favorites" },
             "tile": { "shape": "banner", "size": "large" }
           },
           {

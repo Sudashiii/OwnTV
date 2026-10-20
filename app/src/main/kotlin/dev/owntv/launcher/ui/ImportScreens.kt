@@ -54,6 +54,7 @@ import dev.owntv.launcher.ui.render.LayoutView
 import dev.owntv.launcher.ui.render.LocalAppImages
 import dev.owntv.launcher.ui.render.LocalApps
 import dev.owntv.launcher.ui.render.LocalPreviewMode
+import dev.owntv.layout.apps.AppListOps
 import dev.owntv.layout.codec.DecodeResult
 import dev.owntv.layout.model.LayoutDocument
 import dev.owntv.layout.validation.Severity
@@ -169,7 +170,11 @@ fun PreviewScreen(container: AppContainer, nav: Navigator, result: DecodeResult,
         Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(32.dp)) {
             Column {
                 if (doc != null) {
-                    ScaledPreview(doc, catalog, container)
+                    // An older layout's own package lists, shown as the TV will keep them.
+                    val previewCatalog = remember(catalog, result) {
+                        result.extractedLists?.let { catalog.withLists(AppListOps.seed(catalog.lists, it)) } ?: catalog
+                    }
+                    ScaledPreview(doc, previewCatalog, container)
                 } else {
                     Box(
                         Modifier.size(480.dp, 270.dp).background(Color(0xFF1C1E24), RoundedCornerShape(8.dp)),
@@ -183,7 +188,7 @@ fun PreviewScreen(container: AppContainer, nav: Navigator, result: DecodeResult,
                         Button(
                             onClick = {
                                 scope.launch {
-                                    container.layouts.apply(doc)
+                                    container.layouts.apply(doc, result.extractedLists)
                                     container.actions.toast("Applied \"${doc.name}\"")
                                     nav.home()
                                 }

@@ -1,5 +1,6 @@
 package dev.owntv.layout.codec
 
+import dev.owntv.layout.model.AppLists
 import dev.owntv.layout.model.CURRENT_SCHEMA_VERSION
 import dev.owntv.layout.model.LayoutDocument
 import dev.owntv.layout.validation.IssueCollector
@@ -16,6 +17,8 @@ import kotlinx.serialization.json.intOrNull
 data class DecodeResult(
     val document: LayoutDocument?,
     val issues: List<ValidationIssue>,
+    /** App lists and hidden apps an older layout held itself; the TV keeps them apart from the layout now. */
+    val extractedLists: AppLists? = null,
 ) {
     val ok: Boolean get() = document != null
 }
@@ -60,6 +63,8 @@ object LayoutCodec {
             out.error("$", "The layout must be a JSON object {...}.")
             return DecodeResult(null, out.issues)
         }
+        val version = (obj["schemaVersion"] as? JsonPrimitive)?.takeUnless { it.isString }?.intOrNull
+        val extracted = if (version != null && version < 3) LayoutMigrations.extractAppLists(obj).takeUnless { it.isEmpty } else null
         val migrated = migrator.migrate(obj, out) ?: return DecodeResult(null, out.issues)
 
         StructureValidator(out).checkDocument(LayoutDocument.serializer().descriptor, migrated)
@@ -76,7 +81,7 @@ object LayoutCodec {
         }
         val issues = out.issues + LayoutValidator.validate(doc, installedPackages)
         val hasErrors = issues.any { it.severity == Severity.Error }
-        return DecodeResult(if (hasErrors) null else doc, issues)
+        return DecodeResult(if (hasErrors) null else doc, issues, extracted)
     }
 
     /** Strips a surrounding ``` fence or chat text so pasting a whole AI answer works. */

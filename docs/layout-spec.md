@@ -1,6 +1,6 @@
 # OwnTV layout format (version 2)
 
-An OwnTV layout is one JSON document. The launcher renders it natively; nothing in it is code. The machine-readable definition is `schema/owntv-layout.v2.schema.json` (JSON Schema 2020-12), generated from the app's Kotlin model.
+An OwnTV layout is one JSON document. The launcher renders it natively; nothing in it is code. The machine-readable definition is `schema/owntv-layout.v3.schema.json` (JSON Schema 2020-12), generated from the app's Kotlin model.
 
 ## Screen and units
 
@@ -12,7 +12,7 @@ An OwnTV layout is one JSON document. The launcher renders it natively; nothing 
 
 ```json
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "name": "Living room",
   "description": "Streaming apps on top, games below.",
   "theme": { "colors": { "primary": "#7AA2F7" } },
@@ -27,7 +27,7 @@ An OwnTV layout is one JSON document. The launcher renders it natively; nothing 
 
 | Property | Required | Meaning |
 |---|---|---|
-| `schemaVersion` | yes | Always `2`. Older layouts (version 1) are upgraded automatically. |
+| `schemaVersion` | yes | Always `3`. Older layouts are upgraded automatically; their package lists move into the TV's app lists. |
 | `name`, `description` | | Shown in settings, templates and history. |
 | `theme` | | See Theme. |
 | `background` | | Background of all pages. Default: theme background color. |
@@ -109,14 +109,14 @@ The page `root` fills the screen. Other containers wrap their content unless you
 
 **App sources** (`source`):
 
-- `{ "type": "packages", "packages": ["com.netflix.ninja", "com.google.android.youtube.tv"] }` — exactly these apps, in this order.
-- `{ "type": "all", "sort": "alphabetical" | "recently_installed", "exclude": ["…"], "includeNonTvApps": false, "includeHidden": false }` — every TV app.
+- `{ "type": "list", "list": "favorites" }` — a named app list (see "App lists" below). The layout only names the list; the TV stores its apps.
+- `{ "type": "all", "sort": "custom" | "alphabetical" | "recently_installed", "exclude": ["…"], "includeNonTvApps": false }` — every TV app. `custom` (default) is the order arranged on the TV; apps never moved follow alphabetically.
 - `{ "type": "category", "category": "games" | "apps", "sort": "alphabetical", "exclude": [] }` — games, or everything that is not a game.
 - `{ "type": "recent", "exclude": [] }` — most recently used first. Starts empty and fills as apps are opened.
 
 Widgets:
 
-- **`app_row`**: horizontally scrolling tiles. `source` (required), `title`, `tile`, `spacing` (16), `skip` (leave out the first N apps), `limit`, `missing` (`hide` default, or `placeholder` for packages that are not installed), `scrollAlign` (`start` keeps the focused tile at the left like Google TV; `center`; `nearest` default), `scrollMargin`. Width fills by default. A row with no apps is hidden.
+- **`app_row`**: horizontally scrolling tiles. `source` (required), `title`, `tile`, `spacing` (16), `skip` (leave out the first N apps), `limit`, `missing` (`hide` default, or `placeholder` for apps in a list that are not installed), `scrollAlign` (`start` keeps the focused tile at the left like Google TV; `center`; `nearest` default), `scrollMargin`. Width fills by default. A row on an empty list shows an "Add apps" tile; other rows with no apps are hidden.
 - **`app_grid`**: tiles in `columns` (default 5) that wrap onto new rows. Same properties as `app_row` except scrolling. Put it in a scrolling column if it may be taller than the screen. `skip` lets a grid continue where a row above stopped: a row with `"limit": 5` and a grid with `"skip": 5` on the same source show every app once.
 - **`app_tile`**: one app. `package` (required), `label`, `tile`, `missing` (`placeholder` default, or `hide`).
 - **`folder`**: a tile with small app images (a 3 × 3 grid of mini banners, or six icons with an `icon` tile) that opens a panel with its apps. `label` and `source` (both required), `tile`, `itemTile` (tiles in the panel), `columns` (default 4), `color` (tile color; a translucent color such as `#33FFFFFF` looks like tvOS glass).
@@ -164,13 +164,23 @@ Per-app settings, used everywhere the app appears:
     "icon": "https://…/netflix-square.png",
     "backdrop": "https://…/netflix-hero.jpg",
     "description": "Series and films",
-    "color": "#141414",
-    "hidden": false
+    "color": "#141414"
   }
 }
 ```
 
-`banner` replaces the artwork on banner and card tiles, `icon` on icon tiles, `color` is the tile background, `backdrop` and `description` feed heroes, `hidden: true` leaves the app out of all, category, recent and folder sources (explicit package lists and the app drawer still show it).
+`banner` replaces the artwork on banner and card tiles, `icon` on icon tiles, `color` is the tile background, `backdrop` and `description` feed heroes. Hiding apps is done on the TV (long press, Hide), not in the layout.
+
+## App lists
+
+Which apps a row, grid or folder shows is not part of the layout. A `list` source names a list, and the TV keeps the apps of every list, the custom order of all apps and the hidden apps. Switching layouts or looks keeps them, and lists with the same name share their apps across layouts. Common names: `favorites`, `games`, `kids`, `music`. A list the TV does not know yet starts empty and shows an "Add apps" tile.
+
+On the TV, long-press an app tile for:
+
+- **Move**: Left/Right (and Up/Down in grids) slide the tile, OK keeps the new place, Back cancels. Works in lists, folders and `all` sources sorted `custom`.
+- **Add to…**: put the app into any list the layout uses, including folders.
+- **Remove from …**: take it out of the list it was pressed in.
+- **Hide**: leave the app out of every row, grid and folder. Hidden apps stay in the app drawer and under Settings > Hidden apps.
 
 ## Actions (for `shortcut.action` and slides)
 
@@ -186,7 +196,7 @@ Per-app settings, used everywhere the app appears:
 
 ```json
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "name": "Movie night",
   "theme": { "colors": { "primary": "#E50914", "custom": { "hero": "#2A0E12" } } },
   "background": { "type": "gradient", "colors": ["#2A0E12", "#0B0D12"], "angle": 180 },
@@ -210,7 +220,7 @@ Per-app settings, used everywhere the app appears:
           { "type": "hero", "id": "spotlight", "target": "streaming", "height": 200, "cornerRadius": 16 },
           {
             "type": "app_row", "id": "streaming", "title": "Streaming",
-            "source": { "type": "packages", "packages": ["com.netflix.ninja", "com.disney.disneyplus"] },
+            "source": { "type": "list", "list": "favorites" },
             "tile": { "shape": "card", "size": "large" }
           },
           {
@@ -230,4 +240,4 @@ Per-app settings, used everywhere the app appears:
 
 ## Validation
 
-OwnTV checks every layout before it can be applied and reports problems with a JSON path, for example `ERROR at $.pages[0].root.children[1].source: Missing required property "packages".` Errors block the layout; warnings (unknown properties or placeholders, apps that are not installed, pages with nothing to focus) do not. Text around a ```json code block, comments and trailing commas are tolerated.
+OwnTV checks every layout before it can be applied and reports problems with a JSON path, for example `ERROR at $.pages[0].root.children[1].source: Missing required property "list".` Errors block the layout; warnings (unknown properties or placeholders, apps that are not installed, pages with nothing to focus) do not. Text around a ```json code block, comments and trailing commas are tolerated.

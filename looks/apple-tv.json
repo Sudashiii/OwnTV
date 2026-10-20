@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "name": "Apple TV",
   "description": "tvOS 26/27 Liquid Glass: a full-bleed Top Shelf for the focused app, a glass dock, 5:3 icons that lift, sway and catch the light on focus.",
   "theme": {

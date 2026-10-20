@@ -31,7 +31,7 @@ kotlin {
     }
 }
 
-val schemaFile = rootProject.layout.projectDirectory.file("schema/owntv-layout.v2.schema.json")
+val schemaFile = rootProject.layout.projectDirectory.file("schema/owntv-layout.v3.schema.json")
 
 tasks.named<Test>("jvmTest") {
     useJUnit()
@@ -48,7 +48,7 @@ tasks.register("test") {
     dependsOn("jvmTest")
 }
 
-// Writes schema/owntv-layout.v2.schema.json from the Kotlin model.
+// Writes schema/owntv-layout.v3.schema.json from the Kotlin model.
 tasks.register<JavaExec>("generateSchema") {
     group = "owntv"
     description = "Regenerates the JSON Schema for OwnTV layouts."

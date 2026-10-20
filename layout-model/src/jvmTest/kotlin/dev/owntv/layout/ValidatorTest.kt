@@ -25,7 +25,7 @@ class ValidatorTest {
     fun `initialFocus and go_to_page must point at existing targets`() {
         val result = LayoutCodec.decode(
             """
-            { "schemaVersion": 2, "pages": [ { "id": "home", "initialFocus": "nope", "root":
+            { "schemaVersion": 3, "pages": [ { "id": "home", "initialFocus": "nope", "root":
               { "type": "shortcut", "id": "s", "label": "Go", "action": { "type": "go_to_page", "page": "missing" } } } ] }
             """,
         )
@@ -81,11 +81,18 @@ class ValidatorTest {
     @Test
     fun `packages that are not installed produce warnings`() {
         val result = LayoutCodec.decode(
-            docWithRoot("""{ "type": "app_row", "id": "r", "source": { "type": "packages", "packages": ["a.b", "c.d"] } }"""),
+            docWithRoot("""{ "type": "row", "id": "r", "children": [
+                { "type": "app_tile", "id": "a", "package": "a.b" }, { "type": "app_tile", "id": "c", "package": "c.d" } ] }"""),
             installedPackages = setOf("a.b"),
         )
         assertTrue(result.ok)
-        assertEquals(listOf("$.pages[0].root.source.packages[1]"), result.paths(Severity.Warning))
+        assertEquals(listOf("$.pages[0].root.children[1].package"), result.paths(Severity.Warning))
+    }
+
+    @Test
+    fun `list names are checked`() {
+        val result = LayoutCodec.decode(docWithRoot("""{ "type": "app_row", "id": "r", "source": { "type": "list", "list": "my list" } }"""))
+        assertEquals(listOf("$.pages[0].root.source.list"), result.paths(Severity.Error))
     }
 
     @Test

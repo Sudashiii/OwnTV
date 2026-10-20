@@ -2,6 +2,7 @@ package dev.owntv.launcher.ui.render
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -42,8 +43,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.LineHeightStyle
@@ -57,6 +65,7 @@ import coil3.compose.AsyncImage
 import dev.owntv.layout.model.FocusMotion
 import dev.owntv.layout.model.LabelMode
 import dev.owntv.layout.model.LaunchAppAction
+import dev.owntv.layout.model.ListRef
 import dev.owntv.layout.model.ShortcutNode
 import dev.owntv.layout.model.TextStyleName
 import dev.owntv.layout.model.TileShape
@@ -152,20 +161,59 @@ fun AppTileView(
     val app = (entry as? AppEntry.Installed)?.app
     val override = catalog.override(entry.packageName)
     val label = labelOverride ?: app?.let(catalog::labelOf) ?: entry.packageName
-    val target = ContextTarget(label, app, entry.packageName, ancestors.lastOrNull())
+    val list = LocalListContext.current
+    val target = ContextTarget(label, app, entry.packageName, ancestors.lastOrNull(), list)
+    val arranger = LocalAppArranger.current
+    val moving = list != null && arranger != null && arranger.moving == MovingApp(list.ref, entry.packageName)
 
     ReportFocus(focused) { FocusedTile(label, app, override?.description, override?.backdrop, ancestors) }
 
-    TileFrame(tile, sizing, label, focused, modifier) { surfaceModifier ->
+    // While moving, the tile keeps focus wherever it lands (in a grid it may change lines and
+    // be composed anew), and the remote moves it instead of the focus.
+    val moveFocus = remember { FocusRequester() }
+    if (moving) {
+        val position = list!!.order.indexOf(entry.packageName)
+        LaunchedEffect(position) { runCatching { moveFocus.requestFocus() } }
+    }
+    val moveKeys = if (!moving) Modifier else Modifier.focusRequester(moveFocus).onPreviewKeyEvent { event ->
+        val order = list!!.order
+        val delta = when (event.key) {
+            Key.DirectionLeft -> -1
+            Key.DirectionRight -> 1
+            Key.DirectionUp -> -list.columns
+            Key.DirectionDown -> list.columns
+            else -> null
+        }
+        when {
+            delta != null -> {
+                // Rows only move sideways; Up and Down stay put so focus cannot leave mid-move.
+                if (event.type == KeyEventType.KeyDown && (list.columns > 1 || delta == -1 || delta == 1)) arranger!!.step(order, delta)
+                true
+            }
+            event.key == Key.DirectionCenter || event.key == Key.Enter || event.key == Key.NumPadEnter -> {
+                if (event.type == KeyEventType.KeyUp) arranger!!.drop()
+                true
+            }
+            event.key == Key.Back || event.key == Key.Escape -> {
+                if (event.type == KeyEventType.KeyUp) arranger!!.cancel()
+                true
+            }
+            else -> false
+        }
+    }
+
+    TileFrame(tile, sizing, label, focused, modifier.then(moveKeys)) { surfaceModifier ->
         TileSurface(
             onClick = { if (app != null) handler.openApp(app) else handler.openMissing(entry.packageName) },
-            onLongClick = { handler.longPress(target) },
+            onLongClick = { if (!moving) handler.longPress(target) },
             modifier = surfaceModifier,
             color = theme.color(override?.color) ?: theme.surface,
             interactionSource = interaction,
             cornerRadius = tile.cornerRadius?.dp,
             rim = tile.rim,
         ) {
+            if (catalog.showHidden && catalog.isHidden(entry.packageName)) DimmedOverlay()
+            if (moving) MovingOverlay()
             when {
                 app == null -> MissingContent(label)
                 tile.shape == TileShape.Icon -> {
@@ -187,6 +235,52 @@ fun AppTileView(
                         else -> IconFallbackContent(app, label)
                     }
                 }
+            }
+        }
+    }
+}
+
+/** Marks a tile that is being moved: an accent outline and arrows. Drawn under the artwork's edge. */
+@Composable
+private fun BoxScope.MovingOverlay() {
+    val theme = LocalOwnTheme.current
+    Box(Modifier.matchParentSize().zIndex(2f).border(3.dp, theme.primary, RoundedCornerShape(theme.cornerRadius)))
+    Row(
+        Modifier.matchParentSize().zIndex(2f).padding(horizontal = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        listOf("‹", "›").forEach {
+            Text(it, color = Color.White, style = TextStyle(fontSize = 22.sp), modifier = Modifier.background(Color(0x99000000), RoundedCornerShape(6.dp)).padding(horizontal = 4.dp))
+        }
+    }
+}
+
+/** Dims a hidden app in the app drawer. */
+@Composable
+private fun BoxScope.DimmedOverlay() {
+    Box(Modifier.matchParentSize().zIndex(2f).background(Color(0x99000000)))
+}
+
+/** The tile an empty list shows: OK opens the screen to pick its apps. */
+@Composable
+fun AddAppsTile(ref: ListRef, title: String?, tile: TileStyle, sizing: TileSizing, modifier: Modifier = Modifier) {
+    val theme = LocalOwnTheme.current
+    val handler = LocalActionHandler.current
+    val interaction = remember { MutableInteractionSource() }
+    val focused by interaction.collectIsFocusedAsState()
+    TileFrame(tile, sizing, "Add apps", focused, modifier, showOutsideLabel = tile.shape == TileShape.Icon) { surfaceModifier ->
+        TileSurface(
+            onClick = { handler.editList(ref, title) },
+            onLongClick = { handler.editList(ref, title) },
+            modifier = surfaceModifier,
+            color = theme.surface,
+            interactionSource = interaction,
+            cornerRadius = tile.cornerRadius?.dp,
+        ) {
+            Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                Icon(Icons.Filled.Add, contentDescription = null, tint = theme.text, modifier = Modifier.size(28.dp))
+                if (tile.shape != TileShape.Icon) Text("Add apps", style = theme.textStyle(TextStyleName.Caption), color = theme.text)
             }
         }
     }

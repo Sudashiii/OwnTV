@@ -5,7 +5,9 @@ import dev.owntv.layout.model.AppRowNode
 import dev.owntv.layout.model.ColumnNode
 import dev.owntv.layout.model.LaunchAppAction
 import dev.owntv.layout.model.Padding
-import dev.owntv.layout.model.PackagesSource
+import dev.owntv.layout.model.AppLists
+import dev.owntv.layout.model.FolderNode
+import dev.owntv.layout.model.ListSource
 import dev.owntv.layout.model.ShortcutNode
 import dev.owntv.layout.model.Size
 import dev.owntv.layout.model.UnknownNode
@@ -52,7 +54,7 @@ class CodecTest {
     fun `encoding writes type first, keeps schemaVersion and drops defaults`() {
         val doc = LayoutCodec.decode(docWithRoot(TILE)).requireDocument()
         val text = LayoutCodec.encode(doc)
-        assertTrue(text.contains("\"schemaVersion\": 2"))
+        assertTrue(text.contains("\"schemaVersion\": 3"))
         assertTrue(Regex("\\{\\s*\"type\": \"app_tile\",\\s*\"id\": \"tile\"").containsMatchIn(text), text)
         assertFalse(text.contains("\"visible\""), "Defaults should not be written")
     }
@@ -107,7 +109,7 @@ class CodecTest {
 
     @Test
     fun `missing pages is an error`() {
-        val result = LayoutCodec.decode("""{ "schemaVersion": 2, "name": "x" }""")
+        val result = LayoutCodec.decode("""{ "schemaVersion": 3, "name": "x" }""")
         assertNull(result.document)
         assertTrue(result.issues.any { it.severity == Severity.Error && it.message.contains("\"pages\"") })
     }
@@ -120,7 +122,7 @@ class CodecTest {
             ```json
             {
               // a comment
-              "schemaVersion": 2,
+              "schemaVersion": 3,
               "pages": [ { "id": "home", "root": $TILE, }, ],
             }
             ```
@@ -150,11 +152,36 @@ class CodecTest {
     }
 
     @Test
-    fun `app row source decodes from packages`() {
-        val doc = LayoutCodec.decode(
-            docWithRoot("""{ "type": "app_row", "id": "r", "source": { "type": "packages", "packages": ["a.b", "c.d"] } }"""),
-        ).requireDocument()
-        val row = assertIs<AppRowNode>(doc.pages[0].root)
-        assertEquals(PackagesSource(listOf("a.b", "c.d")), row.source)
+    fun `app row source decodes from a list`() {
+        val result = LayoutCodec.decode(docWithRoot("""{ "type": "app_row", "id": "r", "source": { "type": "list", "list": "favorites" } }"""))
+        val row = assertIs<AppRowNode>(result.requireDocument().pages[0].root)
+        assertEquals(ListSource("favorites"), row.source)
+        assertNull(result.extractedLists)
+    }
+
+    @Test
+    fun `version 2 package lists and hidden apps move out of the layout`() {
+        val result = LayoutCodec.decode(
+            """
+            { "schemaVersion": 2,
+              "apps": { "a.b": { "label": "AB", "hidden": true }, "c.d": { "hidden": false } },
+              "pages": [ { "id": "home", "root": { "type": "column", "id": "root", "children": [
+                { "type": "app_row", "id": "favorites", "source": { "type": "packages", "packages": ["c.d", "a.b", "c.d"] } },
+                { "type": "folder", "id": "my.folder", "label": "F", "source": { "type": "packages", "packages": ["e.f"] } },
+                { "type": "app_grid", "id": "all", "source": { "type": "all" } }
+              ] } } ] }
+            """,
+        )
+        val doc = result.requireDocument()
+        assertEquals(3, doc.schemaVersion)
+        assertEquals(listOf(Severity.Info), result.issues.map { it.severity })
+        val children = (doc.pages[0].root as ColumnNode).children
+        assertEquals(ListSource("favorites"), assertIs<AppRowNode>(children[0]).source)
+        assertEquals(ListSource("my_folder"), assertIs<FolderNode>(children[1]).source)
+        assertEquals("AB", doc.apps.getValue("a.b").label)
+        assertEquals(
+            AppLists(lists = mapOf("favorites" to listOf("c.d", "a.b"), "my_folder" to listOf("e.f")), hidden = setOf("a.b")),
+            result.extractedLists,
+        )
     }
 }
