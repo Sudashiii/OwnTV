@@ -5,6 +5,7 @@ import dev.owntv.layout.codec.LayoutCodec
 import dev.owntv.layout.model.AppLists
 import dev.owntv.layout.model.BuiltInLayouts
 import dev.owntv.layout.model.LayoutDocument
+import dev.owntv.layout.model.walkNodes
 import dev.owntv.layout.validation.LayoutValidator
 import dev.owntv.layout.validation.ValidationIssue
 import kotlinx.coroutines.CoroutineScope
@@ -31,12 +32,14 @@ data class HistoryEntry(val file: File, val name: String, val savedAt: Long)
 /**
  * Stores the active layout in app storage and keeps the last [MAX_HISTORY] versions for revert.
  * Package lists found in older layouts go to [keepLists], since the TV stores them apart now.
+ * [onLoaded] gets how long reading the stored layout at start-up took and its node count.
  */
 class LayoutRepository(
     context: Context,
     scope: CoroutineScope,
     private val assets: BundledAssets,
     private val keepLists: (AppLists) -> Unit,
+    private val onLoaded: (decodeMs: Double, nodes: Int) -> Unit = { _, _ -> },
 ) {
     private val dir = File(context.filesDir, "layouts")
     private val historyDir = File(dir, "history")
@@ -55,7 +58,14 @@ class LayoutRepository(
         val text = runCatching {
             if (currentFile.exists()) currentFile.readText() else assets.template(BundledAssets.DEFAULT_TEMPLATE)
         }.getOrNull()
+        val start = System.nanoTime()
         val result = text?.let { LayoutCodec.decode(it) }
+        val decodeMs = (System.nanoTime() - start) / 1e6
+        result?.document?.let { doc ->
+            var nodes = 0
+            doc.walkNodes { _, _, _, _ -> nodes++ }
+            onLoaded(decodeMs, nodes)
+        }
         result?.extractedLists?.let(keepLists)
         _state.value = if (result?.document != null) {
             LayoutState(result.document!!, result.issues)

@@ -1,6 +1,7 @@
 package dev.owntv.launcher.data.layout
 
 import android.content.Context
+import coil3.EventListener
 import coil3.ImageLoader
 import coil3.SingletonImageLoader
 import coil3.disk.DiskCache
@@ -22,7 +23,7 @@ object LayoutImageLoader {
     private const val MAX_AGE_DAYS = 30L
     private const val DISK_CACHE_BYTES = 256L * 1024 * 1024
 
-    fun create(context: Context): ImageLoader {
+    fun create(context: Context, events: EventListener.Factory = EventListener.Factory.NONE): ImageLoader {
         val client = OkHttpClient.Builder()
             .addNetworkInterceptor { chain ->
                 chain.proceed(chain.request()).newBuilder()
@@ -42,6 +43,7 @@ object LayoutImageLoader {
                     .build()
             }
             .diskCachePolicy(CachePolicy.ENABLED)
+            .eventListenerFactory(events)
             .build()
     }
 

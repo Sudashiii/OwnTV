@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -89,6 +90,7 @@ fun HomeScreen(container: AppContainer, nav: Navigator, state: LayoutState, cata
         Box(Modifier.fillMaxSize().background(Color.Black))
         return
     }
+    if (catalog.loaded) LaunchedEffect(Unit) { container.perf.homeReady() }
 
     CompositionLocalProvider(
         LocalActionHandler provides handler,

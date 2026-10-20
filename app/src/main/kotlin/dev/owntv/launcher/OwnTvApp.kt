@@ -14,6 +14,7 @@ import dev.owntv.launcher.data.layout.LayoutRepository
 import dev.owntv.launcher.importexport.FileImporter
 import dev.owntv.launcher.importexport.PasteSession
 import dev.owntv.launcher.importexport.UrlImporter
+import dev.owntv.launcher.metrics.PerformanceMonitor
 import dev.owntv.launcher.update.Updater
 import dev.owntv.layout.ai.AiPromptBuilder
 import dev.owntv.layout.codec.DecodeResult
@@ -30,18 +31,19 @@ class OwnTvApp : Application(), SingletonImageLoader.Factory {
     }
 
     /** Images linked from a layout are cached on the TV, see [LayoutImageLoader]. */
-    override fun newImageLoader(context: coil3.PlatformContext) = LayoutImageLoader.create(this)
+    override fun newImageLoader(context: coil3.PlatformContext) = LayoutImageLoader.create(this, container.perf.imageEvents)
 }
 
 /** Creates and holds the app's long-lived objects. */
 class AppContainer(context: Context) {
     val scope = MainScope()
+    val perf: PerformanceMonitor = PerformanceMonitor(context, scope, appImageCacheBytes = { images.cacheBytes() })
     val assets = BundledAssets(context)
     val apps = InstalledAppsRepository(context, scope)
     val recent = RecentAppsRepository(context, scope)
-    val images = AppImageLoader(context)
+    val images: AppImageLoader = AppImageLoader(context, onLoaded = perf::appImageLoaded)
     val appLists = AppListsRepository(context, scope, assets)
-    val layouts = LayoutRepository(context, scope, assets, keepLists = appLists::seed)
+    val layouts = LayoutRepository(context, scope, assets, keepLists = appLists::seed, onLoaded = perf::layoutDecoded)
     val actions = ActionExecutor(context, onLaunch = recent::recordLaunch)
     val urlImporter = UrlImporter()
     val files = FileImporter(context)

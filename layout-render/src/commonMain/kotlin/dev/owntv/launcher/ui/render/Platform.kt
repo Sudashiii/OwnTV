@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
+import dev.owntv.layout.model.Node
 
 // What the renderer needs from the platform. The TV app and the web preview each provide these.
 
@@ -90,7 +91,8 @@ val LocalNetworkState = compositionLocalOf { NetworkState.Wifi }
 
 /** Counts renderer work for the web preview's metrics. Null on the TV. */
 interface RenderMetrics {
-    fun nodeComposed()
+    /** [node] was composed (first time or again). Called from a side effect on the main thread. */
+    fun nodeComposed(node: Node)
 }
 
 val LocalRenderMetrics = staticCompositionLocalOf<RenderMetrics?> { null }

@@ -15,7 +15,8 @@ import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
 
 /** Loads app banners and icons as bitmaps, with a memory cache sized for low-RAM TV devices. */
-class AppImageLoader(context: Context) : AppImages {
+/** [onLoaded] gets the milliseconds of every load that missed the cache. */
+class AppImageLoader(context: Context, private val onLoaded: (ms: Double) -> Unit = {}) : AppImages {
     private val pm: PackageManager = context.packageManager
 
     private val cache = object : LruCache<String, ImageBitmap>((Runtime.getRuntime().maxMemory() / 8).toInt()) {
@@ -33,6 +34,7 @@ class AppImageLoader(context: Context) : AppImages {
         val key = key(app, kind)
         cache.get(key)?.let { return@withContext it }
         if (kind == Kind.Banner && key in noBanner) return@withContext null
+        val start = System.nanoTime()
         val drawable = runCatching { drawableFor(app, kind) }.getOrNull()
         if (drawable == null) {
             if (kind == Kind.Banner) noBanner += key
@@ -42,8 +44,14 @@ class AppImageLoader(context: Context) : AppImages {
             Kind.Banner -> 320 to 180
             Kind.Icon -> 192 to 192
         }
-        drawable.toBitmap(width, height).asImageBitmap().also { cache.put(key, it) }
+        drawable.toBitmap(width, height).asImageBitmap().also {
+            cache.put(key, it)
+            onLoaded((System.nanoTime() - start) / 1e6)
+        }
     }
+
+    /** Bytes the cached bitmaps take up. */
+    fun cacheBytes(): Long = cache.size().toLong()
 
     private fun drawableFor(app: AppInfo, kind: Kind): Drawable? = when (kind) {
         Kind.Banner -> pm.getActivityBanner(app.component) ?: pm.getApplicationBanner(app.packageName)

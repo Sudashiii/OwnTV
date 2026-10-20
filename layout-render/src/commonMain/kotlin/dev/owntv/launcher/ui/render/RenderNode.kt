@@ -131,7 +131,7 @@ fun RenderNode(node: Node, modifier: Modifier = Modifier, fillByDefault: Boolean
 @Composable
 private fun NodeBody(node: Node, modifier: Modifier, fillByDefault: Boolean, fillWidthByDefault: Boolean) {
     val metrics = LocalRenderMetrics.current
-    if (metrics != null) SideEffect { metrics.nodeComposed() }
+    if (metrics != null) SideEffect { metrics.nodeComposed(node) }
     val theme = LocalOwnTheme.current
     val registry = LocalFocusRegistry.current
     val common = node.common
