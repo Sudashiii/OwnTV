@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import dev.owntv.launcher.ui.render.RenderMetrics
 import dev.owntv.launcher.ui.render.Text
 import dev.owntv.layout.model.LayoutDocument
+import dev.owntv.layout.model.Node
 import dev.owntv.layout.model.walkNodes
 import kotlin.math.roundToInt
 import kotlin.time.Duration
@@ -62,7 +63,7 @@ class Metrics : RenderMetrics {
     /** Set when a new layout is handed to the renderer; cleared by the first frame that draws it. */
     var pendingEdit: TimeMark? = null
 
-    override fun nodeComposed() {
+    override fun nodeComposed(node: Node) {
         compositions++
     }
 

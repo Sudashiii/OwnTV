@@ -19,6 +19,7 @@ sealed interface Screen {
     data object History : Screen
     data object Help : Screen
     data object Updates : Screen
+    data object Performance : Screen
     data class ListEditor(val name: String, val title: String?) : Screen
     data object HiddenApps : Screen
     data class Preview(val result: DecodeResult, val source: String) : Screen

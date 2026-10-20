@@ -16,8 +16,27 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         handleLaunchIntent(intent)
+        container.perf.attach(this)
         setContent { OwnTvRoot(container, nav) }
     }
+
+    override fun onStart() {
+        super.onStart()
+        container.perf.onStart()
+    }
+
+    override fun onStop() {
+        container.perf.onStop()
+        super.onStop()
+    }
+
+    override fun onDestroy() {
+        container.perf.detach(this)
+        super.onDestroy()
+    }
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean =
+        container.perf.dispatchKey(event) { super.dispatchKeyEvent(event) }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)

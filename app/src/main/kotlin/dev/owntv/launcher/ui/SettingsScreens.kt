@@ -41,6 +41,7 @@ fun SettingsScreen(container: AppContainer, nav: Navigator, state: LayoutState) 
     val hasHistory by produceState(false, state) { value = withContext(Dispatchers.IO) { container.layouts.hasHistory() } }
     val problems = state.issues.count { it.severity != Severity.Info }
     val update by container.updater.state.collectAsStateWithLifecycle()
+    val metricsMode by container.perf.mode.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { container.updater.checkIfStale() }
     val available = (update as? UpdateState.Available)?.update?.versionName
     val context = LocalContext.current
@@ -93,6 +94,7 @@ fun SettingsScreen(container: AppContainer, nav: Navigator, state: LayoutState) 
             }
             SettingsItem("Android settings", "Open the TV's system settings") { container.actions.openSystemSettings() }
             SettingsItem("Updates", updateSummary(update, container.updater)) { nav.push(Screen.Updates) }
+            SettingsItem("Performance metrics", metricsSummary(metricsMode)) { nav.push(Screen.Performance) }
             SettingsItem("About", "OwnTV ${container.updater.installedVersionName}, layout format v$CURRENT_SCHEMA_VERSION") {}
         }
     }
