@@ -1,4 +1,4 @@
-# OwnTV layout format (version 2)
+# OwnTV layout format (version 3)
 
 An OwnTV layout is one JSON document. The launcher renders it natively; nothing in it is code. The machine-readable definition is `schema/owntv-layout.v3.schema.json` (JSON Schema 2020-12), generated from the app's Kotlin model.
 
@@ -65,7 +65,7 @@ Used by the document, pages, any node (`background`) and hero slides.
 
 - `"#101010"` or `"@surface"` — a solid color (shorthand for `{ "type": "color", "color": "#101010" }`).
 - `{ "type": "gradient", "colors": ["#000000", "#203040"], "angle": 180 }` — 2+ colors; angle like CSS: 0 = bottom→top, 90 = left→right, 180 = top→bottom (default).
-- `{ "type": "image", "src": "https://…/bg.jpg", "dim": 0.3, "blur": 0, "fit": "cover" }` — `dim` 0–1 darkens, `blur` 0–60 dp (Android 12+), `fit` is `cover`, `contain` or `fill`.
+- `{ "type": "image", "src": "https://…/bg.jpg", "dim": 0.3, "blur": 0, "fit": "cover" }` — `dim` 0–1 darkens, `blur` 0–60 dp (Android 12+), `fit` is `cover`, `contain` or `fill`. Image links (`https://…`) work everywhere an image is accepted (backgrounds, heroes, `image` nodes, tiles, app artwork). The TV downloads each one once and caches it locally (about 30 days, up to 256 MB), so it loads instantly afterwards and works offline; to replace an image, change its URL.
 - `{ "type": "glass", "tint": "#1FFFFFFF", "variant": "regular" }` — Liquid Glass (tvOS 26 style): blurs and refracts the page background, heroes and images behind the node, with a light rim. `variant` is `regular` (frosted) or `clear` (more see-through). Use it on a node above a hero, e.g. a dock row in a `stack`, and give the node a `cornerRadius`. Android 12+; older devices show only the tint.
 
 ## Common node properties
