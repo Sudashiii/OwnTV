@@ -2,6 +2,7 @@ package dev.owntv.launcher.data.layout
 
 import android.content.Context
 import coil3.ImageLoader
+import coil3.SingletonImageLoader
 import coil3.disk.DiskCache
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.CachePolicy
@@ -42,5 +43,15 @@ object LayoutImageLoader {
             }
             .diskCachePolicy(CachePolicy.ENABLED)
             .build()
+    }
+
+    /** Bytes the downloaded images take up on the TV. Reads the disk, so call it off the main thread. */
+    fun cacheSize(context: Context): Long = SingletonImageLoader.get(context).diskCache?.size ?: 0L
+
+    /** Deletes every downloaded image; layouts download them again the next time they show them. Call it off the main thread. */
+    fun clearCache(context: Context) {
+        val loader = SingletonImageLoader.get(context)
+        loader.memoryCache?.clear()
+        loader.diskCache?.clear()
     }
 }
