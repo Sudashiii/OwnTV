@@ -3,6 +3,7 @@ package dev.owntv.launcher.ui
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -38,7 +39,7 @@ import java.util.Date
 @Composable
 fun SettingsScreen(container: AppContainer, nav: Navigator, state: LayoutState) {
     val scope = rememberCoroutineScope()
-    val hasHistory by produceState(false, state) { value = withContext(Dispatchers.IO) { container.layouts.hasHistory() } }
+    val hasHistory by container.layouts.hasHistory.collectAsStateWithLifecycle()
     val problems = state.issues.count { it.severity != Severity.Info }
     val update by container.updater.state.collectAsStateWithLifecycle()
     val metricsMode by container.perf.mode.collectAsStateWithLifecycle()
@@ -47,55 +48,88 @@ fun SettingsScreen(container: AppContainer, nav: Navigator, state: LayoutState) 
     val context = LocalContext.current
     var cacheCleared by remember { mutableIntStateOf(0) }
     val cacheBytes by produceState<Long?>(null, cacheCleared) { value = withContext(Dispatchers.IO) { LayoutImageLoader.cacheSize(context) } }
+    // Out here, not in the row: a lazy row that scrolls back into view would take focus again.
+    val initialFocus = rememberInitialFocus()
 
     SettingsScaffold(
         "OwnTV settings",
         "Layout: ${state.document.name}" + if (available != null) " · OwnTV $available is available in Updates" else "",
     ) {
-        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
-            SettingsItem("Edit layout", "Add, move and customize items with your remote", modifier = rememberInitialFocus()) { nav.push(Screen.Editor()) }
-            SettingsItem(
-                "Import layout",
-                "Paste JSON from your phone, load a URL or a file",
-            ) { nav.push(Screen.Import) }
-            SettingsItem("Looks", "Google TV, Apple TV, Fire TV, Roku and more; use a whole look or only its style") { nav.push(Screen.Looks) }
-            SettingsItem("Templates", "Start from a built-in layout") { nav.push(Screen.Templates) }
-            SettingsItem(
-                "Current layout",
-                if (problems == 0) "Preview \"${state.document.name}\"" else "Preview \"${state.document.name}\" ($problems warning(s))",
-            ) {
-                nav.showPreview(container.decode(container.layouts.currentJson()), "Current layout")
+        // Lazy: only the rows on screen are built when Settings opens; each TV list item is costly to create.
+        LazyColumn(Modifier.fillMaxWidth()) {
+            item {
+                SettingsItem("Edit layout", "Add, move and customize items with your remote", modifier = initialFocus) { nav.push(Screen.Editor()) }
             }
-            SettingsItem("Revert to previous layout", "Undo the last change", enabled = hasHistory) {
-                scope.launch {
-                    if (container.layouts.revert()) {
-                        container.actions.toast("Restored the previous layout")
-                        nav.home()
+            item {
+                SettingsItem(
+                    "Import layout",
+                    "Paste JSON from your phone, load a URL or a file",
+                ) { nav.push(Screen.Import) }
+            }
+            item {
+                SettingsItem("Looks", "Google TV, Apple TV, Fire TV, Roku and more; use a whole look or only its style") { nav.push(Screen.Looks) }
+            }
+            item {
+                SettingsItem("Templates", "Start from a built-in layout") { nav.push(Screen.Templates) }
+            }
+            item {
+                SettingsItem(
+                    "Current layout",
+                    if (problems == 0) "Preview \"${state.document.name}\"" else "Preview \"${state.document.name}\" ($problems warning(s))",
+                ) {
+                    nav.showPreview(container.decode(container.layouts.currentJson()), "Current layout")
+                }
+            }
+            item {
+                SettingsItem("Revert to previous layout", "Undo the last change", enabled = hasHistory) {
+                    scope.launch {
+                        if (container.layouts.revert()) {
+                            container.actions.toast("Restored the previous layout")
+                            nav.home()
+                        }
                     }
                 }
             }
-            SettingsItem("Layout history", "Restore one of the last 10 layouts", enabled = hasHistory) { nav.push(Screen.History) }
-            SettingsItem("All apps", "Every installed app") { nav.push(Screen.AppDrawer) }
-            SettingsItem("Hidden apps", "Apps left out of your rows and grids") { nav.push(Screen.HiddenApps) }
-            SettingsItem("Make OwnTV your Home screen", "What to do on Google TV") { nav.push(Screen.Help) }
-            SettingsItem(
-                "Clear image cache",
-                when (val bytes = cacheBytes) {
-                    null -> "Delete the images downloaded for your layouts"
-                    0L -> "No downloaded layout images"
-                    else -> "Delete ${Formatter.formatShortFileSize(context, bytes)} of downloaded layout images; they download again when shown"
-                },
-            ) {
-                scope.launch {
-                    withContext(Dispatchers.IO) { LayoutImageLoader.clearCache(context) }
-                    cacheCleared++
-                    container.actions.toast("Deleted the downloaded layout images")
+            item {
+                SettingsItem("Layout history", "Restore one of the last 10 layouts", enabled = hasHistory) { nav.push(Screen.History) }
+            }
+            item {
+                SettingsItem("All apps", "Every installed app") { nav.push(Screen.AppDrawer) }
+            }
+            item {
+                SettingsItem("Hidden apps", "Apps left out of your rows and grids") { nav.push(Screen.HiddenApps) }
+            }
+            item {
+                SettingsItem("Make OwnTV your Home screen", "What to do on Google TV") { nav.push(Screen.Help) }
+            }
+            item {
+                SettingsItem(
+                    "Clear image cache",
+                    when (val bytes = cacheBytes) {
+                        null -> "Delete the images downloaded for your layouts"
+                        0L -> "No downloaded layout images"
+                        else -> "Delete ${Formatter.formatShortFileSize(context, bytes)} of downloaded layout images; they download again when shown"
+                    },
+                ) {
+                    scope.launch {
+                        withContext(Dispatchers.IO) { LayoutImageLoader.clearCache(context) }
+                        cacheCleared++
+                        container.actions.toast("Deleted the downloaded layout images")
+                    }
                 }
             }
-            SettingsItem("Android settings", "Open the TV's system settings") { container.actions.openSystemSettings() }
-            SettingsItem("Updates", updateSummary(update, container.updater)) { nav.push(Screen.Updates) }
-            SettingsItem("Performance metrics", metricsSummary(metricsMode)) { nav.push(Screen.Performance) }
-            SettingsItem("About", "OwnTV ${container.updater.installedVersionName}, layout format v$CURRENT_SCHEMA_VERSION") {}
+            item {
+                SettingsItem("Android settings", "Open the TV's system settings") { container.actions.openSystemSettings() }
+            }
+            item {
+                SettingsItem("Updates", updateSummary(update, container.updater)) { nav.push(Screen.Updates) }
+            }
+            item {
+                SettingsItem("Performance metrics", metricsSummary(metricsMode)) { nav.push(Screen.Performance) }
+            }
+            item {
+                SettingsItem("About", "OwnTV ${container.updater.installedVersionName}, layout format v$CURRENT_SCHEMA_VERSION") {}
+            }
         }
     }
 }

@@ -1,11 +1,17 @@
 package dev.owntv.launcher.ui
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -17,14 +23,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.semantics.disabled
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.tv.material3.ListItem
@@ -61,6 +74,11 @@ fun SettingsScaffold(title: String, subtitle: String? = null, content: @Composab
     }
 }
 
+/**
+ * A settings row that looks and behaves like tv-material's `ListItem` (sizes, colors and focus scale are its
+ * defaults) at a fraction of the cost: a `ListItem` took about 20 ms to build on the emulator, and Settings
+ * builds a screenful of them when it opens. Disabled rows still take focus, as they did, and show an outline.
+ */
 @Composable
 fun SettingsItem(
     title: String,
@@ -69,14 +87,42 @@ fun SettingsItem(
     enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
-    ListItem(
-        selected = false,
-        onClick = onClick,
-        enabled = enabled,
-        modifier = modifier,
-        headlineContent = { Text(title) },
-        supportingContent = subtitle?.let { { Text(it) } },
-    )
+    val colors = MaterialTheme.colorScheme
+    var focused by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(if (focused && enabled) 1.05f else 1f, tween(150), label = "scale")
+    val content = when {
+        !enabled -> colors.onSurface.copy(alpha = if (focused) 0.64f else 0.48f)
+        focused -> colors.inverseOnSurface
+        else -> colors.onSurface
+    }
+    val shape = RoundedCornerShape(8.dp)
+    Column(
+        modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .fillMaxWidth()
+            .heightIn(min = if (subtitle == null) 48.dp else 64.dp)
+            .then(
+                when {
+                    focused && enabled -> Modifier.background(colors.inverseSurface, shape)
+                    // Centred on the edge like tv-material's focused-disabled border, half of it outside the row.
+                    focused -> Modifier.drawBehind {
+                        drawRoundRect(colors.border, cornerRadius = CornerRadius(8.dp.toPx()), style = Stroke(2.dp.toPx()))
+                    }
+                    else -> Modifier
+                },
+            )
+            .onFocusChanged { focused = it.isFocused }
+            .clickable(interactionSource = null, indication = null) { if (enabled) onClick() }
+            .semantics { if (!enabled) disabled() }
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Text(title, style = MaterialTheme.typography.titleMedium, color = content)
+        if (subtitle != null) Text(subtitle, style = MaterialTheme.typography.bodySmall, color = content.copy(alpha = content.alpha * 0.8f))
+    }
 }
 
 @Composable
