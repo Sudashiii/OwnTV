@@ -15,7 +15,7 @@ fun DecodeResult.paths(severity: Severity) = issues.filter { it.severity == seve
 /** Wraps a root node in a minimal valid document. */
 fun docWithRoot(root: String, extra: String = "") = """
     {
-      "schemaVersion": 2,
+      "schemaVersion": 3,
       $extra
       "pages": [ { "id": "home", "root": $root } ]
     }

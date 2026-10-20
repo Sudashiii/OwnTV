@@ -34,10 +34,10 @@ import dev.owntv.layout.model.ContainerNode
 import dev.owntv.layout.model.FolderNode
 import dev.owntv.layout.model.HeroNode
 import dev.owntv.layout.model.ImageNode
+import dev.owntv.layout.model.ListSource
 import dev.owntv.layout.model.Node
 import dev.owntv.layout.model.NodeCategory
 import dev.owntv.layout.model.NodeRegistry
-import dev.owntv.layout.model.PackagesSource
 import dev.owntv.layout.model.RecentSource
 import dev.owntv.layout.model.ShortcutNode
 import dev.owntv.layout.model.TextNode
@@ -231,7 +231,7 @@ internal fun Node.summary(): String? = when (this) {
 }
 
 private fun AppSource.describe(): String = when (this) {
-    is PackagesSource -> "${packages.size} chosen app(s)"
+    is ListSource -> "list $list"
     is AllAppsSource -> "all apps"
     is CategorySource -> "${category.name.lowercase()} only"
     is RecentSource -> "recently used"

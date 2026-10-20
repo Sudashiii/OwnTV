@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import dev.owntv.layout.model.AppGridNode
 import dev.owntv.layout.model.AppRowNode
+import dev.owntv.layout.model.AppSource
 import dev.owntv.layout.model.AppTileNode
 import dev.owntv.layout.model.Arrange
 import dev.owntv.layout.model.ClockNode
@@ -65,7 +66,9 @@ import dev.owntv.layout.model.HeroNode
 import dev.owntv.layout.model.ImageBackground
 import dev.owntv.layout.model.ImageFit
 import dev.owntv.layout.model.ImageNode
+import dev.owntv.layout.model.ListSource
 import dev.owntv.layout.model.Missing
+import dev.owntv.layout.model.listRef
 import dev.owntv.layout.model.Node
 import dev.owntv.layout.model.RowNode
 import dev.owntv.layout.model.ScrollAlign
@@ -280,21 +283,41 @@ private fun StackView(node: StackNode, modifier: Modifier) {
 
 // ---------------------------------------------------------------- app widgets
 
+/**
+ * The stored order behind [source] with everything it shows now, for long-press actions and move
+ * mode; null when the source's order is computed.
+ */
+@Composable
+internal fun rememberListContext(source: AppSource, missing: Missing, title: String?, columns: Int): ListContext? {
+    val catalog = LocalApps.current
+    return remember(catalog, source, missing, title, columns) {
+        source.listRef()?.let { ref -> ListContext(ref, title, catalog.resolve(source, missing, null).map { it.packageName }, columns) }
+    }
+}
+
 @Composable
 private fun AppRowView(node: AppRowNode, modifier: Modifier) {
     val catalog = LocalApps.current
     val entries = remember(catalog, node.source, node.missing, node.limit, node.skip) { catalog.resolve(node.source, node.missing, node.limit, node.skip) }
-    if (entries.isEmpty()) return
+    val list = rememberListContext(node.source, node.missing, node.title, 1)
+    val empty = entries.isEmpty()
+    if (empty && node.source !is ListSource) return
     Column(modifier) {
         node.title?.let { SectionTitle(it) }
-        ScrollSpecScope(node.scrollAlign, node.scrollMargin.dp) { restore ->
-            LazyRow(
-                modifier = Modifier.fillMaxWidth().bleedHorizontally(TILE_BLEED).focusRestorer(),
-                contentPadding = PaddingValues(horizontal = TILE_BLEED, vertical = 6.dp),
-                horizontalArrangement = Arrangement.spacedBy(node.spacing.dp),
-            ) {
-                items(entries, key = { it.packageName }) { entry ->
-                    restore { AppTileView(entry, node.tile, TileSizing(adaptive = false, fixedHeight = false)) }
+        if (empty) {
+            Box(Modifier.padding(vertical = 6.dp)) { AddAppsTile(list?.ref ?: return@Box, node.title, node.tile, TileSizing(adaptive = false, fixedHeight = false)) }
+            return@Column
+        }
+        CompositionLocalProvider(LocalListContext provides list) {
+            ScrollSpecScope(node.scrollAlign, node.scrollMargin.dp) { restore ->
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth().bleedHorizontally(TILE_BLEED).focusRestorer(),
+                    contentPadding = PaddingValues(horizontal = TILE_BLEED, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(node.spacing.dp),
+                ) {
+                    items(entries, key = { it.packageName }) { entry ->
+                        restore { AppTileView(entry, node.tile, TileSizing(adaptive = false, fixedHeight = false)) }
+                    }
                 }
             }
         }
@@ -305,18 +328,29 @@ private fun AppRowView(node: AppRowNode, modifier: Modifier) {
 private fun AppGridView(node: AppGridNode, modifier: Modifier) {
     val catalog = LocalApps.current
     val entries = remember(catalog, node.source, node.missing, node.limit, node.skip) { catalog.resolve(node.source, node.missing, node.limit, node.skip) }
-    if (entries.isEmpty()) return
+    val list = rememberListContext(node.source, node.missing, node.title, node.columns)
+    val empty = entries.isEmpty()
+    if (empty && node.source !is ListSource) return
     Column(modifier) {
         node.title?.let { SectionTitle(it) }
-        Column(Modifier.padding(top = 6.dp), verticalArrangement = Arrangement.spacedBy(node.spacing.dp)) {
-            entries.chunked(node.columns).forEach { rowEntries ->
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(node.spacing.dp)) {
-                    rowEntries.forEach { entry ->
-                        key(entry.packageName) {
-                            AppTileView(entry, node.tile, TileSizing(adaptive = true, fixedHeight = false), Modifier.weight(1f))
+        if (empty) {
+            Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(node.spacing.dp)) {
+                AddAppsTile(list?.ref ?: return@Row, node.title, node.tile, TileSizing(adaptive = true, fixedHeight = false), Modifier.weight(1f))
+                repeat(node.columns - 1) { Spacer(Modifier.weight(1f)) }
+            }
+            return@Column
+        }
+        CompositionLocalProvider(LocalListContext provides list) {
+            Column(Modifier.padding(top = 6.dp), verticalArrangement = Arrangement.spacedBy(node.spacing.dp)) {
+                entries.chunked(node.columns).forEach { rowEntries ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(node.spacing.dp)) {
+                        rowEntries.forEach { entry ->
+                            key(entry.packageName) {
+                                AppTileView(entry, node.tile, TileSizing(adaptive = true, fixedHeight = false), Modifier.weight(1f))
+                            }
                         }
+                        repeat(node.columns - rowEntries.size) { Spacer(Modifier.weight(1f)) }
                     }
-                    repeat(node.columns - rowEntries.size) { Spacer(Modifier.weight(1f)) }
                 }
             }
         }

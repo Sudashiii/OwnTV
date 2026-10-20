@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "name": "Gaming",
   "theme": {
     "colors": {
@@ -43,10 +43,7 @@
             "type": "app_row",
             "id": "cloud",
             "title": "Cloud & streaming",
-            "source": {
-              "type": "packages",
-              "packages": ["com.nvidia.geforcenow", "com.valvesoftware.steamlink", "com.limelight", "tv.twitch.android.app"]
-            },
+            "source": { "type": "list", "list": "cloud" },
             "tile": { "shape": "card", "size": "large" }
           },
           {

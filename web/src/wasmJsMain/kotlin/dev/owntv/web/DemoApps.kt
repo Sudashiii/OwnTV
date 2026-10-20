@@ -23,14 +23,14 @@ import dev.owntv.launcher.ui.render.AppCatalog
 import dev.owntv.launcher.ui.render.AppImages
 import dev.owntv.launcher.ui.render.AppInfo
 import dev.owntv.layout.model.AppGridNode
+import dev.owntv.layout.model.AppLists
 import dev.owntv.layout.model.AppRowNode
-import dev.owntv.layout.model.AppSource
 import dev.owntv.layout.model.AppTileNode
 import dev.owntv.layout.model.FolderNode
 import dev.owntv.layout.model.HeroNode
 import dev.owntv.layout.model.LaunchAppAction
 import dev.owntv.layout.model.LayoutDocument
-import dev.owntv.layout.model.PackagesSource
+import dev.owntv.layout.model.ListSource
 import dev.owntv.layout.model.ShortcutNode
 import dev.owntv.layout.model.walkNodes
 
@@ -67,10 +67,14 @@ object DemoApps {
     /** Ignored when naming unknown packages: "com.example.tv.app" becomes "Example". */
     private val genericParts = setOf("com", "org", "net", "tv", "app", "apps", "android", "androidtv", "livingroom", "mobile", "google")
 
-    /** The demo apps plus any package [doc] mentions, so pasted layouts never lose their tiles. */
-    fun catalogFor(doc: LayoutDocument?): AppCatalog {
+    /**
+     * The demo apps plus any package [doc] mentions, so pasted layouts never lose their tiles.
+     * [extracted] holds the package lists of an older layout, which then fill its lists.
+     */
+    fun catalogFor(doc: LayoutDocument?, extracted: AppLists? = null): AppCatalog {
         val known = demos.map { it.packageName }.toSet()
-        val extra = doc?.let(::referencedPackages).orEmpty().filter { it !in known }.map { Demo(it, labelFor(it)) }
+        val mentioned = doc?.let(::referencedPackages).orEmpty() + extracted?.lists?.values?.flatten().orEmpty()
+        val extra = mentioned.distinct().filter { it !in known }.map { Demo(it, labelFor(it)) }
         val all = demos + extra
         val apps = all.mapIndexed { index, demo ->
             AppInfo(
@@ -84,21 +88,48 @@ object DemoApps {
                 lastUpdateTime = 0L,
             )
         }
-        return AppCatalog(apps, loaded = true, recent = recent)
+        return AppCatalog(apps, loaded = true, recent = recent, lists = doc?.let(::demoLists)?.let { demo -> extracted?.let { demo.copy(lists = demo.lists + it.lists) } ?: demo } ?: AppLists())
     }
+
+    /** Stand-in contents for every list [doc] shows, as the TV would store them. */
+    private fun demoLists(doc: LayoutDocument): AppLists {
+        val names = linkedSetOf<String>()
+        doc.walkNodes { _, node, _, _ ->
+            val source = when (node) {
+                is AppRowNode -> node.source
+                is AppGridNode -> node.source
+                is FolderNode -> node.source
+                else -> null
+            }
+            (source as? ListSource)?.let { names += it.list }
+        }
+        val media = demos.filter { it.isTvApp && !it.isGame }.map { it.packageName }
+        return AppLists(lists = names.associateWith { name ->
+            knownLists[name] ?: when (name) {
+                "games" -> demos.filter { it.isGame }.map { it.packageName }
+                else -> {
+                    val start = (name.hashCode().toUInt() % media.size.toUInt()).toInt()
+                    (media.drop(start) + media.take(start)).take(6)
+                }
+            }
+        })
+    }
+
+    private val knownLists = mapOf(
+        "favorites" to listOf(
+            "com.google.android.youtube.tv", "com.netflix.ninja", "com.disney.disneyplus",
+            "com.amazon.amazonvideo.livingroom", "com.plexapp.android", "com.spotify.tv.android",
+        ),
+        "music" to listOf("com.spotify.tv.android", "com.google.android.youtube.tvmusic"),
+        "kids" to listOf("com.google.android.youtube.tvkids", "com.disney.disneyplus", "com.netflix.ninja"),
+    )
 
     private fun referencedPackages(doc: LayoutDocument): Set<String> {
         val packages = linkedSetOf<String>()
         packages += doc.apps.keys
-        fun source(source: AppSource) {
-            if (source is PackagesSource) packages += source.packages
-        }
         doc.walkNodes { _, node, _, _ ->
             when (node) {
                 is AppTileNode -> packages += node.packageName
-                is AppRowNode -> source(node.source)
-                is AppGridNode -> source(node.source)
-                is FolderNode -> source(node.source)
                 is ShortcutNode -> (node.action as? LaunchAppAction)?.let { packages += it.packageName }
                 is HeroNode -> node.slides.forEach { slide -> (slide.action as? LaunchAppAction)?.let { packages += it.packageName } }
                 else -> Unit

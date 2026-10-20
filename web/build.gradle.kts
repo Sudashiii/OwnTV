@@ -78,7 +78,7 @@ abstract class BundleWebSamples : DefaultTask() {
 val bundleWebSamples = tasks.register<BundleWebSamples>("bundleWebSamples") {
     examples.from(rootProject.fileTree("examples") { include("*.json") })
     looks.from(rootProject.fileTree("looks") { include("*.json") })
-    schema.set(rootProject.layout.projectDirectory.file("schema/owntv-layout.v2.schema.json"))
+    schema.set(rootProject.layout.projectDirectory.file("schema/owntv-layout.v3.schema.json"))
     outputDir.set(layout.buildDirectory.dir("generated/webSamples"))
 }
 

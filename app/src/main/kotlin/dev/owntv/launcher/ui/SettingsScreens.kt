@@ -66,6 +66,7 @@ fun SettingsScreen(container: AppContainer, nav: Navigator, state: LayoutState) 
             }
             SettingsItem("Layout history", "Restore one of the last 10 layouts", enabled = hasHistory) { nav.push(Screen.History) }
             SettingsItem("All apps", "Every installed app") { nav.push(Screen.AppDrawer) }
+            SettingsItem("Hidden apps", "Apps left out of your rows and grids") { nav.push(Screen.HiddenApps) }
             SettingsItem("Make OwnTV your Home screen", "What to do on Google TV") { nav.push(Screen.Help) }
             SettingsItem("Android settings", "Open the TV's system settings") { container.actions.openSystemSettings() }
             SettingsItem("Updates", updateSummary(update, container.updater)) { nav.push(Screen.Updates) }

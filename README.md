@@ -39,7 +39,7 @@ Then open http://localhost:8088. `just web-build` only builds, and `just web-ser
 ## Format
 
 - Reference: [docs/layout-spec.md](docs/layout-spec.md)
-- JSON Schema: [schema/owntv-layout.v2.schema.json](schema/owntv-layout.v2.schema.json)
+- JSON Schema: [schema/owntv-layout.v3.schema.json](schema/owntv-layout.v3.schema.json)
 - Examples: [examples/](examples/)
 
 ## Making OwnTV the Home app on Google TV

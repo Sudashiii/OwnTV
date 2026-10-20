@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "name": "Android TV classic",
   "description": "The Android TV 8-9 launcher: search orb, clock and settings at the top, then labeled rows of app banners and a settings row.",
   "theme": {

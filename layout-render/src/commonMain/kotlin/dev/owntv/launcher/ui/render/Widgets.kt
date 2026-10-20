@@ -31,6 +31,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -40,6 +41,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -65,6 +68,7 @@ import dev.owntv.layout.model.FolderNode
 import dev.owntv.layout.model.HeroFollow
 import dev.owntv.layout.model.HeroNode
 import dev.owntv.layout.model.HeroSlide
+import dev.owntv.layout.model.ListSource
 import dev.owntv.layout.model.Missing
 import dev.owntv.layout.model.Placeholders
 import dev.owntv.layout.model.TextNode
@@ -250,7 +254,8 @@ fun FolderView(node: FolderNode, sizing: TileSizing, modifier: Modifier) {
     val catalog = LocalApps.current
     val ancestors = LocalAncestors.current
     val entries = remember(catalog, node.source) { catalog.resolve(node.source, Missing.Hide, null) }
-    if (entries.isEmpty()) return
+    val list = rememberListContext(node.source, Missing.Hide, node.label, node.columns)
+    if (entries.isEmpty() && node.source !is ListSource) return
     var open by remember { mutableStateOf(false) }
     val interaction = remember { MutableInteractionSource() }
     val focused by interaction.collectIsFocusedAsState()
@@ -259,7 +264,7 @@ fun FolderView(node: FolderNode, sizing: TileSizing, modifier: Modifier) {
 
     TileFrame(node.tile, sizing, node.label, focused, modifier) { surfaceModifier ->
         TileSurface(
-            onClick = { open = true },
+            onClick = { if (entries.isEmpty()) list?.let { handler.editList(it.ref, node.label) } else open = true },
             onLongClick = { handler.longPress(ContextTarget(node.label, null, null, ancestors.lastOrNull())) },
             modifier = surfaceModifier,
             color = theme.color(node.color) ?: theme.surface,
@@ -268,10 +273,18 @@ fun FolderView(node: FolderNode, sizing: TileSizing, modifier: Modifier) {
             rim = node.tile.rim,
         ) {
             val apps = entries.mapNotNull { (it as? AppEntry.Installed)?.app }
-            if (node.tile.shape == TileShape.Icon) FolderPreview(apps.take(6)) else FolderBannerPreview(apps.take(9))
+            when {
+                apps.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Filled.Add, contentDescription = "Add apps", tint = theme.text, modifier = Modifier.size(28.dp))
+                }
+                node.tile.shape == TileShape.Icon -> FolderPreview(apps.take(6))
+                else -> FolderBannerPreview(apps.take(9))
+            }
         }
     }
-    if (open) FolderPanel(node, entries, onClose = { open = false })
+    if (open && entries.isNotEmpty()) {
+        CompositionLocalProvider(LocalListContext provides list) { FolderPanel(node, entries, onClose = { open = false }) }
+    }
 }
 
 /** Up to six small app icons in a 3 x 2 grid. */

@@ -2,6 +2,7 @@ package dev.owntv.launcher.data.layout
 
 import android.content.Context
 import dev.owntv.layout.codec.LayoutCodec
+import dev.owntv.layout.model.AppLists
 import dev.owntv.layout.model.BuiltInLayouts
 import dev.owntv.layout.model.LayoutDocument
 import dev.owntv.layout.validation.LayoutValidator
@@ -27,11 +28,15 @@ data class LayoutState(
 
 data class HistoryEntry(val file: File, val name: String, val savedAt: Long)
 
-/** Stores the active layout in app storage and keeps the last [MAX_HISTORY] versions for revert. */
+/**
+ * Stores the active layout in app storage and keeps the last [MAX_HISTORY] versions for revert.
+ * Package lists found in older layouts go to [keepLists], since the TV stores them apart now.
+ */
 class LayoutRepository(
     context: Context,
     scope: CoroutineScope,
     private val assets: BundledAssets,
+    private val keepLists: (AppLists) -> Unit,
 ) {
     private val dir = File(context.filesDir, "layouts")
     private val historyDir = File(dir, "history")
@@ -51,6 +56,7 @@ class LayoutRepository(
             if (currentFile.exists()) currentFile.readText() else assets.template(BundledAssets.DEFAULT_TEMPLATE)
         }.getOrNull()
         val result = text?.let { LayoutCodec.decode(it) }
+        result?.extractedLists?.let(keepLists)
         _state.value = if (result?.document != null) {
             LayoutState(result.document!!, result.issues)
         } else {
@@ -64,8 +70,12 @@ class LayoutRepository(
 
     fun currentJson(): String = LayoutCodec.encode(_state.value.document)
 
-    /** Makes [doc] the active layout. The previous layout goes into history. */
-    suspend fun apply(doc: LayoutDocument) = mutex.withLock {
+    /**
+     * Makes [doc] the active layout. The previous layout goes into history. [extracted] holds the
+     * package lists [doc] had before it was upgraded (see `DecodeResult.extractedLists`).
+     */
+    suspend fun apply(doc: LayoutDocument, extracted: AppLists? = null) = mutex.withLock {
+        extracted?.let(keepLists)
         withContext(Dispatchers.IO) {
             historyDir.mkdirs()
             val previous = _state.value
@@ -94,8 +104,8 @@ class LayoutRepository(
     }
 
     suspend fun restore(file: File): Boolean {
-        val doc = withContext(Dispatchers.IO) { LayoutCodec.decode(file.readText()).document } ?: return false
-        apply(doc)
+        val result = withContext(Dispatchers.IO) { LayoutCodec.decode(file.readText()) }
+        apply(result.document ?: return false, result.extractedLists)
         withContext(Dispatchers.IO) { file.delete() }
         return true
     }

@@ -19,13 +19,13 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 
-const val CURRENT_SCHEMA_VERSION = 2
+const val CURRENT_SCHEMA_VERSION = 3
 
 @Serializable
 @Doc("An OwnTV launcher layout. The screen is 960 x 540 dp; all sizes are in dp.")
 data class LayoutDocument(
     @EncodeDefault
-    @Doc("Format version. Use 2.")
+    @Doc("Format version. Use 3.")
     val schemaVersion: Int = CURRENT_SCHEMA_VERSION,
     @Doc("Name shown in launcher settings and layout history.")
     val name: String = "Untitled layout",
@@ -39,7 +39,7 @@ data class LayoutDocument(
     val styles: Map<String, JsonObject> = emptyMap(),
     @Doc("Default properties per node type, e.g. {\"app_row\": {\"spacing\": 24}}. Applied before styles; the node's own properties win.")
     val defaults: Map<String, JsonObject> = emptyMap(),
-    @Doc("Per-app settings keyed by package name: label, artwork, hero backdrop and description, hidden.")
+    @Doc("Per-app settings keyed by package name: label, artwork, hero backdrop and description.")
     val apps: Map<String, AppOverride> = emptyMap(),
     @Doc("Show a row of page tabs at the top when there is more than one page. Default false.")
     val pageTabs: Boolean = false,
@@ -77,8 +77,6 @@ data class AppOverride(
     val description: String? = null,
     @ColorValue @Doc("Tile background color behind the app's artwork.")
     val color: String? = null,
-    @Doc("Leave the app out of all, category, recent and folder sources. Explicit package lists still show it. Default false.")
-    val hidden: Boolean = false,
 )
 
 @Serializable

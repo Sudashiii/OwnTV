@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "name": "Streaming dashboard",
   "theme": {
     "colors": {
@@ -53,24 +53,14 @@
             "type": "app_row",
             "id": "streaming",
             "title": "Streaming",
-            "source": {
-              "type": "packages",
-              "packages": [
-                "com.netflix.ninja",
-                "com.disney.disneyplus",
-                "com.amazon.amazonvideo.livingroom",
-                "com.wbd.stream",
-                "com.apple.atve.androidtv.appletv",
-                "com.google.android.youtube.tv"
-              ]
-            },
+            "source": { "type": "list", "list": "streaming" },
             "tile": { "shape": "card", "size": "large" }
           },
           {
             "type": "app_row",
             "id": "music",
             "title": "Music",
-            "source": { "type": "packages", "packages": ["com.spotify.tv.android", "com.google.android.youtube.tvmusic"] },
+            "source": { "type": "list", "list": "music" },
             "tile": { "shape": "banner", "size": "medium" }
           },
           {

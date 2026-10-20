@@ -70,7 +70,7 @@ class FeaturesTest {
 
     private val styled = """
         {
-          "schemaVersion": 2,
+          "schemaVersion": 3,
           "styles": {
             "base": { "spacing": 40, "tile": { "shape": "icon", "size": "large" } },
             "fancy": { "style": "base", "tile": { "size": "small" }, "textStyle": "headline" }
@@ -117,7 +117,7 @@ class FeaturesTest {
     fun `unknown styles, cycles and bad style keys are reported`() {
         val result = LayoutCodec.decode(
             """
-            { "schemaVersion": 2,
+            { "schemaVersion": 3,
               "styles": { "a": { "style": "b" }, "b": { "style": "a" }, "c": { "id": "x", "nonsense": 1 } },
               "defaults": { "not_a_type": { "spacing": 4 } },
               "pages": [ { "id": "home", "root": { "type": "app_tile", "id": "t", "package": "a.b", "style": "missing" } } ] }
@@ -128,7 +128,7 @@ class FeaturesTest {
 
         val semantic = LayoutCodec.decode(
             """
-            { "schemaVersion": 2,
+            { "schemaVersion": 3,
               "styles": { "a": { "style": "b" }, "b": { "style": "a" } },
               "pages": [ { "id": "home", "root": { "type": "app_tile", "id": "t", "package": "a.b", "style": "missing" } } ] }
             """,
@@ -222,7 +222,7 @@ class FeaturesTest {
         )
         val doc = result.requireDocument()
         assertEquals(listOf(Severity.Info), result.issues.map { it.severity })
-        assertEquals(2, doc.schemaVersion)
+        assertEquals(3, doc.schemaVersion)
         val children = (doc.pages[0].root as ColumnNode).children
         assertEquals(TextStyleName.Headline, assertIs<TextNode>(children[0]).textStyle)
         assertEquals(TextStyleName.Title, assertIs<dev.owntv.layout.model.ClockNode>(children[1]).textStyle)

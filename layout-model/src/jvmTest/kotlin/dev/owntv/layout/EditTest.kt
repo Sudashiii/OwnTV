@@ -36,7 +36,7 @@ class EditTest {
     /** root column: [a (row: [a1, a2]), b (text), c (column: []), d (hero, target a)] */
     private fun sample(): LayoutDocument = LayoutCodec.decode(
         """
-        { "schemaVersion": 2, "pages": [ { "id": "home", "initialFocus": "a1", "root":
+        { "schemaVersion": 3, "pages": [ { "id": "home", "initialFocus": "a1", "root":
           { "type": "column", "id": "root", "children": [
             { "type": "row", "id": "a", "children": [
               { "type": "app_tile", "id": "a1", "package": "x.y", "focus": { "down": "b2" } },
@@ -196,9 +196,10 @@ class EditTest {
         assertEquals(FieldKind.ObjectList, hero.getValue("slides").kind)
 
         val source = Fields.forNode("app_row").first { it.name == "source" }
-        val packages = Fields.forDescriptor(Fields.subtypes(source.descriptor).getValue("packages")).single()
-        assertEquals(FieldKind.StringList, packages.kind)
-        assertEquals(FieldKind.Package, packages.itemKind)
+        val list = Fields.forDescriptor(Fields.subtypes(source.descriptor).getValue("list")).single()
+        assertEquals(FieldKind.Text, list.kind)
+        val exclude = Fields.forDescriptor(Fields.subtypes(source.descriptor).getValue("all")).first { it.name == "exclude" }
+        assertEquals(FieldKind.Package, exclude.itemKind)
     }
 
     @Test

@@ -32,7 +32,7 @@ import kotlin.math.floor
 
 /** Generates a JSON Schema (2020-12) for [LayoutDocument] from the serializers and their [Doc] annotations. */
 object JsonSchemaGenerator {
-    const val SCHEMA_ID = "https://owntv.dev/schema/owntv-layout.v2.schema.json"
+    const val SCHEMA_ID = "https://owntv.dev/schema/owntv-layout.v3.schema.json"
     const val COLOR_PATTERN = "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
 
     private val printer = Json {

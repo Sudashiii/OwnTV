@@ -38,6 +38,7 @@ import dev.owntv.layout.model.AppGridNode
 import dev.owntv.layout.model.ColumnNode
 import dev.owntv.layout.model.GoToPageAction
 import dev.owntv.layout.model.LayoutDocument
+import dev.owntv.layout.model.ListRef
 import dev.owntv.layout.model.OpenAppDrawerAction
 import dev.owntv.layout.model.OpenLauncherSettingsAction
 import dev.owntv.layout.model.NodeCommon
@@ -72,11 +73,15 @@ private fun rememberActionHandler(container: AppContainer, nav: Navigator, onLon
             }
 
             override fun longPress(target: ContextTarget) = onLongPress(target)
+
+            override fun editList(ref: ListRef, title: String?) {
+                if (ref is ListRef.Named) nav.push(Screen.ListEditor(ref.name, title))
+            }
         }
     }
 
 @Composable
-fun HomeScreen(container: AppContainer, nav: Navigator, state: LayoutState, catalog: AppCatalog) {
+fun HomeScreen(container: AppContainer, nav: Navigator, state: LayoutState, catalog: AppCatalog, arranger: LauncherArranger) {
     var menuTarget by remember { mutableStateOf<ContextTarget?>(null) }
     val handler = rememberActionHandler(container, nav) { menuTarget = it }
 
@@ -112,12 +117,13 @@ fun HomeScreen(container: AppContainer, nav: Navigator, state: LayoutState, cata
     }
 
     menuTarget?.let { target ->
-        ContextMenu(
+        TileMenu(
             target = target,
+            container = container,
+            nav = nav,
+            doc = state.document,
+            arranger = arranger,
             onDismiss = { menuTarget = null },
-            onOpen = { target.app?.let { handler.openApp(it) } },
-            onAppInfo = { target.packageName?.let(container.actions::openAppInfo) },
-            onLauncherSettings = { nav.push(Screen.Settings) },
             onEditLayout = { nav.push(Screen.Editor(target.nodeId)) },
         )
     }
@@ -149,7 +155,7 @@ private fun ProblemBanner(text: String, modifier: Modifier) {
 
 /** The built-in "all apps" screen, rendered with the active layout's theme. */
 @Composable
-fun AppDrawerScreen(container: AppContainer, nav: Navigator, state: LayoutState, catalog: AppCatalog) {
+fun AppDrawerScreen(container: AppContainer, nav: Navigator, state: LayoutState, catalog: AppCatalog, arranger: LauncherArranger) {
     val drawer = remember(state.document.theme) {
         LayoutDocument(
             name = "All apps",
@@ -167,7 +173,7 @@ fun AppDrawerScreen(container: AppContainer, nav: Navigator, state: LayoutState,
                             TextNode(id = "drawer_title", text = "All apps", textStyle = TextStyleName.Headline),
                             AppGridNode(
                                 id = "drawer_grid",
-                                source = AllAppsSource(includeNonTvApps = true, includeHidden = true),
+                                source = AllAppsSource(includeNonTvApps = true),
                                 columns = 7,
                                 tile = TileStyle(shape = TileShape.Icon, size = TileSize.Medium),
                             ),
@@ -181,18 +187,20 @@ fun AppDrawerScreen(container: AppContainer, nav: Navigator, state: LayoutState,
     val handler = rememberActionHandler(container, nav) { menuTarget = it }
     CompositionLocalProvider(
         LocalActionHandler provides handler,
-        LocalApps provides catalog,
+        LocalApps provides catalog.withShowHidden(true),
         LocalAppImages provides container.images,
     ) {
         LayoutView(drawer, pageId = null, onSelectPage = {}, focusTrigger = 0)
     }
     menuTarget?.let { target ->
-        ContextMenu(
+        TileMenu(
             target = target,
+            container = container,
+            nav = nav,
+            doc = state.document,
+            arranger = arranger,
             onDismiss = { menuTarget = null },
-            onOpen = { target.app?.let { handler.openApp(it) } },
-            onAppInfo = { target.packageName?.let(container.actions::openAppInfo) },
-            onLauncherSettings = { nav.push(Screen.Settings) },
+            onEditLayout = null,
         )
     }
 }

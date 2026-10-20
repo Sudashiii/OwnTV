@@ -78,7 +78,7 @@ class PreviewState {
             metrics.lastEdit = decoded.stats(decode, resolve, text.encodeToByteArray().size)
             metrics.startEdit()
             doc = decoded
-            catalog = DemoApps.catalogFor(decoded)
+            catalog = DemoApps.catalogFor(decoded, result.extractedLists)
             if (decoded.pages.none { it.id == pageId }) pageId = decoded.pages.first().id
         }
         report()

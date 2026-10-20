@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import dev.owntv.launcher.actions.ActionExecutor
 import dev.owntv.launcher.data.apps.AppImageLoader
+import dev.owntv.launcher.data.apps.AppListsRepository
 import dev.owntv.launcher.data.apps.InstalledAppsRepository
 import dev.owntv.launcher.data.apps.RecentAppsRepository
 import dev.owntv.launcher.data.layout.BundledAssets
@@ -34,7 +35,8 @@ class AppContainer(context: Context) {
     val apps = InstalledAppsRepository(context, scope)
     val recent = RecentAppsRepository(context, scope)
     val images = AppImageLoader(context)
-    val layouts = LayoutRepository(context, scope, assets)
+    val appLists = AppListsRepository(context, scope, assets)
+    val layouts = LayoutRepository(context, scope, assets, keepLists = appLists::seed)
     val actions = ActionExecutor(context, onLaunch = recent::recordLaunch)
     val urlImporter = UrlImporter()
     val files = FileImporter(context)
@@ -55,5 +57,6 @@ class AppContainer(context: Context) {
         spec = assets.layoutSpec(),
         apps = apps.apps.value.map { AiPromptBuilder.AppEntry(it.label, it.packageName, it.isGame, it.isTvApp) },
         currentLayoutJson = layouts.currentJson(),
+        lists = appLists.lists.value.lists,
     )
 }

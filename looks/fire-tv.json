@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "name": "Fire TV",
   "description": "Fire TV style: an icon menu in the top bar, a wide featured carousel and rows of app cards with a bold white outline.",
   "theme": {

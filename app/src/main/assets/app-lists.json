@@ -1,0 +1,30 @@
+{
+  "lists": {
+    "favorites": [
+      "com.google.android.youtube.tv",
+      "com.netflix.ninja",
+      "com.disney.disneyplus",
+      "com.amazon.amazonvideo.livingroom",
+      "com.plexapp.android",
+      "com.spotify.tv.android"
+    ],
+    "cloud": [
+      "com.nvidia.geforcenow",
+      "com.valvesoftware.steamlink",
+      "com.limelight",
+      "tv.twitch.android.app"
+    ],
+    "streaming": [
+      "com.netflix.ninja",
+      "com.disney.disneyplus",
+      "com.amazon.amazonvideo.livingroom",
+      "com.wbd.stream",
+      "com.apple.atve.androidtv.appletv",
+      "com.google.android.youtube.tv"
+    ],
+    "music": [
+      "com.spotify.tv.android",
+      "com.google.android.youtube.tvmusic"
+    ]
+  }
+}
