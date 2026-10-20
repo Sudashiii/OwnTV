@@ -188,14 +188,15 @@ class FeaturesTest {
             docWithRoot(
                 """
                 { "type": "column", "id": "root", "children": [ $TILE,
-                  { "type": "text", "id": "name", "text": "{focused} {description}", "showWhenFocused": "root" },
-                  { "type": "text", "id": "lost", "text": "x", "showWhenFocused": "ghost" }
+                  { "type": "text", "id": "name", "text": "{focused} {description}", "showWhenFocused": "root", "keepSpace": true },
+                  { "type": "text", "id": "lost", "text": "x", "showWhenFocused": "ghost" },
+                  { "type": "text", "id": "stray", "text": "x", "keepSpace": true }
                 ] }
                 """,
             ),
         )
         assertEquals(listOf("$.pages[0].root.children[2].showWhenFocused"), result.paths(Severity.Error))
-        assertEquals(emptyList(), result.paths(Severity.Warning))
+        assertEquals(listOf("$.pages[0].root.children[3].keepSpace"), result.paths(Severity.Warning))
     }
 
     @Test

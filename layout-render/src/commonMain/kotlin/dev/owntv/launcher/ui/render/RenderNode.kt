@@ -118,13 +118,28 @@ fun RenderNode(node: Node, modifier: Modifier = Modifier, fillByDefault: Boolean
     // Shown only while focus is inside another node. Previews have no focus, so it stays hidden there.
     val tracker = LocalFocusTracker.current
     val shown = !LocalPreviewMode.current && tracker?.current?.ancestors?.contains(showWhenFocused) == true
-    AnimatedVisibility(
-        visible = shown,
-        modifier = modifier,
-        enter = fadeIn(tween(200)) + expandVertically(tween(200), expandFrom = ComposeAlignment.Top),
-        exit = fadeOut(tween(150)) + shrinkVertically(tween(200), shrinkTowards = ComposeAlignment.Top),
-    ) {
-        NodeBody(node, Modifier, fillByDefault, fillWidthByDefault)
+    // While it fades out, {focused} and {description} keep naming the last tile focused inside, not the new one.
+    val held = remember { FocusTracker() }
+    SideEffect { if (shown) held.current = tracker?.current }
+    CompositionLocalProvider(LocalPlaceholderFocus provides held) {
+        if (node.common.keepSpace) {
+            // Keeps its place in the layout and only fades, so the nodes around it stay put.
+            val alpha by animateFloatAsState(if (shown) 1f else 0f, tween(200))
+            val fade = Modifier.graphicsLayer {
+                this.alpha = alpha
+                compositingStrategy = CompositingStrategy.ModulateAlpha
+            }
+            NodeBody(node, modifier.then(fade), fillByDefault, fillWidthByDefault)
+        } else {
+            AnimatedVisibility(
+                visible = shown,
+                modifier = modifier,
+                enter = fadeIn(tween(200)) + expandVertically(tween(200), expandFrom = ComposeAlignment.Top),
+                exit = fadeOut(tween(150)) + shrinkVertically(tween(200), shrinkTowards = ComposeAlignment.Top),
+            ) {
+                NodeBody(node, Modifier, fillByDefault, fillWidthByDefault)
+            }
+        }
     }
 }
 
