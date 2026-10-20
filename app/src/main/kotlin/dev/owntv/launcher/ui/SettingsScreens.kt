@@ -8,10 +8,14 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.focusable
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -19,6 +23,7 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import dev.owntv.launcher.AppContainer
 import dev.owntv.launcher.data.layout.HistoryEntry
+import dev.owntv.launcher.data.layout.LayoutImageLoader
 import dev.owntv.launcher.data.layout.LayoutState
 import dev.owntv.launcher.update.UpdateState
 import dev.owntv.layout.model.CURRENT_SCHEMA_VERSION
@@ -26,6 +31,7 @@ import dev.owntv.layout.validation.Severity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import android.text.format.Formatter
 import java.text.DateFormat
 import java.util.Date
 
@@ -37,6 +43,9 @@ fun SettingsScreen(container: AppContainer, nav: Navigator, state: LayoutState) 
     val update by container.updater.state.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { container.updater.checkIfStale() }
     val available = (update as? UpdateState.Available)?.update?.versionName
+    val context = LocalContext.current
+    var cacheCleared by remember { mutableIntStateOf(0) }
+    val cacheBytes by produceState<Long?>(null, cacheCleared) { value = withContext(Dispatchers.IO) { LayoutImageLoader.cacheSize(context) } }
 
     SettingsScaffold(
         "OwnTV settings",
@@ -68,6 +77,20 @@ fun SettingsScreen(container: AppContainer, nav: Navigator, state: LayoutState) 
             SettingsItem("All apps", "Every installed app") { nav.push(Screen.AppDrawer) }
             SettingsItem("Hidden apps", "Apps left out of your rows and grids") { nav.push(Screen.HiddenApps) }
             SettingsItem("Make OwnTV your Home screen", "What to do on Google TV") { nav.push(Screen.Help) }
+            SettingsItem(
+                "Clear image cache",
+                when (val bytes = cacheBytes) {
+                    null -> "Delete the images downloaded for your layouts"
+                    0L -> "No downloaded layout images"
+                    else -> "Delete ${Formatter.formatShortFileSize(context, bytes)} of downloaded layout images; they download again when shown"
+                },
+            ) {
+                scope.launch {
+                    withContext(Dispatchers.IO) { LayoutImageLoader.clearCache(context) }
+                    cacheCleared++
+                    container.actions.toast("Deleted the downloaded layout images")
+                }
+            }
             SettingsItem("Android settings", "Open the TV's system settings") { container.actions.openSystemSettings() }
             SettingsItem("Updates", updateSummary(update, container.updater)) { nav.push(Screen.Updates) }
             SettingsItem("About", "OwnTV ${container.updater.installedVersionName}, layout format v$CURRENT_SCHEMA_VERSION") {}
