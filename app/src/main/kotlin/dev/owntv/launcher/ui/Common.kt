@@ -11,12 +11,20 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.tv.material3.ListItem
@@ -81,9 +89,29 @@ fun ContextMenu(
     onLauncherSettings: () -> Unit,
     onEditLayout: (() -> Unit)? = null,
 ) {
+    // The menu opens while OK is still held from the long press. Swallow that press (its repeats and
+    // its release) so letting go does not click the first item; the next fresh press goes through.
+    var freshPress by remember { mutableStateOf(false) }
     Dialog(onDismissRequest = onDismiss) {
         Column(
             Modifier
+                .onPreviewKeyEvent { event ->
+                    if (event.key != Key.DirectionCenter && event.key != Key.Enter && event.key != Key.NumPadEnter) {
+                        return@onPreviewKeyEvent false
+                    }
+                    when (event.type) {
+                        KeyEventType.KeyDown -> {
+                            if (event.nativeKeyEvent.repeatCount == 0) freshPress = true
+                            !freshPress
+                        }
+                        KeyEventType.KeyUp -> {
+                            val stale = !freshPress
+                            freshPress = false
+                            stale
+                        }
+                        else -> false
+                    }
+                }
                 .widthIn(min = 320.dp, max = 420.dp)
                 .background(Color(0xFF1C1E24), RoundedCornerShape(16.dp))
                 .padding(16.dp),
