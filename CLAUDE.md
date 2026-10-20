@@ -4,7 +4,7 @@ Android TV (Google TV) launcher in Kotlin + Jetpack Compose for TV. The whole ho
 
 ## Working in this repo
 
-Don't use git worktrees: no `git worktree add`, no isolated worktree sessions. Work in this checkout, on a branch when the change needs one.
+Don't use git worktrees: no `git worktree add`, no isolated worktree sessions. Work in this checkout, on a branch when the change needs one. Exception: when the user says in the request that a worktree may be used, use one.
 
 Never install or run debug builds on a physical TV (a device in `adb devices` with an IP address). Test on the emulator (`emulator-5554`, AVD `owntv_gtv`) and pass `-s emulator-5554` to `adb` when more than one device is connected.
 

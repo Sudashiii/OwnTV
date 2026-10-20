@@ -90,7 +90,7 @@ private fun TileStyle.labelMode(): LabelMode = showLabel ?: if (shape == TileSha
 
 private fun TileStyle.ratio(): Float = aspectRatio ?: if (shape == TileShape.Icon) 1f else BANNER_RATIO
 
-private fun TileStyle.fixedWidth(): Dp = width?.dp ?: if (shape == TileShape.Icon) size.iconSize() else size.bannerWidth()
+internal fun TileStyle.fixedWidth(): Dp = width?.dp ?: if (shape == TileShape.Icon) size.iconSize() else size.bannerWidth()
 
 /**
  * How a tile is sized. Fixed tiles use the [TileStyle] size; adaptive tiles fill the width their
