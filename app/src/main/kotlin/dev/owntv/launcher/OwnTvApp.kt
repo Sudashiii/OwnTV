@@ -40,7 +40,7 @@ class AppContainer(context: Context) {
     val actions = ActionExecutor(context, onLaunch = recent::recordLaunch)
     val urlImporter = UrlImporter()
     val files = FileImporter(context)
-    val updater = Updater(context, scope, BuildConfig.UPDATE_URL)
+    val updater = Updater(context, scope, BuildConfig.UPDATE_URL, BuildConfig.RELEASES_URL)
 
     val paste = PasteSession(context, scope, object : PasteSession.Provider {
         override fun pastePage() = assets.pastePage()

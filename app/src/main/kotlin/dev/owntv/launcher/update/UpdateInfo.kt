@@ -1,6 +1,8 @@
 package dev.owntv.launcher.update
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 
 /** The `update.json` each GitHub release carries (see `.github/workflows/release.yml`). */
@@ -27,6 +29,53 @@ data class UpdateInfo(
         private val SHA256 = Regex("^[0-9a-fA-F]{64}$")
     }
 }
+
+/** One GitHub release in the version list: its notes, and where its own `update.json` (APK link and checksum) is. */
+data class ReleaseEntry(
+    val versionName: String,
+    val versionCode: Long,
+    val updateJsonUrl: String,
+    val notes: String,
+) {
+    companion object {
+        private val json = Json { ignoreUnknownKeys = true }
+        private val tag = Regex("^v?(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})$")
+
+        /** Same formula as `versionCodeOf` in app/build.gradle.kts: 1.2.3 is 1002003. */
+        fun versionCodeOf(versionName: String): Long? {
+            val (major, minor, patch) = tag.matchEntire(versionName)?.destructured ?: return null
+            return major.toLong() * 1_000_000 + minor.toLong() * 1_000 + patch.toLong()
+        }
+
+        /**
+         * The answer of GitHub's `releases` API, newest version first. Drafts, releases without an `update.json`
+         * and tags that are not `vX.Y.Z` are left out.
+         */
+        fun parseGitHub(text: String): Result<List<ReleaseEntry>> = runCatching {
+            json.decodeFromString(ListSerializer(GitHubRelease.serializer()), text).mapNotNull { release ->
+                if (release.draft) return@mapNotNull null
+                val code = versionCodeOf(release.tag) ?: return@mapNotNull null
+                val url = release.assets.firstOrNull { it.name == "update.json" }?.url ?: return@mapNotNull null
+                if (!url.startsWith("https://") && !url.startsWith("http://")) return@mapNotNull null
+                ReleaseEntry(release.tag.removePrefix("v"), code, url, release.body.orEmpty())
+            }.sortedByDescending { it.versionCode }
+        }
+    }
+}
+
+@Serializable
+private data class GitHubRelease(
+    @SerialName("tag_name") val tag: String,
+    val draft: Boolean = false,
+    val body: String? = null,
+    val assets: List<GitHubAsset> = emptyList(),
+)
+
+@Serializable
+private data class GitHubAsset(
+    val name: String,
+    @SerialName("browser_download_url") val url: String,
+)
 
 /** Release notes from `scripts/release.py`, reduced to what reads well on a TV: sections of plain bullet points. */
 object ReleaseNotes {
