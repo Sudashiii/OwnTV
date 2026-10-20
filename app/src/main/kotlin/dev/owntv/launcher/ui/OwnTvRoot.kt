@@ -15,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
@@ -64,8 +65,14 @@ fun OwnTvRoot(container: AppContainer, nav: Navigator) {
             LocalRenderMetrics provides container.perf.takeIf { metricsMode != MetricsMode.Off },
         ) {
             Box(Modifier.fillMaxSize().background(Color.Black)) {
+                // Home stays composed under the other screens, so going back does not build the whole layout
+                // again (that took most of a second). While covered it is measured but not placed: it does not
+                // draw and focus search skips it.
+                Box(Modifier.fillMaxSize().placedOnlyIf(nav.current == Screen.Home)) {
+                    HomeScreen(container, nav, layoutState, catalog, arranger)
+                }
                 when (val screen = nav.current) {
-                    Screen.Home -> HomeScreen(container, nav, layoutState, catalog, arranger)
+                    Screen.Home -> {}
                     Screen.AppDrawer -> AppDrawerScreen(container, nav, layoutState, catalog, arranger)
                     Screen.Settings -> SettingsScreen(container, nav, layoutState)
                     is Screen.Editor -> EditorScreen(container, nav, layoutState, catalog, screen.selectId)
@@ -87,4 +94,10 @@ fun OwnTvRoot(container: AppContainer, nav: Navigator) {
             }
         }
     }
+}
+
+/** Measures the content but places it only when [placed]; unplaced content keeps its state and does not draw. */
+private fun Modifier.placedOnlyIf(placed: Boolean) = layout { measurable, constraints ->
+    val placeable = measurable.measure(constraints)
+    layout(placeable.width, placeable.height) { if (placed) placeable.place(0, 0) }
 }
