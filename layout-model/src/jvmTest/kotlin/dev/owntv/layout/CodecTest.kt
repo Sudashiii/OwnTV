@@ -123,7 +123,7 @@ class CodecTest {
             {
               // a comment
               "schemaVersion": 3,
-              "pages": [ { "id": "home", "root": $TILE, }, ],
+              "pages": [ { "id": "home", "root": $TILE, }, { "id": "settings_page", "root": $SETTINGS_LINK, }, ],
             }
             ```
             Enjoy!
@@ -146,7 +146,7 @@ class CodecTest {
         assertNull(newer.document)
         assertEquals(listOf("$.schemaVersion"), newer.paths(Severity.Error))
 
-        val missing = LayoutCodec.decode("""{ "pages": [ { "id": "home", "root": $TILE } ] }""")
+        val missing = LayoutCodec.decode("""{ "pages": [ { "id": "home", "root": $TILE }, { "id": "settings_page", "root": $SETTINGS_LINK } ] }""")
         assertTrue(missing.ok)
         assertEquals(listOf("$.schemaVersion"), missing.paths(Severity.Warning))
     }
@@ -169,7 +169,7 @@ class CodecTest {
                 { "type": "app_row", "id": "favorites", "source": { "type": "packages", "packages": ["c.d", "a.b", "c.d"] } },
                 { "type": "folder", "id": "my.folder", "label": "F", "source": { "type": "packages", "packages": ["e.f"] } },
                 { "type": "app_grid", "id": "all", "source": { "type": "all" } }
-              ] } } ] }
+              ] } }, { "id": "settings_page", "root": $SETTINGS_LINK } ] }
             """,
         )
         val doc = result.requireDocument()

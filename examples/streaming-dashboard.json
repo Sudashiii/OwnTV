@@ -91,6 +91,14 @@
                 "icon": "settings",
                 "action": { "type": "open_system_settings" },
                 "tile": { "shape": "icon", "size": "small" }
+              },
+              {
+                "type": "shortcut",
+                "id": "launcher_settings",
+                "label": "OwnTV",
+                "icon": "menu",
+                "action": { "type": "open_launcher_settings" },
+                "tile": { "shape": "icon", "size": "small" }
               }
             ]
           }

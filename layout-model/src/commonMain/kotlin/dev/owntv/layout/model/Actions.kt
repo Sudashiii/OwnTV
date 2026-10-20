@@ -64,7 +64,7 @@ data class OpenSystemSettingsAction(
 
 @Serializable
 @SerialName("open_launcher_settings")
-@Doc("Opens OwnTV's own settings (import, templates, history).")
+@Doc("Opens OwnTV's own settings (import, templates, history, Android settings). Every layout needs at least one visible shortcut with this action, or it is rejected.")
 data object OpenLauncherSettingsAction : Action
 
 @Serializable

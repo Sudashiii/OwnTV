@@ -190,7 +190,7 @@ On the TV, long-press an app tile for:
 - `{ "type": "go_to_page", "page": "apps" }`
 - `{ "type": "open_app_drawer" }` — built-in list of all apps.
 - `{ "type": "open_system_settings", "screen": "main" | "network" | "bluetooth" | "display" | "sound" | "apps" | "date_time" | "accessibility" }`
-- `{ "type": "open_launcher_settings" }` — OwnTV's import, looks, templates and history.
+- `{ "type": "open_launcher_settings" }` — OwnTV's own settings: import, looks, templates, history, the layout editor and an entry that opens the Android settings. **Every layout needs at least one visible, focusable link to it** (a `shortcut` with this action, or a hero slide with it when `follow` is `slides`); see Validation.
 
 ## Complete example
 
@@ -227,7 +227,7 @@ On the TV, long-press an app tile for:
             "type": "row", "id": "actions", "spacing": 16,
             "children": [
               { "type": "shortcut", "id": "all", "label": "All apps", "icon": "apps", "style": "small_icon", "action": { "type": "open_app_drawer" } },
-              { "type": "shortcut", "id": "settings", "label": "Settings", "icon": "settings", "style": "small_icon", "action": { "type": "open_system_settings" } }
+              { "type": "shortcut", "id": "settings", "label": "Settings", "icon": "settings", "style": "small_icon", "action": { "type": "open_launcher_settings" } }
             ]
           },
           { "type": "app_grid", "id": "everything", "title": "All apps", "columns": 6, "source": { "type": "all" }, "tile": { "shape": "banner", "size": "small" } }
@@ -240,4 +240,4 @@ On the TV, long-press an app tile for:
 
 ## Validation
 
-OwnTV checks every layout before it can be applied and reports problems with a JSON path, for example `ERROR at $.pages[0].root.children[1].source: Missing required property "list".` Errors block the layout; warnings (unknown properties or placeholders, apps that are not installed, pages with nothing to focus) do not. Text around a ```json code block, comments and trailing commas are tolerated.
+OwnTV checks every layout before it can be applied and reports problems with a JSON path, for example `ERROR at $.pages[0].root.children[1].source: Missing required property "list".` Errors block the layout; a layout without a visible `open_launcher_settings` link is an error, because the TV could not reach OwnTV's settings (and through them the Android settings) any more. Warnings (unknown properties or placeholders, apps that are not installed, pages with nothing to focus) do not. Text around a ```json code block, comments and trailing commas are tolerated.

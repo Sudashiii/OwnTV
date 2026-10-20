@@ -44,7 +44,7 @@ class EditTest {
             { "type": "shortcut", "id": "b2", "label": "B", "action": { "type": "open_app_drawer" } },
             { "type": "column", "id": "c" },
             { "type": "hero", "id": "d", "target": "a" }
-          ] } } ] }
+          ] } }, { "id": "settings_page", "root": $SETTINGS_LINK } ] }
         """,
     ).requireDocument()
 

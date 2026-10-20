@@ -80,7 +80,7 @@ class FeaturesTest {
             { "type": "app_row", "id": "plain", "source": { "type": "all" } },
             { "type": "app_row", "id": "fancy_row", "style": "fancy", "source": { "type": "all" }, "tile": { "showLabel": "never" } },
             { "type": "text", "id": "t", "style": "fancy", "text": "Hi" }
-          ] } } ]
+          ] } }, { "id": "settings_page", "root": $SETTINGS_LINK } ]
         }
     """.trimIndent()
 
@@ -120,7 +120,7 @@ class FeaturesTest {
             { "schemaVersion": 3,
               "styles": { "a": { "style": "b" }, "b": { "style": "a" }, "c": { "id": "x", "nonsense": 1 } },
               "defaults": { "not_a_type": { "spacing": 4 } },
-              "pages": [ { "id": "home", "root": { "type": "app_tile", "id": "t", "package": "a.b", "style": "missing" } } ] }
+              "pages": [ { "id": "home", "root": { "type": "app_tile", "id": "t", "package": "a.b", "style": "missing" } }, { "id": "settings_page", "root": $SETTINGS_LINK } ] }
             """,
         )
         assertEquals(setOf("$.styles.c.id"), result.paths(Severity.Error).toSet())
@@ -130,7 +130,7 @@ class FeaturesTest {
             """
             { "schemaVersion": 3,
               "styles": { "a": { "style": "b" }, "b": { "style": "a" } },
-              "pages": [ { "id": "home", "root": { "type": "app_tile", "id": "t", "package": "a.b", "style": "missing" } } ] }
+              "pages": [ { "id": "home", "root": { "type": "app_tile", "id": "t", "package": "a.b", "style": "missing" } }, { "id": "settings_page", "root": $SETTINGS_LINK } ] }
             """,
         )
         assertNull(semantic.document)
@@ -193,7 +193,7 @@ class FeaturesTest {
                 { "type": "hero", "id": "h", "follow": "slides" },
                 { "type": "folder", "id": "f", "label": "Games", "source": { "type": "category", "category": "games" } },
                 { "type": "app_row", "id": "r", "source": { "type": "recent" }, "skip": 1 }
-              ] } } ] }
+              ] } }, { "id": "settings_page", "root": $SETTINGS_LINK } ] }
             """,
         )
         assertEquals(setOf("$.apps.not a package.banner"), result.paths(Severity.Error).toSet())
@@ -217,7 +217,7 @@ class FeaturesTest {
               { "type": "text", "id": "t", "text": "Hi", "style": "headline" },
               { "type": "clock", "id": "c", "style": "title" },
               { "type": "app_row", "id": "r", "source": { "type": "all" }, "tile": { "style": "icon", "size": "small" } }
-            ] } } ] }
+            ] } }, { "id": "settings_page", "root": $SETTINGS_LINK } ] }
             """,
         )
         val doc = result.requireDocument()

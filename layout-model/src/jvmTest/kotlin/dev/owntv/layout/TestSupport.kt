@@ -12,12 +12,15 @@ fun DecodeResult.requireDocument() = document ?: fail("Expected a document, got:
 
 fun DecodeResult.paths(severity: Severity) = issues.filter { it.severity == severity }.map { it.path }
 
-/** Wraps a root node in a minimal valid document. */
+/** Every layout needs a visible link to OwnTV's settings. */
+const val SETTINGS_LINK = """{ "type": "shortcut", "id": "settings_link", "label": "Settings", "icon": "settings", "action": { "type": "open_launcher_settings" } }"""
+
+/** Wraps a root node in a minimal valid document: the node's page plus a second page that links to OwnTV's settings. */
 fun docWithRoot(root: String, extra: String = "") = """
     {
       "schemaVersion": 3,
       $extra
-      "pages": [ { "id": "home", "root": $root } ]
+      "pages": [ { "id": "home", "root": $root }, { "id": "settings_page", "root": $SETTINGS_LINK } ]
     }
 """.trimIndent()
 

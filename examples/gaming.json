@@ -36,7 +36,9 @@
             "children": [
               { "type": "text", "id": "title", "text": "PLAYER ONE", "textStyle": "headline", "bold": true, "color": "@magenta" },
               { "type": "spacer", "id": "gap", "weight": 1 },
-              { "type": "clock", "id": "clock", "format": "HH:mm", "textStyle": "title", "color": "@primary" }
+              { "type": "clock", "id": "clock", "format": "HH:mm", "textStyle": "title", "color": "@primary" },
+              { "type": "spacer", "id": "settings_gap", "width": 24 },
+              { "type": "shortcut", "id": "settings_button", "label": "Settings", "icon": "settings", "action": { "type": "open_launcher_settings" }, "tile": { "shape": "icon", "size": "small" } }
             ]
           },
           {
