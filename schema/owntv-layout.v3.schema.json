@@ -58,6 +58,7 @@
               "hero",
               "text",
               "clock",
+              "network",
               "image",
               "spacer"
             ]
@@ -435,6 +436,9 @@
           "$ref": "#/$defs/Node.clock"
         },
         {
+          "$ref": "#/$defs/Node.network"
+        },
+        {
           "$ref": "#/$defs/Node.image"
         },
         {
@@ -595,6 +599,12 @@
           "minimum": 0,
           "maximum": 1
         },
+        "unfocusedOpacity": {
+          "description": "Opacity of the whole node while focus is not inside it, e.g. 0.5 dims every section except the focused one (Projectivy style). Default: no dimming.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
         "shadow": {
           "description": "Drop shadow size in dp. Default none.",
           "type": "integer",
@@ -633,6 +643,10 @@
         "revealOnFocus": {
           "description": "When something inside this node gets focus, scroll so the whole node is visible (like the Apple TV top shelf). Default false.",
           "type": "boolean"
+        },
+        "showWhenFocused": {
+          "description": "Id of a node on the same page: this node is only shown (and takes space) while focus is inside that node, e.g. the name and description of the focused tile under its section. Default: always shown.",
+          "type": "string"
         },
         "visible": {
           "description": "Set to false to hide the node without deleting it. Default true.",
@@ -839,6 +853,12 @@
           "minimum": 0,
           "maximum": 1
         },
+        "unfocusedOpacity": {
+          "description": "Opacity of the whole node while focus is not inside it, e.g. 0.5 dims every section except the focused one (Projectivy style). Default: no dimming.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
         "shadow": {
           "description": "Drop shadow size in dp. Default none.",
           "type": "integer",
@@ -877,6 +897,10 @@
         "revealOnFocus": {
           "description": "When something inside this node gets focus, scroll so the whole node is visible (like the Apple TV top shelf). Default false.",
           "type": "boolean"
+        },
+        "showWhenFocused": {
+          "description": "Id of a node on the same page: this node is only shown (and takes space) while focus is inside that node, e.g. the name and description of the focused tile under its section. Default: always shown.",
+          "type": "string"
         },
         "visible": {
           "description": "Set to false to hide the node without deleting it. Default true.",
@@ -1008,6 +1032,12 @@
           "minimum": 0,
           "maximum": 1
         },
+        "unfocusedOpacity": {
+          "description": "Opacity of the whole node while focus is not inside it, e.g. 0.5 dims every section except the focused one (Projectivy style). Default: no dimming.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
         "shadow": {
           "description": "Drop shadow size in dp. Default none.",
           "type": "integer",
@@ -1046,6 +1076,10 @@
         "revealOnFocus": {
           "description": "When something inside this node gets focus, scroll so the whole node is visible (like the Apple TV top shelf). Default false.",
           "type": "boolean"
+        },
+        "showWhenFocused": {
+          "description": "Id of a node on the same page: this node is only shown (and takes space) while focus is inside that node, e.g. the name and description of the focused tile under its section. Default: always shown.",
+          "type": "string"
         },
         "visible": {
           "description": "Set to false to hide the node without deleting it. Default true.",
@@ -1181,6 +1215,12 @@
           "minimum": 0,
           "maximum": 1
         },
+        "unfocusedOpacity": {
+          "description": "Opacity of the whole node while focus is not inside it, e.g. 0.5 dims every section except the focused one (Projectivy style). Default: no dimming.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
         "shadow": {
           "description": "Drop shadow size in dp. Default none.",
           "type": "integer",
@@ -1219,6 +1259,10 @@
         "revealOnFocus": {
           "description": "When something inside this node gets focus, scroll so the whole node is visible (like the Apple TV top shelf). Default false.",
           "type": "boolean"
+        },
+        "showWhenFocused": {
+          "description": "Id of a node on the same page: this node is only shown (and takes space) while focus is inside that node, e.g. the name and description of the focused tile under its section. Default: always shown.",
+          "type": "string"
         },
         "visible": {
           "description": "Set to false to hide the node without deleting it. Default true.",
@@ -1351,6 +1395,12 @@
           "minimum": 0,
           "maximum": 1
         },
+        "unfocusedOpacity": {
+          "description": "Opacity of the whole node while focus is not inside it, e.g. 0.5 dims every section except the focused one (Projectivy style). Default: no dimming.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
         "shadow": {
           "description": "Drop shadow size in dp. Default none.",
           "type": "integer",
@@ -1389,6 +1439,10 @@
         "revealOnFocus": {
           "description": "When something inside this node gets focus, scroll so the whole node is visible (like the Apple TV top shelf). Default false.",
           "type": "boolean"
+        },
+        "showWhenFocused": {
+          "description": "Id of a node on the same page: this node is only shown (and takes space) while focus is inside that node, e.g. the name and description of the focused tile under its section. Default: always shown.",
+          "type": "string"
         },
         "visible": {
           "description": "Set to false to hide the node without deleting it. Default true.",
@@ -1474,6 +1528,10 @@
         },
         "title": {
           "description": "Title above the row.",
+          "type": "string"
+        },
+        "titleIcon": {
+          "description": "Icon before the title: a shortcut icon name such as tv or smartphone, or an emoji.",
           "type": "string"
         },
         "tile": {
@@ -1611,6 +1669,12 @@
           "minimum": 0,
           "maximum": 1
         },
+        "unfocusedOpacity": {
+          "description": "Opacity of the whole node while focus is not inside it, e.g. 0.5 dims every section except the focused one (Projectivy style). Default: no dimming.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
         "shadow": {
           "description": "Drop shadow size in dp. Default none.",
           "type": "integer",
@@ -1649,6 +1713,10 @@
         "revealOnFocus": {
           "description": "When something inside this node gets focus, scroll so the whole node is visible (like the Apple TV top shelf). Default false.",
           "type": "boolean"
+        },
+        "showWhenFocused": {
+          "description": "Id of a node on the same page: this node is only shown (and takes space) while focus is inside that node, e.g. the name and description of the focused tile under its section. Default: always shown.",
+          "type": "string"
         },
         "visible": {
           "description": "Set to false to hide the node without deleting it. Default true.",
@@ -1720,11 +1788,12 @@
           "const": "category"
         },
         "category": {
-          "description": "games = apps marked as games; apps = everything that is not a game.",
+          "description": "games = apps marked as games; apps = everything that is not a game; mobile = phone apps sideloaded onto the TV (no TV launcher entry).",
           "type": "string",
           "enum": [
             "games",
-            "apps"
+            "apps",
+            "mobile"
           ]
         },
         "sort": {
@@ -1804,6 +1873,10 @@
         },
         "title": {
           "description": "Title above the grid.",
+          "type": "string"
+        },
+        "titleIcon": {
+          "description": "Icon before the title: a shortcut icon name such as tv or smartphone, or an emoji.",
           "type": "string"
         },
         "columns": {
@@ -1932,6 +2005,12 @@
           "minimum": 0,
           "maximum": 1
         },
+        "unfocusedOpacity": {
+          "description": "Opacity of the whole node while focus is not inside it, e.g. 0.5 dims every section except the focused one (Projectivy style). Default: no dimming.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
         "shadow": {
           "description": "Drop shadow size in dp. Default none.",
           "type": "integer",
@@ -1970,6 +2049,10 @@
         "revealOnFocus": {
           "description": "When something inside this node gets focus, scroll so the whole node is visible (like the Apple TV top shelf). Default false.",
           "type": "boolean"
+        },
+        "showWhenFocused": {
+          "description": "Id of a node on the same page: this node is only shown (and takes space) while focus is inside that node, e.g. the name and description of the focused tile under its section. Default: always shown.",
+          "type": "string"
         },
         "visible": {
           "description": "Set to false to hide the node without deleting it. Default true.",
@@ -2110,6 +2193,12 @@
           "minimum": 0,
           "maximum": 1
         },
+        "unfocusedOpacity": {
+          "description": "Opacity of the whole node while focus is not inside it, e.g. 0.5 dims every section except the focused one (Projectivy style). Default: no dimming.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
         "shadow": {
           "description": "Drop shadow size in dp. Default none.",
           "type": "integer",
@@ -2149,6 +2238,10 @@
           "description": "When something inside this node gets focus, scroll so the whole node is visible (like the Apple TV top shelf). Default false.",
           "type": "boolean"
         },
+        "showWhenFocused": {
+          "description": "Id of a node on the same page: this node is only shown (and takes space) while focus is inside that node, e.g. the name and description of the focused tile under its section. Default: always shown.",
+          "type": "string"
+        },
         "visible": {
           "description": "Set to false to hide the node without deleting it. Default true.",
           "type": "boolean"
@@ -2181,7 +2274,7 @@
           "$ref": "#/$defs/Action"
         },
         "icon": {
-          "description": "Icon: one of settings, home, search, star, info, play, favorite, apps, add, refresh, notifications, person, lock, menu, or any emoji such as \"🎬\".",
+          "description": "Icon: one of settings, home, search, star, info, info_outline, play, favorite, apps, add, add_circle, refresh, notifications, person, lock, menu, tv, live_tv, input, hdmi, smartphone, display, system, accessibility, android, wallpaper, wifi, wifi_off, ethernet, or any emoji such as \"🎬\".",
           "type": "string"
         },
         "image": {
@@ -2190,6 +2283,21 @@
         },
         "color": {
           "description": "Tile color. Default @surface.",
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+        },
+        "iconColor": {
+          "description": "Color of the icon and the label on the tile. Default @text.",
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+        },
+        "focusColor": {
+          "description": "Tile color while focused, e.g. a dark tile that is light when idle. Default: color.",
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+        },
+        "focusIconColor": {
+          "description": "Icon and label color while focused. Default: iconColor.",
           "type": "string",
           "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
         },
@@ -2295,6 +2403,12 @@
           "minimum": 0,
           "maximum": 1
         },
+        "unfocusedOpacity": {
+          "description": "Opacity of the whole node while focus is not inside it, e.g. 0.5 dims every section except the focused one (Projectivy style). Default: no dimming.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
         "shadow": {
           "description": "Drop shadow size in dp. Default none.",
           "type": "integer",
@@ -2334,6 +2448,10 @@
           "description": "When something inside this node gets focus, scroll so the whole node is visible (like the Apple TV top shelf). Default false.",
           "type": "boolean"
         },
+        "showWhenFocused": {
+          "description": "Id of a node on the same page: this node is only shown (and takes space) while focus is inside that node, e.g. the name and description of the focused tile under its section. Default: always shown.",
+          "type": "string"
+        },
         "visible": {
           "description": "Set to false to hide the node without deleting it. Default true.",
           "type": "boolean"
@@ -2361,6 +2479,9 @@
         },
         {
           "$ref": "#/$defs/Action.open_app_drawer"
+        },
+        {
+          "$ref": "#/$defs/Action.open_input"
         },
         {
           "$ref": "#/$defs/Action.open_launcher_settings"
@@ -2462,6 +2583,31 @@
       },
       "required": [
         "type"
+      ],
+      "additionalProperties": false
+    },
+    "Action.open_input": {
+      "type": "object",
+      "description": "Switches the TV to one of its inputs, e.g. HDMI 1. Only TVs have inputs; streaming boxes show a message.",
+      "properties": {
+        "type": {
+          "const": "open_input"
+        },
+        "input": {
+          "description": "hdmi1 to hdmi4, or av (composite).",
+          "type": "string",
+          "enum": [
+            "hdmi1",
+            "hdmi2",
+            "hdmi3",
+            "hdmi4",
+            "av"
+          ]
+        }
+      },
+      "required": [
+        "type",
+        "input"
       ],
       "additionalProperties": false
     },
@@ -2679,6 +2825,12 @@
           "minimum": 0,
           "maximum": 1
         },
+        "unfocusedOpacity": {
+          "description": "Opacity of the whole node while focus is not inside it, e.g. 0.5 dims every section except the focused one (Projectivy style). Default: no dimming.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
         "shadow": {
           "description": "Drop shadow size in dp. Default none.",
           "type": "integer",
@@ -2718,6 +2870,10 @@
           "description": "When something inside this node gets focus, scroll so the whole node is visible (like the Apple TV top shelf). Default false.",
           "type": "boolean"
         },
+        "showWhenFocused": {
+          "description": "Id of a node on the same page: this node is only shown (and takes space) while focus is inside that node, e.g. the name and description of the focused tile under its section. Default: always shown.",
+          "type": "string"
+        },
         "visible": {
           "description": "Set to false to hide the node without deleting it. Default true.",
           "type": "boolean"
@@ -2754,7 +2910,7 @@
     },
     "Node.text": {
       "type": "object",
-      "description": "Text, not focusable. May contain placeholders: {greeting}, {time}, {date}, {date:EEEE d MMMM}, {focused}, {page}. Write {{ for a literal {.",
+      "description": "Text, not focusable. May contain placeholders: {greeting}, {time}, {date}, {date:EEEE d MMMM}, {focused}, {description}, {page}. Write {{ for a literal {.",
       "properties": {
         "type": {
           "const": "text"
@@ -2826,6 +2982,10 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 20
+        },
+        "icon": {
+          "description": "Icon before the text, in the text's size and color: a shortcut icon name such as tv or input, or an emoji.",
+          "type": "string"
         },
         "width": {
           "description": "\"fill\" (all available width), \"wrap\" (fit content) or a number in dp. Default depends on the widget.",
@@ -2917,6 +3077,12 @@
           "minimum": 0,
           "maximum": 1
         },
+        "unfocusedOpacity": {
+          "description": "Opacity of the whole node while focus is not inside it, e.g. 0.5 dims every section except the focused one (Projectivy style). Default: no dimming.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
         "shadow": {
           "description": "Drop shadow size in dp. Default none.",
           "type": "integer",
@@ -2955,6 +3121,10 @@
         "revealOnFocus": {
           "description": "When something inside this node gets focus, scroll so the whole node is visible (like the Apple TV top shelf). Default false.",
           "type": "boolean"
+        },
+        "showWhenFocused": {
+          "description": "Id of a node on the same page: this node is only shown (and takes space) while focus is inside that node, e.g. the name and description of the focused tile under its section. Default: always shown.",
+          "type": "string"
         },
         "visible": {
           "description": "Set to false to hide the node without deleting it. Default true.",
@@ -3123,6 +3293,12 @@
           "minimum": 0,
           "maximum": 1
         },
+        "unfocusedOpacity": {
+          "description": "Opacity of the whole node while focus is not inside it, e.g. 0.5 dims every section except the focused one (Projectivy style). Default: no dimming.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
         "shadow": {
           "description": "Drop shadow size in dp. Default none.",
           "type": "integer",
@@ -3161,6 +3337,181 @@
         "revealOnFocus": {
           "description": "When something inside this node gets focus, scroll so the whole node is visible (like the Apple TV top shelf). Default false.",
           "type": "boolean"
+        },
+        "showWhenFocused": {
+          "description": "Id of a node on the same page: this node is only shown (and takes space) while focus is inside that node, e.g. the name and description of the focused tile under its section. Default: always shown.",
+          "type": "string"
+        },
+        "visible": {
+          "description": "Set to false to hide the node without deleting it. Default true.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type",
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "Node.network": {
+      "type": "object",
+      "description": "Connection indicator: a Wi-Fi, Ethernet or offline icon that follows the TV's network. Not focusable.",
+      "properties": {
+        "type": {
+          "const": "network"
+        },
+        "id": {
+          "type": "string"
+        },
+        "size": {
+          "description": "Icon size in dp. Default 24.",
+          "type": "integer",
+          "minimum": 12,
+          "maximum": 96
+        },
+        "color": {
+          "description": "Icon color. Default @text.",
+          "type": "string",
+          "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+        },
+        "width": {
+          "description": "\"fill\" (all available width), \"wrap\" (fit content) or a number in dp. Default depends on the widget.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "fill",
+                "wrap"
+              ]
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 4000
+            }
+          ]
+        },
+        "height": {
+          "description": "\"fill\" (all available height), \"wrap\" (fit content) or a number in dp. Default depends on the widget.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "fill",
+                "wrap"
+              ]
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 4000
+            }
+          ]
+        },
+        "weight": {
+          "description": "Share of the remaining space inside a row or column, like CSS flex-grow.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "padding": {
+          "description": "Inner padding in dp: a number, [horizontal, vertical] or [start, top, end, bottom].",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 400
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 400
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 400
+              },
+              "minItems": 4,
+              "maxItems": 4
+            }
+          ]
+        },
+        "background": {
+          "description": "Background behind this node: a color like \"#202020\" or \"@surface\", or a gradient or image object.",
+          "$ref": "#/$defs/Background"
+        },
+        "border": {
+          "description": "Outline around this node.",
+          "$ref": "#/$defs/BorderStyle"
+        },
+        "cornerRadius": {
+          "description": "Corner radius in dp of the background, border and shadow.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 200
+        },
+        "opacity": {
+          "description": "Opacity of the whole node, 0 to 1. Default 1.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "unfocusedOpacity": {
+          "description": "Opacity of the whole node while focus is not inside it, e.g. 0.5 dims every section except the focused one (Projectivy style). Default: no dimming.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "shadow": {
+          "description": "Drop shadow size in dp. Default none.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 48
+        },
+        "align": {
+          "description": "Position inside the parent. In a stack all 9 values apply; in a column only the horizontal part is used; in a row only the vertical part.",
+          "type": "string",
+          "enum": [
+            "top_start",
+            "top",
+            "top_end",
+            "start",
+            "center",
+            "end",
+            "bottom_start",
+            "bottom",
+            "bottom_end"
+          ]
+        },
+        "span": {
+          "description": "Number of grid columns this node covers. Only used inside a grid. Default 1.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 12
+        },
+        "style": {
+          "description": "Name of an entry in the document's styles. Its properties apply where this node does not set its own.",
+          "type": "string"
+        },
+        "focus": {
+          "description": "Where the D-pad goes from this node: ids of other nodes on the same page. On a container it applies when focus leaves the container in that direction.",
+          "$ref": "#/$defs/FocusLinks"
+        },
+        "revealOnFocus": {
+          "description": "When something inside this node gets focus, scroll so the whole node is visible (like the Apple TV top shelf). Default false.",
+          "type": "boolean"
+        },
+        "showWhenFocused": {
+          "description": "Id of a node on the same page: this node is only shown (and takes space) while focus is inside that node, e.g. the name and description of the focused tile under its section. Default: always shown.",
+          "type": "string"
         },
         "visible": {
           "description": "Set to false to hide the node without deleting it. Default true.",
@@ -3292,6 +3643,12 @@
           "minimum": 0,
           "maximum": 1
         },
+        "unfocusedOpacity": {
+          "description": "Opacity of the whole node while focus is not inside it, e.g. 0.5 dims every section except the focused one (Projectivy style). Default: no dimming.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
         "shadow": {
           "description": "Drop shadow size in dp. Default none.",
           "type": "integer",
@@ -3330,6 +3687,10 @@
         "revealOnFocus": {
           "description": "When something inside this node gets focus, scroll so the whole node is visible (like the Apple TV top shelf). Default false.",
           "type": "boolean"
+        },
+        "showWhenFocused": {
+          "description": "Id of a node on the same page: this node is only shown (and takes space) while focus is inside that node, e.g. the name and description of the focused tile under its section. Default: always shown.",
+          "type": "string"
         },
         "visible": {
           "description": "Set to false to hide the node without deleting it. Default true.",
@@ -3443,6 +3804,12 @@
           "minimum": 0,
           "maximum": 1
         },
+        "unfocusedOpacity": {
+          "description": "Opacity of the whole node while focus is not inside it, e.g. 0.5 dims every section except the focused one (Projectivy style). Default: no dimming.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
         "shadow": {
           "description": "Drop shadow size in dp. Default none.",
           "type": "integer",
@@ -3481,6 +3848,10 @@
         "revealOnFocus": {
           "description": "When something inside this node gets focus, scroll so the whole node is visible (like the Apple TV top shelf). Default false.",
           "type": "boolean"
+        },
+        "showWhenFocused": {
+          "description": "Id of a node on the same page: this node is only shown (and takes space) while focus is inside that node, e.g. the name and description of the focused tile under its section. Default: always shown.",
+          "type": "string"
         },
         "visible": {
           "description": "Set to false to hide the node without deleting it. Default true.",

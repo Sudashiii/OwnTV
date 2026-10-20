@@ -16,6 +16,7 @@ import dev.owntv.layout.model.ImageNode
 import dev.owntv.layout.model.ListSource
 import dev.owntv.layout.model.Node
 import dev.owntv.layout.model.NodeCommon
+import dev.owntv.layout.model.NetworkNode
 import dev.owntv.layout.model.OpenAppDrawerAction
 import dev.owntv.layout.model.RowNode
 import dev.owntv.layout.model.ShortcutNode
@@ -49,6 +50,7 @@ object NodeTemplates {
         )
         "text" -> TextNode(id, text = "Text")
         "clock" -> ClockNode(id)
+        "network" -> NetworkNode(id)
         "image" -> ImageNode(id, src = "https://", common = NodeCommon(width = Size.Fixed(160), height = Size.Fixed(90)))
         "spacer" -> SpacerNode(id, common = NodeCommon(width = Size.Fixed(24), height = Size.Fixed(24)))
         else -> null
@@ -68,6 +70,7 @@ object NodeTemplates {
         is HeroNode -> node.copy(id = id)
         is TextNode -> node.copy(id = id)
         is ClockNode -> node.copy(id = id)
+        is NetworkNode -> node.copy(id = id)
         is ImageNode -> node.copy(id = id)
         is SpacerNode -> node.copy(id = id)
         is UnknownNode -> node

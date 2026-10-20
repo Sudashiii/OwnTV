@@ -36,7 +36,9 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -88,7 +90,7 @@ fun TileSize.iconSize(): Dp = when (this) {
 
 private fun TileStyle.labelMode(): LabelMode = showLabel ?: if (shape == TileShape.Banner) LabelMode.Focused else LabelMode.Always
 
-private fun TileStyle.ratio(): Float = aspectRatio ?: if (shape == TileShape.Icon) 1f else BANNER_RATIO
+internal fun TileStyle.ratio(): Float = aspectRatio ?: if (shape == TileShape.Icon) 1f else BANNER_RATIO
 
 internal fun TileStyle.fixedWidth(): Dp = width?.dp ?: if (shape == TileShape.Icon) size.iconSize() else size.bannerWidth()
 
@@ -112,6 +114,7 @@ fun TileSurface(
     cornerRadius: Dp? = null,
     focusedScale: Float? = null,
     rim: Boolean = false,
+    focusedColor: Color? = null,
     content: @Composable BoxScope.() -> Unit,
 ) {
     val theme = LocalOwnTheme.current
@@ -127,7 +130,8 @@ fun TileSurface(
     val focused by interactionSource.collectIsFocusedAsState()
     val effects = theme.theme.focus
     val phase = rememberSwayPhase(focused && effects.motion == FocusMotion.Sway)
-    surfaces.Tile(onClick, onLongClick, modifier.sway(effects.motion, focused, phase), shape, color, focusedScale ?: theme.focusScale, interactionSource) {
+    val tileColor = if (focused && focusedColor != null) focusedColor else color
+    surfaces.Tile(onClick, onLongClick, modifier.sway(effects.motion, focused, phase), shape, tileColor, focusedScale ?: theme.focusScale, interactionSource) {
         content()
         if (rim) TileRim(shape)
         if (focused && effects.highlight) FocusSheen(phase)
@@ -303,6 +307,9 @@ fun ShortcutView(node: ShortcutNode, sizing: TileSizing, modifier: Modifier = Mo
         FocusedTile(node.label, launchPackage?.let { catalog[it] }, node.description, node.backdrop, ancestors)
     }
 
+    val iconColor = theme.color(node.iconColor)
+    val contentColor = if (focused && !LocalPreviewMode.current) theme.color(node.focusIconColor) ?: iconColor else iconColor
+
     TileFrame(node.tile, sizing, node.label, focused, modifier, showOutsideLabel = !labelInside) { surfaceModifier ->
         TileSurface(
             onClick = { handler.perform(node.action) },
@@ -312,19 +319,22 @@ fun ShortcutView(node: ShortcutNode, sizing: TileSizing, modifier: Modifier = Mo
             interactionSource = interaction,
             cornerRadius = node.tile.cornerRadius?.dp,
             rim = node.tile.rim,
+            focusedColor = theme.color(node.focusColor),
         ) {
-            if (node.image != null) {
-                AsyncImage(
-                    model = imageModel(node.image!!),
-                    contentDescription = node.label,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            } else if (labelInside) {
-                IconAndLabel(node.icon, node.label)
-            } else {
-                BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    ShortcutIcon(node.icon ?: "star", minOf(maxWidth, maxHeight) * 0.55f)
+            CompositionLocalProvider(LocalTileContentColor provides contentColor) {
+                if (node.image != null) {
+                    AsyncImage(
+                        model = imageModel(node.image!!),
+                        contentDescription = node.label,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                } else if (labelInside && node.tile.showLabel != LabelMode.Never) {
+                    IconAndLabel(node.icon, node.label)
+                } else {
+                    BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        ShortcutIcon(node.icon ?: "star", minOf(maxWidth, maxHeight) * 0.55f)
+                    }
                 }
             }
         }
@@ -343,9 +353,11 @@ fun IconAndLabel(icon: String?, label: String) {
                 TileLabel(label, TextStyleName.Title)
             }
         } else {
+            // Small tiles (round input buttons, say) get a smaller label so short names still fit.
+            val labelStyle = if (maxWidth < 64.dp) TextStyleName.Caption else TextStyleName.Body
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                 icon?.let { ShortcutIcon(it, iconSize); Spacer(Modifier.height(6.dp)) }
-                TileLabel(label, TextStyleName.Body)
+                TileLabel(label, labelStyle)
             }
         }
     }
@@ -416,7 +428,7 @@ private fun IconFallbackContent(app: AppInfo, label: String) {
 @Composable
 private fun TileLabel(text: String, style: TextStyleName) {
     val theme = LocalOwnTheme.current
-    Text(text, style = theme.textStyle(style, bold = true), color = theme.text, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+    Text(text, style = theme.textStyle(style, bold = true), color = LocalTileContentColor.current ?: theme.text, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
 }
 
 private val namedIcons: Map<String, ImageVector> = mapOf(
@@ -434,6 +446,21 @@ private val namedIcons: Map<String, ImageVector> = mapOf(
     "person" to Icons.Filled.Person,
     "lock" to Icons.Filled.Lock,
     "menu" to Icons.Filled.Menu,
+    "info_outline" to ExtraIcons.InfoOutline,
+    "add_circle" to ExtraIcons.AddCircle,
+    "tv" to ExtraIcons.Tv,
+    "live_tv" to ExtraIcons.LiveTv,
+    "input" to ExtraIcons.Input,
+    "hdmi" to ExtraIcons.Hdmi,
+    "smartphone" to ExtraIcons.Smartphone,
+    "display" to ExtraIcons.Display,
+    "system" to ExtraIcons.System,
+    "accessibility" to ExtraIcons.Accessibility,
+    "android" to ExtraIcons.Android,
+    "wallpaper" to ExtraIcons.Wallpaper,
+    "wifi" to ExtraIcons.Wifi,
+    "wifi_off" to ExtraIcons.WifiOff,
+    "ethernet" to ExtraIcons.Ethernet,
 )
 
 /** The metrics of the TV's default body text, so emoji icons sit where they always did. */
@@ -443,15 +470,18 @@ private val EmojiStyle = TextStyle(
     lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.None),
 )
 
-/** A named Material icon, or the string itself (an emoji) as text. */
+/** Color of icons and labels drawn on a tile; null means the theme's text color. */
+private val LocalTileContentColor = compositionLocalOf<Color?> { null }
+
+/** A named Material icon, or the string itself (an emoji) as text. [tint] defaults to the tile's content color. */
 @Composable
-fun ShortcutIcon(icon: String, size: Dp) {
-    val theme = LocalOwnTheme.current
+fun ShortcutIcon(icon: String, size: Dp, tint: Color? = null) {
+    val color = tint ?: LocalTileContentColor.current ?: LocalOwnTheme.current.text
     val vector = namedIcons[icon]
     if (vector != null) {
-        Icon(vector, contentDescription = null, tint = theme.text, modifier = Modifier.size(size))
+        Icon(vector, contentDescription = null, tint = color, modifier = Modifier.size(size))
     } else {
-        Text(icon, fontSize = (size.value * 0.8f).sp, color = theme.text, maxLines = 1, style = EmojiStyle)
+        Text(icon, fontSize = (size.value * 0.8f).sp, color = color, maxLines = 1, style = EmojiStyle)
     }
 }
 

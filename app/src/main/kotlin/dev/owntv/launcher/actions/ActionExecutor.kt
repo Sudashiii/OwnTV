@@ -4,15 +4,20 @@ import android.content.ActivityNotFoundException
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.media.tv.TvContract
+import android.media.tv.TvInputInfo
+import android.media.tv.TvInputManager
 import android.net.Uri
 import android.provider.Settings
 import android.widget.Toast
 import dev.owntv.layout.model.Action
 import dev.owntv.layout.model.IntentAction
 import dev.owntv.layout.model.LaunchAppAction
+import dev.owntv.layout.model.OpenInputAction
 import dev.owntv.layout.model.OpenSystemSettingsAction
 import dev.owntv.layout.model.OpenUrlAction
 import dev.owntv.layout.model.SettingsScreen
+import dev.owntv.layout.model.TvInput
 
 /** Runs the actions that leave the launcher (apps, URLs, intents, system settings). */
 class ActionExecutor(
@@ -25,6 +30,7 @@ class ActionExecutor(
         is LaunchAppAction -> launchApp(action.packageName)
         is OpenUrlAction -> start(Intent(Intent.ACTION_VIEW, Uri.parse(action.url)), "Nothing on this TV can open ${action.url}")
         is IntentAction -> start(buildIntent(action), "Could not start the intent")
+        is OpenInputAction -> openInput(action.input)
         is OpenSystemSettingsAction -> start(Intent(settingsAction(action.screen)), null) ||
             start(Intent(Settings.ACTION_SETTINGS), "Could not open settings")
         else -> false
@@ -52,6 +58,32 @@ class ActionExecutor(
     fun openSystemSettings() {
         start(Intent(Settings.ACTION_SETTINGS), "Could not open settings")
     }
+
+    /** Switches to a TV input through the system's TV app, like the remote's input button. */
+    private fun openInput(input: TvInput): Boolean {
+        val name = input.displayName()
+        val manager = context.getSystemService(Context.TV_INPUT_SERVICE) as? TvInputManager
+        val info = manager?.let { findInput(it.tvInputList, input) }
+        if (info == null) {
+            toast("This device has no $name input")
+            return false
+        }
+        return start(Intent(Intent.ACTION_VIEW, TvContract.buildChannelUriForPassthroughInput(info.id)), "Could not switch to $name")
+    }
+
+    /**
+     * Finds the input for [input] among the TV's own ports (devices behind HDMI-CEC have a parent and
+     * are skipped). HDMI ports are matched by the number in their label, else by their order.
+     */
+    private fun findInput(inputs: List<TvInputInfo>, input: TvInput): TvInputInfo? {
+        if (input == TvInput.Av) return inputs.firstOrNull { it.type == TvInputInfo.TYPE_COMPOSITE && it.parentId == null }
+        val number = input.ordinal + 1
+        val ports = inputs.filter { it.type == TvInputInfo.TYPE_HDMI && it.parentId == null }.sortedBy { it.id }
+        val numbered = Regex("(^|\\D)$number(\\D|$)")
+        return ports.firstOrNull { numbered.containsMatchIn(it.loadLabel(context).toString()) } ?: ports.getOrNull(number - 1)
+    }
+
+    private fun TvInput.displayName(): String = if (this == TvInput.Av) "AV" else "HDMI ${ordinal + 1}"
 
     private fun buildIntent(action: IntentAction): Intent = Intent().apply {
         action.action?.let { setAction(it) }

@@ -35,6 +35,7 @@ import dev.owntv.layout.model.FolderNode
 import dev.owntv.layout.model.HeroNode
 import dev.owntv.layout.model.ImageNode
 import dev.owntv.layout.model.ListSource
+import dev.owntv.layout.model.NetworkNode
 import dev.owntv.layout.model.Node
 import dev.owntv.layout.model.NodeCategory
 import dev.owntv.layout.model.NodeRegistry
@@ -225,6 +226,7 @@ internal fun Node.summary(): String? = when (this) {
     is HeroNode -> if (slides.isNotEmpty()) "${slides.size} slide(s), follows ${follow.name.lowercase()}" else "follows ${follow.name.lowercase()}"
     is TextNode -> text
     is ClockNode -> format
+    is NetworkNode -> "connection icon"
     is ImageNode -> src
     is ContainerNode -> "${children.size} item(s)"
     else -> null

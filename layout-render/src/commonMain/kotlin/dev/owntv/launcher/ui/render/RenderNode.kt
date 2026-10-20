@@ -1,5 +1,12 @@
 package dev.owntv.launcher.ui.render
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.relocation.BringIntoViewRequester
@@ -42,6 +49,9 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
@@ -68,6 +78,7 @@ import dev.owntv.layout.model.ImageFit
 import dev.owntv.layout.model.ImageNode
 import dev.owntv.layout.model.ListSource
 import dev.owntv.layout.model.Missing
+import dev.owntv.layout.model.NetworkNode
 import dev.owntv.layout.model.listRef
 import dev.owntv.layout.model.Node
 import dev.owntv.layout.model.RowNode
@@ -79,6 +90,7 @@ import dev.owntv.layout.model.StackNode
 import dev.owntv.layout.model.TextAlignment
 import dev.owntv.layout.model.TextNode
 import dev.owntv.layout.model.TextStyleName
+import dev.owntv.layout.model.TileShape
 import dev.owntv.layout.model.TileStyle
 import dev.owntv.layout.model.UnknownNode
 import dev.owntv.layout.model.VAlign
@@ -98,6 +110,26 @@ import dev.owntv.layout.model.Alignment as NodeAlignment
 @Composable
 fun RenderNode(node: Node, modifier: Modifier = Modifier, fillByDefault: Boolean = false, fillWidthByDefault: Boolean = false) {
     if (!node.visible) return
+    val showWhenFocused = node.common.showWhenFocused
+    if (showWhenFocused == null) {
+        NodeBody(node, modifier, fillByDefault, fillWidthByDefault)
+        return
+    }
+    // Shown only while focus is inside another node. Previews have no focus, so it stays hidden there.
+    val tracker = LocalFocusTracker.current
+    val shown = !LocalPreviewMode.current && tracker?.current?.ancestors?.contains(showWhenFocused) == true
+    AnimatedVisibility(
+        visible = shown,
+        modifier = modifier,
+        enter = fadeIn(tween(200)) + expandVertically(tween(200), expandFrom = ComposeAlignment.Top),
+        exit = fadeOut(tween(150)) + shrinkVertically(tween(200), shrinkTowards = ComposeAlignment.Top),
+    ) {
+        NodeBody(node, Modifier, fillByDefault, fillWidthByDefault)
+    }
+}
+
+@Composable
+private fun NodeBody(node: Node, modifier: Modifier, fillByDefault: Boolean, fillWidthByDefault: Boolean) {
     val metrics = LocalRenderMetrics.current
     if (metrics != null) SideEffect { metrics.nodeComposed() }
     val theme = LocalOwnTheme.current
@@ -115,6 +147,7 @@ fun RenderNode(node: Node, modifier: Modifier = Modifier, fillByDefault: Boolean
     }
 
     var outer = modifier.nodeSize(node, fillWidth = fillWidth, fillHeight = fillByDefault)
+    common.unfocusedOpacity?.let { if (!LocalPreviewMode.current) outer = outer.then(dimUnlessFocused(it)) }
     if (selected) outer = outer.bringIntoViewRequester(bringIntoView).border(3.dp, Color(0xFFFF4FD8), shape)
 
     // Focus: targets of links get a requester; containers with links or targets become focus groups.
@@ -176,6 +209,7 @@ private fun NodeContent(node: Node, outer: Modifier, padding: Modifier, sizing: 
         is HeroNode -> HeroView(node, modifier)
         is TextNode -> TextView(node, modifier)
         is ClockNode -> ClockView(node, modifier)
+        is NetworkNode -> NetworkView(node, modifier)
         is ImageNode -> AsyncImage(
             model = imageModel(node.src),
             contentDescription = null,
@@ -308,7 +342,7 @@ private fun AppRowView(node: AppRowNode, modifier: Modifier) {
     val empty = entries.isEmpty()
     if (empty && node.source !is ListSource) return
     Column(modifier) {
-        node.title?.let { SectionTitle(it) }
+        node.title?.let { SectionTitle(it, node.titleIcon, gap = 6.dp + focusGrowth(LocalOwnTheme.current, node.tile)) }
         if (empty) {
             Box(Modifier.padding(vertical = 6.dp)) { AddAppsTile(list?.ref ?: return@Box, node.title, node.tile, TileSizing(adaptive = false, fixedHeight = false)) }
             return@Column
@@ -337,7 +371,7 @@ private fun AppGridView(node: AppGridNode, modifier: Modifier) {
     val empty = entries.isEmpty()
     if (empty && node.source !is ListSource) return
     Column(modifier) {
-        node.title?.let { SectionTitle(it) }
+        node.title?.let { SectionTitle(it, node.titleIcon) }
         if (empty) {
             Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(node.spacing.dp)) {
                 AddAppsTile(list?.ref ?: return@Row, node.title, node.tile, TileSizing(adaptive = true, fixedHeight = false), Modifier.weight(1f))
@@ -363,14 +397,17 @@ private fun AppGridView(node: AppGridNode, modifier: Modifier) {
 }
 
 @Composable
-private fun SectionTitle(text: String) {
+private fun SectionTitle(text: String, icon: String?, gap: Dp = 6.dp) {
     val theme = LocalOwnTheme.current
-    Text(
-        text = text,
-        style = theme.textStyle(TextStyleName.Title, bold = true),
-        color = theme.text,
-        modifier = Modifier.padding(bottom = 6.dp),
-    )
+    val style = theme.textStyle(TextStyleName.Title, bold = true)
+    Row(Modifier.padding(bottom = gap), verticalAlignment = ComposeAlignment.CenterVertically) {
+        if (icon != null) {
+            val size = with(LocalDensity.current) { style.fontSize.toDp() } * 1.15f
+            ShortcutIcon(icon, size, tint = theme.text)
+            Spacer(Modifier.width(size * 0.45f))
+        }
+        Text(text = text, style = style, color = theme.text)
+    }
 }
 
 // ---------------------------------------------------------------- content widgets
@@ -406,7 +443,28 @@ private fun ClockView(node: ClockNode, modifier: Modifier) {
 
 // ---------------------------------------------------------------- modifiers and mappings
 
+/**
+ * Fades the node to [opacity] while focus is outside it and back to full opacity when focus enters.
+ * The alpha goes onto each drawing instead of an offscreen buffer: that buffer is only as big as the
+ * node and would cut off a focused tile that grows past the node's edge while the fade runs.
+ */
+@Composable
+private fun dimUnlessFocused(opacity: Float): Modifier {
+    var focusInside by remember { mutableStateOf(false) }
+    val alpha by animateFloatAsState(if (focusInside) 1f else opacity, tween(220))
+    return Modifier.onFocusChanged { focusInside = it.hasFocus }.graphicsLayer {
+        this.alpha = alpha
+        compositingStrategy = CompositingStrategy.ModulateAlpha
+    }
+}
+
 private val MIN_TILE_BLEED = 14.dp
+
+/** How far a focused tile of a row grows above its top edge, so the row's title stays clear of it. */
+private fun focusGrowth(theme: OwnTheme, tile: TileStyle): Dp {
+    val height = if (tile.shape == TileShape.Icon && tile.width == null) tile.size.iconSize() else tile.fixedWidth() / tile.ratio()
+    return height * ((theme.focusScale - 1f).coerceAtLeast(0f) / 2f)
+}
 
 /** How far a focused tile reaches past its bounds: its scale-up, border and glow. */
 private fun focusBleed(theme: OwnTheme, tile: TileStyle): Dp {

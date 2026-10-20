@@ -6,7 +6,7 @@ The entire home screen is described by one JSON document: rows, columns, grids a
 
 ## Looks
 
-**Launcher settings → Looks** has recreations of popular TV home screens: Google TV, Android TV classic, Apple TV (tvOS 26/27 Liquid Glass: full-bleed Top Shelf behind a glass dock, then the app grid), Fire TV, Roku and LG webOS. Use a whole look, or keep your layout and take only its colors, fonts, focus style and tile defaults. They live in [looks/](looks/) and are ordinary layouts, so they are good starting points for your own.
+**Launcher settings → Looks** has recreations of popular TV home screens: Google TV, Android TV classic, Apple TV (tvOS 26/27 Liquid Glass: full-bleed Top Shelf behind a glass dock, then the app grid), Fire TV, Roku, LG webOS and Projectivy Launcher (category sections over a wallpaper, inputs, the focused row bright and the rest dimmed). Use a whole look, or keep your layout and take only its colors, fonts, focus style and tile defaults. They live in [looks/](looks/) and are ordinary layouts, so they are good starting points for your own.
 
 ## Editing on the TV
 

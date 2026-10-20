@@ -5,6 +5,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -80,6 +81,12 @@ data class FontFamilies(
 )
 
 val LocalFontFamilies = staticCompositionLocalOf { FontFamilies() }
+
+/** How the device is online, for the network widget. */
+enum class NetworkState { Wifi, Ethernet, Offline }
+
+/** The device's connection. The TV app follows the system; the web preview shows Wi-Fi. */
+val LocalNetworkState = compositionLocalOf { NetworkState.Wifi }
 
 /** Counts renderer work for the web preview's metrics. Null on the TV. */
 interface RenderMetrics {

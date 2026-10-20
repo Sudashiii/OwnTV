@@ -42,9 +42,9 @@ Apps are not part of the layout. App nodes name a source: `list` (a named list k
 
 - `LayoutView` resolves styles, builds `OwnTheme` from `theme` (colors, tokens like `@primary`, fonts, focus style), picks the page, draws the background and optional page tabs, then `RenderNode(page.root)`.
 - `RenderNode` handles what every node shares (size, padding, border, shadow, focus links, glass, image/gradient background) and then dispatches on the node class (`NodeContent`). Containers lay children out; tiles, heroes and widgets live in `Tiles.kt` and `Widgets.kt`.
-- **Focus**: ids that are referenced (focus links, `initialFocus`, hero `target`) get a `FocusRequester` in a per-page `FocusRegistry`; `FocusTracker` follows what is focused for heroes. Without links, Compose's D-pad search picks the nearest widget. Long press on a tile opens its menu; `AppArranger` provides move mode.
+- **Focus**: ids that are referenced (focus links, `initialFocus`, hero `target`) get a `FocusRequester` in a per-page `FocusRegistry`; `FocusTracker` follows what is focused for heroes, `{focused}`/`{description}` and `showWhenFocused` (via the focused tile's ancestor ids). `unfocusedOpacity` watches the node's own focus state. Previews have no focus: there `unfocusedOpacity` is ignored and `showWhenFocused` nodes stay hidden. Without links, Compose's D-pad search picks the nearest widget. Long press on a tile opens its menu; `AppArranger` provides move mode.
 - **Glass** (`Glass.kt`, Haze) only blurs content marked with `glassSource` (page background, heroes, images).
-- **Platform seams** (`Platform.kt`): `AppInfo`, `AppImages`, `InteractiveSurfaces` (focusable tiles/tabs; the TV uses tv-material), `FontFamilies`, `assetUrl`, `RenderMetrics`. `android.*`, `androidx.tv.*` and `java.*` stay out of `commonMain` so the web build keeps working.
+- **Platform seams** (`Platform.kt`): `AppInfo`, `AppImages`, `InteractiveSurfaces` (focusable tiles/tabs; the TV uses tv-material), `FontFamilies`, `assetUrl`, `RenderMetrics`, `LocalNetworkState` (the `network` widget; the TV follows `ConnectivityManager`, the web shows Wi-Fi). `android.*`, `androidx.tv.*` and `java.*` stay out of `commonMain` so the web build keeps working.
 
 ## Images
 
