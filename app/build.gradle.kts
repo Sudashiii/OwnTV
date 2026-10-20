@@ -9,6 +9,10 @@ plugins {
 val releaseVersion: String? = providers.gradleProperty("owntv.version").orNull
 val releaseKeystore: String? = providers.environmentVariable("OWNTV_KEYSTORE_FILE").orNull
 
+/** Where Settings > Updates looks for new releases. The release workflow passes its own repository's URL. */
+val updateUrl: String = providers.gradleProperty("owntv.updateUrl").orNull
+    ?: "https://github.com/Sudashiii/OwnTV/releases/latest/download/update.json"
+
 /** 1.2.3 -> 1002003, so every release has a higher versionCode than the last and installs as an update. */
 fun versionCodeOf(version: String): Int {
     val parts = version.split(".").map { it.toIntOrNull() }
@@ -28,6 +32,7 @@ android {
         // The release workflow passes -Powntv.version=1.2.3 (the release tag); local builds are 0.0.0-dev.
         versionName = releaseVersion ?: "0.0.0-dev"
         versionCode = releaseVersion?.let(::versionCodeOf) ?: 1
+        buildConfigField("String", "UPDATE_URL", "\"$updateUrl\"")
     }
 
     signingConfigs {
@@ -56,6 +61,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     packaging {

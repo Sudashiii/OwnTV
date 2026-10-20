@@ -2,7 +2,8 @@ name: Release
 
 # Every push to main that brings a feat, fix or perf commit becomes a GitHub release. The version
 # and notes come from the conventional commits since the last vX.Y.Z tag (scripts/release.py).
-# The release has the signed APK and update.json, which describes it for an in-app updater:
+# The release has the signed APK and update.json, which describes it for the in-app updater
+# (Settings > Updates, app/.../update/Updater.kt):
 # https://github.com/<owner>/<repo>/releases/latest/download/update.json
 #
 # Pull requests run the same tests and build and show the notes their merge would release.
@@ -79,7 +80,10 @@ jobs:
           OWNTV_KEYSTORE_PASSWORD: ${{ secrets.OWNTV_KEYSTORE_PASSWORD }}
           OWNTV_KEY_ALIAS: ${{ secrets.OWNTV_KEY_ALIAS }}
           OWNTV_KEY_PASSWORD: ${{ secrets.OWNTV_KEY_PASSWORD }}
-        run: ./gradlew :layout-model:test :app:testDebugUnitTest :app:assembleRelease ${VERSION:+-Powntv.version=$VERSION}
+        run: >
+          ./gradlew :layout-model:test :app:testDebugUnitTest :app:assembleRelease
+          ${VERSION:+-Powntv.version=$VERSION}
+          "-Powntv.updateUrl=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/latest/download/update.json"
 
       - name: Collect the APK and update.json
         if: env.PUBLISH == 'true' && env.VERSION != ''

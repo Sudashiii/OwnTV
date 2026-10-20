@@ -54,6 +54,7 @@ fun OwnTvRoot(container: AppContainer, nav: Navigator) {
                     is Screen.LookPreview -> LookPreviewScreen(container, nav, screen.fileName, layoutState, catalog)
                     Screen.History -> HistoryScreen(container, nav)
                     Screen.Help -> HelpScreen(container)
+                    Screen.Updates -> UpdatesScreen(container)
                     is Screen.Preview -> PreviewScreen(container, nav, screen.result, screen.source, catalog)
                 }
             }
