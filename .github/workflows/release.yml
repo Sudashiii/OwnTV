@@ -93,13 +93,26 @@ jobs:
           case "$apk" in *-unsigned.apk) echo "::error::The APK is not signed."; exit 1 ;; esac
           mkdir "$RUNNER_TEMP/dist"
           cp "$apk" "$RUNNER_TEMP/dist/owntv-$VERSION.apk"
+          # The baseline profile as dex metadata, one per range of Android versions. The updater installs the
+          # matching one with the APK, so Android compiles OwnTV during the update.
+          dex_metadata='[]'
+          while read -r min max file; do
+            name="owntv-$VERSION-api$min.dm"
+            cp "$out/$file" "$RUNNER_TEMP/dist/$name"
+            dex_metadata=$(jq -c \
+              --argjson minSdk "$min" --argjson maxSdk "$max" \
+              --arg url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/download/v$VERSION/$name" \
+              --arg sha256 "$(sha256sum "$out/$file" | cut -d ' ' -f 1)" \
+              '. + [{minSdk: $minSdk, maxSdk: $maxSdk, url: $url, sha256: $sha256}]' <<< "$dex_metadata")
+          done < <(jq -r '.baselineProfiles[]? | "\(.minApi) \(.maxApi) \(.baselineProfiles[0])"' "$out/output-metadata.json")
           jq -n \
             --arg versionName "$VERSION" \
             --argjson versionCode "$(jq '.elements[0].versionCode' "$out/output-metadata.json")" \
             --arg apk "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/download/v$VERSION/owntv-$VERSION.apk" \
             --arg sha256 "$(sha256sum "$apk" | cut -d ' ' -f 1)" \
             --rawfile notes "$RUNNER_TEMP/notes.md" \
-            '{versionName: $versionName, versionCode: $versionCode, apk: $apk, sha256: $sha256, notes: $notes}' \
+            --argjson dexMetadata "$dex_metadata" \
+            '{versionName: $versionName, versionCode: $versionCode, apk: $apk, sha256: $sha256, notes: $notes, dexMetadata: $dexMetadata}' \
             > "$RUNNER_TEMP/dist/update.json"
           cat "$RUNNER_TEMP/dist/update.json"
 

@@ -2,8 +2,11 @@ package dev.owntv.launcher.update
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.jsonObject
 
 /** The `update.json` each GitHub release carries (see `.github/workflows/release.yml`). */
 @Serializable
@@ -13,8 +16,13 @@ data class UpdateInfo(
     val apk: String,
     val sha256: String,
     val notes: String = "",
+    /** Read leniently by [parse]: a broken entry is left out instead of failing the update. */
+    @Transient val dexMetadata: List<DexMetadata> = emptyList(),
 ) {
     fun isNewerThan(installedVersionCode: Long): Boolean = versionCode > installedVersionCode
+
+    /** The `.dm` built for Android API level [sdk], if the release has one. */
+    fun dexMetadataFor(sdk: Int): DexMetadata? = dexMetadata.firstOrNull { sdk in it.minSdk..it.maxSdk }
 
     companion object {
         private val json = Json { ignoreUnknownKeys = true }
@@ -23,12 +31,34 @@ data class UpdateInfo(
             .mapCatching { info ->
                 require(info.apk.startsWith("https://") || info.apk.startsWith("http://")) { "The APK link is not a web address" }
                 require(SHA256.matches(info.sha256)) { "The checksum is not a SHA-256 hash" }
-                info.copy(sha256 = info.sha256.lowercase())
+                info.copy(sha256 = info.sha256.lowercase(), dexMetadata = dexMetadataOf(text))
             }
+
+        private fun dexMetadataOf(text: String): List<DexMetadata> {
+            val entries = runCatching { json.parseToJsonElement(text).jsonObject["dexMetadata"] as? JsonArray }.getOrNull()
+            return entries.orEmpty().mapNotNull { entry ->
+                runCatching { json.decodeFromJsonElement(DexMetadata.serializer(), entry) }.getOrNull()
+                    ?.takeIf { (it.url.startsWith("https://") || it.url.startsWith("http://")) && SHA256.matches(it.sha256) }
+                    ?.let { it.copy(sha256 = it.sha256.lowercase()) }
+            }
+        }
 
         private val SHA256 = Regex("^[0-9a-fA-F]{64}$")
     }
 }
+
+/**
+ * A dex metadata file (`.dm`) with the release's baseline profile, built for API levels [minSdk] to [maxSdk].
+ * Installed next to the APK, it makes Android compile OwnTV during the install instead of running it interpreted
+ * until the next background dexopt.
+ */
+@Serializable
+data class DexMetadata(
+    val minSdk: Int,
+    val maxSdk: Int = Int.MAX_VALUE,
+    val url: String,
+    val sha256: String,
+)
 
 /** One GitHub release in the version list: its notes, and where its own `update.json` (APK link and checksum) is. */
 data class ReleaseEntry(

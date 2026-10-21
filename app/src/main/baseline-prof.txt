@@ -4,7 +4,8 @@
 # the .dm files next to the APK (build/outputs/apk/release/baselineProfiles/).
 # A plain install (adb install, PackageInstaller) ignores the profile in the APK: ProfileInstaller
 # hands it to ART on first launch and the next background dexopt compiles it. An install that
-# passes the .dm (adb install-multiple app.apk app.dm) compiles it right away (speed-profile).
+# passes the .dm (adb install-multiple app.apk app.dm) compiles it right away (speed-profile). The
+# release workflow publishes the .dm files and the in-app updater installs the matching one (Updater.kt).
 # Rule syntax: https://developer.android.com/topic/performance/baselineprofiles/manually-create-measure
 #
 # Every class (loaded at start-up) and every method (hot, start-up and post-start-up) in dev.owntv.
