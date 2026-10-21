@@ -47,6 +47,14 @@ class PerfStatsTest {
     }
 
     @Test
+    fun `frames that waited for a long frame point to the slowest frames, not to main thread work`() {
+        repeat(90) { stats.addFrame(frame(8.0), budget) }
+        repeat(10) { stats.addFrame(frame(300.0, "Home", FramePhase.Backlog to 280.0, FramePhase.Waiting to 5.0), budget) }
+        val hint = stats.report("test").hints().first()
+        assertTrue(hint.contains("waiting for the previous frame") && hint.contains("Slowest frames shows which one"), hint)
+    }
+
+    @Test
     fun `smooth sessions say so and few frames ask for more use`() {
         assertTrue(stats.report("test").hints().single().startsWith("Not enough frames"))
         repeat(200) { stats.addFrame(frame(7.0), budget) }

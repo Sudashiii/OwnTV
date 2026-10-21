@@ -72,9 +72,11 @@ class PerformanceMonitor(
     @Volatile
     var screen: String = "Home"
 
-    private val dir = File(context.filesDir, "metrics")
-    val reportFile = File(dir, "report.txt")
-    private val previousReportFile = File(dir, "previous-report.txt")
+    // App-specific external storage, so adb can read the report from release builds too (run-as needs a debug build).
+    // Lazy: looking the directory up touches the disk, and the monitor is created at start-up.
+    private val dir by lazy { context.getExternalFilesDir("metrics") ?: File(context.filesDir, "metrics") }
+    private val reportFile by lazy { File(dir, "report.txt") }
+    private val previousReportFile by lazy { File(dir, "previous-report.txt") }
     private var rotated = false
 
     private val processStart = Process.getStartUptimeMillis()
@@ -97,6 +99,9 @@ class PerformanceMonitor(
     @Volatile private var homeReadyAt = 0L
     @Volatile private var startupDone = false
     private var firstFrameSeen = false
+
+    /** When the main thread finished its part of the last frame (uptime nanoseconds). Only used on the frame thread. */
+    private var previousUiEndNanos = 0L
 
     private val frameListener = Window.OnFrameMetricsAvailableListener { _, metrics, dropped ->
         if (dropped > 0) stats.reportsDropped(dropped)
@@ -198,7 +203,7 @@ class PerformanceMonitor(
 
     fun report(): PerfReport = stats.report(header())
 
-    /** Writes the report for `adb shell run-as dev.owntv.launcher cat files/metrics/report.txt`. */
+    /** Writes the report for [REPORT_COMMAND]. */
     fun saveReport() {
         val text = report().toText()
         scope.launch(Dispatchers.IO) {
@@ -270,6 +275,13 @@ class PerformanceMonitor(
         val total = m.getMetric(FrameMetrics.TOTAL_DURATION) / 1e6
         val vsyncNanos = m.getMetric(FrameMetrics.INTENDED_VSYNC_TIMESTAMP)
         val endMs = (vsyncNanos / 1e6 + total)
+        val unknownNanos = m.getMetric(FrameMetrics.UNKNOWN_DELAY_DURATION)
+        // A frame due while the main thread still worked on the previous one waits for it; that part of
+        // the delay belongs to the previous frame, not to other work on the main thread.
+        val backlogNanos = (previousUiEndNanos - vsyncNanos).coerceIn(0L, unknownNanos)
+        previousUiEndNanos = vsyncNanos + unknownNanos + m.getMetric(FrameMetrics.INPUT_HANDLING_DURATION) +
+            m.getMetric(FrameMetrics.ANIMATION_DURATION) + m.getMetric(FrameMetrics.LAYOUT_MEASURE_DURATION) +
+            m.getMetric(FrameMetrics.DRAW_DURATION) + m.getMetric(FrameMetrics.SYNC_DURATION)
         if (m.getMetric(FrameMetrics.FIRST_DRAW_FRAME) == 1L) {
             // The first frame of a window is mostly one-off set-up: it counts for start-up only.
             if (measureStartup && !firstFrameSeen) stats.startup(firstFrameMs = endMs - processStart)
@@ -281,7 +293,8 @@ class PerformanceMonitor(
             stats.startup(homeReadyMs = endMs - processStart)
         }
         val phases = DoubleArray(FramePhase.entries.size)
-        phases[FramePhase.Waiting.ordinal] = m.getMetric(FrameMetrics.UNKNOWN_DELAY_DURATION) / 1e6
+        phases[FramePhase.Backlog.ordinal] = backlogNanos / 1e6
+        phases[FramePhase.Waiting.ordinal] = (unknownNanos - backlogNanos) / 1e6
         phases[FramePhase.Input.ordinal] = m.getMetric(FrameMetrics.INPUT_HANDLING_DURATION) / 1e6
         phases[FramePhase.Composition.ordinal] = m.getMetric(FrameMetrics.ANIMATION_DURATION) / 1e6
         phases[FramePhase.Layout.ordinal] = m.getMetric(FrameMetrics.LAYOUT_MEASURE_DURATION) / 1e6
@@ -327,6 +340,9 @@ class PerformanceMonitor(
     companion object {
         private const val TAG = "OwnTvPerf"
         private const val KEY_MODE = "mode"
+
+        /** Reads the saved report from a computer; works with release builds. */
+        const val REPORT_COMMAND = "adb shell cat /sdcard/Android/data/dev.owntv.launcher/files/metrics/report.txt"
 
         /** A press with no frame within this time changed nothing on screen. */
         private const val KEY_TIMEOUT_MS = 1500.0
