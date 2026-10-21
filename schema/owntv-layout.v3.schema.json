@@ -1594,7 +1594,7 @@
           ]
         },
         "scrollMargin": {
-          "description": "Distance in dp from the left kept when scrollAlign is start. Default 0.",
+          "description": "Distance in dp of the focused tile from the row's left edge when scrollAlign is start. Default 0 (in line with the title).",
           "type": "integer",
           "minimum": 0,
           "maximum": 400

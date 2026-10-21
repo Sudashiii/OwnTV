@@ -5,6 +5,7 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.focus.FocusRequester
@@ -236,7 +237,9 @@ val LocalPageTitle = staticCompositionLocalOf<String?> { null }
 @Composable
 fun rememberAppImage(app: AppInfo, kind: AppImages.Kind): ImageBitmap? {
     val loader = LocalAppImages.current ?: return null
-    val image by produceState(loader.cached(app, kind), app, kind) {
+    // Looked up once per app, not on every recomposition (the cache key is built each time).
+    val initial = remember(loader, app, kind) { loader.cached(app, kind) }
+    val image by produceState(initial, app, kind) {
         if (value == null) value = loader.load(app, kind)
     }
     return image

@@ -29,7 +29,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.layout.LazyLayoutCacheWindow
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -38,11 +41,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -117,8 +122,13 @@ fun RenderNode(node: Node, modifier: Modifier = Modifier, fillByDefault: Boolean
         return
     }
     // Shown only while focus is inside another node. Previews have no focus, so it stays hidden there.
+    // Derived, so a focus change only recomposes the nodes whose answer flips, not every one of them.
     val tracker = LocalFocusTracker.current
-    val shown = !LocalPreviewMode.current && tracker?.current?.ancestors?.contains(showWhenFocused) == true
+    val preview = LocalPreviewMode.current
+    val shownState = remember(tracker, showWhenFocused, preview) {
+        derivedStateOf { !preview && tracker?.current?.ancestors?.contains(showWhenFocused) == true }
+    }
+    val shown = shownState.value
     if (node.common.keepSpace) {
         // Space is kept for a node that can get focus; one that shows nothing (an empty row) gets none.
         val page = LocalPage.current
@@ -127,8 +137,14 @@ fun RenderNode(node: Node, modifier: Modifier = Modifier, fillByDefault: Boolean
         if (watchedEmpty) return
     }
     // While it fades out, {focused} and {description} keep naming the last tile focused inside, not the new one.
+    // Collected outside composition, so only the texts in this node update, and only for tiles inside it.
     val held = remember { FocusTracker() }
-    SideEffect { if (shown) held.current = tracker?.current }
+    LaunchedEffect(tracker, showWhenFocused) {
+        if (tracker == null) return@LaunchedEffect
+        snapshotFlow { tracker.current }.collect { tile ->
+            if (tile != null && showWhenFocused in tile.ancestors) held.current = tile
+        }
+    }
     CompositionLocalProvider(LocalPlaceholderFocus provides held) {
         if (node.common.keepSpace) {
             // Keeps its place in the layout and only fades, so the nodes around it stay put.
@@ -250,13 +266,25 @@ private fun NodeContent(node: Node, outer: Modifier, padding: Modifier, sizing: 
 
 /**
  * Provides [align] to the scroll container itself and restores the outer behavior for its
- * children, so nested rows keep their own scrolling.
+ * children, so nested rows keep their own scrolling. The container keeps room at its edges for a
+ * focused tile's zoom and glow, and at least [minEdge].
  */
 @Composable
-private fun ScrollSpecScope(align: ScrollAlign, margin: Dp, container: @Composable (children: @Composable (@Composable () -> Unit) -> Unit) -> Unit) {
+private fun ScrollSpecScope(
+    align: ScrollAlign,
+    margin: Dp,
+    minEdge: Dp = 0.dp,
+    container: @Composable (children: @Composable (@Composable () -> Unit) -> Unit) -> Unit,
+) {
     val outer = LocalBringIntoViewSpec.current
-    val marginPx = with(LocalDensity.current) { margin.toPx() }
-    val spec = remember(align, marginPx) { scrollSpec(align, marginPx) }
+    val theme = LocalOwnTheme.current
+    val density = LocalDensity.current
+    val spec = remember(align, margin, minEdge, theme, density) {
+        with(density) {
+            val outline = theme.focusBorderWidth + if (theme.glow) theme.glowSize else 0.dp
+            scrollSpec(align, margin.toPx(), FocusReach(theme.focusScale, outline.toPx(), minEdge.toPx()))
+        }
+    }
     CompositionLocalProvider(LocalBringIntoViewSpec provides spec) {
         container { content -> CompositionLocalProvider(LocalBringIntoViewSpec provides outer) { content() } }
     }
@@ -356,6 +384,7 @@ internal fun rememberListContext(source: AppSource, missing: Missing, title: Str
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun AppRowView(node: AppRowNode, modifier: Modifier) {
     val catalog = LocalApps.current
@@ -371,8 +400,13 @@ private fun AppRowView(node: AppRowNode, modifier: Modifier) {
             return@Column
         }
         CompositionLocalProvider(LocalListContext provides list) {
-            ScrollSpecScope(node.scrollAlign, node.scrollMargin.dp) { restore ->
+            // The LazyRow reaches [bleed] past the row on each side, so its edges are the row's plus bleed.
+            ScrollSpecScope(node.scrollAlign, node.scrollMargin.dp + bleed, minEdge = bleed) { restore ->
+                // Tiles about a screen ahead are composed in idle time, so a held remote finds the next
+                // tile ready instead of building it while the key is handled.
+                val state = rememberLazyListState(cacheWindow = LazyLayoutCacheWindow(aheadFraction = 1f, behindFraction = 0.5f))
                 LazyRow(
+                    state = state,
                     modifier = Modifier.fillMaxWidth().bleed(bleed, bleed).focusRestorer(),
                     contentPadding = PaddingValues(horizontal = bleed, vertical = bleed),
                     horizontalArrangement = Arrangement.spacedBy(node.spacing.dp),
