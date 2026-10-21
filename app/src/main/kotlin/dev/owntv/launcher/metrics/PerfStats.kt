@@ -5,6 +5,7 @@ import kotlin.math.roundToLong
 
 /** Where a frame's time went, from Android's FrameMetrics. */
 enum class FramePhase(val label: String, val short: String) {
+    Backlog("Waiting for the previous frame", "prev"),
     Waiting("Main thread busy before the frame", "wait"),
     Input("Input handling", "input"),
     Composition("Composition and animation", "compose"),
@@ -546,6 +547,7 @@ data class PerfReport(
         FramePhase.entries.joinToString(" · ") { "${it.short} ${values[it.ordinal].ms(false)}" }
 
     private fun advice(phase: FramePhase): String = when (phase) {
+        FramePhase.Backlog -> "These frames waited for a long frame before them; Slowest frames shows which one, and its phases say why."
         FramePhase.Waiting -> "The main thread was busy before frames could start: file or network access, JSON parsing or image decoding on the main thread."
         FramePhase.Input -> "Input handling is slow: work in key handlers or focus changes."
         FramePhase.Composition -> "Too much recomposition: see Recomposition for the nodes that recompose most. Animations and state read high up in the tree cause it."

@@ -76,9 +76,9 @@ fun PerformanceScreen(container: AppContainer) {
                     perf.reset()
                     resets++
                 }
-                SettingsItem("Save report file", "adb shell run-as dev.owntv.launcher cat files/metrics/report.txt") {
+                SettingsItem("Save report file", PerformanceMonitor.REPORT_COMMAND) {
                     perf.saveReport()
-                    container.actions.toast("Saved files/metrics/report.txt")
+                    container.actions.toast("Saved the report file")
                 }
             }
             Spacer(Modifier.width(24.dp))

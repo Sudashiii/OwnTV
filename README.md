@@ -61,10 +61,10 @@ adb shell pm disable-user --user 0 com.google.android.apps.tv.launcherx
 
 **Launcher settings → Performance metrics** measures the launcher to find what makes it slow. **Background** measures quietly while OwnTV is in front; **Live overlay** also shows a small see-through panel (frames per second, frame times, the last slow frame, remote response, memory) that never takes focus. Off measures nothing.
 
-It records every frame of the main window with Android's FrameMetrics, split into phases (main thread busy, composition, layout, draw, bitmap upload, GPU), per screen and page, plus remote presses until the screen changes, layout node recompositions, image loads (memory, disk or network, size), memory and start-up. The Settings screen turns that into findings, such as which phase slow frames spend their time in. The same report is written to a file every 30 seconds and when OwnTV goes to the background (the previous session's goes to `previous-report.txt`):
+It records every frame of the main window with Android's FrameMetrics, split into phases (waiting for the previous frame, main thread busy, composition, layout, draw, bitmap upload, GPU), per screen and page, plus remote presses until the screen changes, layout node recompositions, image loads (memory, disk or network, size), memory and start-up. The Settings screen turns that into findings, such as which phase slow frames spend their time in. The same report is written to a file every 30 seconds and when OwnTV goes to the background (the previous session's goes to `previous-report.txt`):
 
 ```bash
-adb shell run-as dev.owntv.launcher cat files/metrics/report.txt
+adb shell cat /sdcard/Android/data/dev.owntv.launcher/files/metrics/report.txt
 ```
 
 Frame reports come from Android, so dialogs (tile menus) are not included, and emulator GPU timings are much slower than a real TV's.
