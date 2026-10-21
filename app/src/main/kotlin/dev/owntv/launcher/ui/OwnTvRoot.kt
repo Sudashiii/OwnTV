@@ -41,7 +41,8 @@ fun OwnTvRoot(container: AppContainer, nav: Navigator) {
     val metricsMode by container.perf.mode.collectAsStateWithLifecycle()
     val screenLabel = when (val screen = nav.current) {
         Screen.Home -> "Home" + (nav.pageId ?: layoutState.document.pages.firstOrNull()?.id)?.let { " ($it)" }.orEmpty()
-        else -> screen::class.simpleName ?: "Screen"
+        // R8 keeps the class names but not the nesting, so "Screen$Settings" is cut to "Settings".
+        else -> screen::class.simpleName?.substringAfterLast('$') ?: "Screen"
     }
     SideEffect { container.perf.screen = screenLabel }
 

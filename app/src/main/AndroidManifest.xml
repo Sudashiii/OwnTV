@@ -37,6 +37,9 @@
         android:theme="@style/Theme.OwnTV"
         android:usesCleartextTraffic="true">
 
+        <!-- Lets simpleperf and Perfetto profile release builds over adb; it does not make the app debuggable. -->
+        <profileable android:shell="true" />
+
         <activity
             android:name=".MainActivity"
             android:clearTaskOnLaunch="true"
