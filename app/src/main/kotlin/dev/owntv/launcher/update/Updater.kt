@@ -287,8 +287,23 @@ class Updater(
         }
     }
 
-    private suspend fun fetchInfo(url: String = updateUrl): UpdateInfo =
-        UpdateInfo.parse(fetchText(url, MAX_INFO_BYTES, "update.json")).getOrElse { error("update.json is not valid: ${it.message}") }
+    private suspend fun fetchInfo(url: String = updateUrl): UpdateInfo {
+        val info = UpdateInfo.parse(fetchText(url, MAX_INFO_BYTES, "update.json"))
+            .getOrElse { error("update.json is not valid: ${it.message}") }
+        if (info.apkSizeBytes != null) return info
+        // Releases from before download sizes were published still show the size without downloading the APK.
+        val size = withContext(Dispatchers.IO) {
+            try {
+                client.newCall(Request.Builder().url(info.apk).head().build()).execute().use { response ->
+                    if (response.isSuccessful) response.header("Content-Length")?.toLongOrNull()?.takeIf { it > 0 } else null
+                }
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                null // A server without HEAD support must not prevent updating.
+            }
+        }
+        return info.copy(apkSizeBytes = size)
+    }
 
     private suspend fun fetchText(url: String, maxBytes: Int, what: String): String =
         fetchBytes(url, maxBytes, what).toString(Charsets.UTF_8)
@@ -319,13 +334,13 @@ class Updater(
         folder.listFiles()?.forEach { it.delete() }
 
         val part = File(folder, "${target.name}.part")
-        _state.value = UpdateState.Downloading(update, 0, -1)
+        _state.value = UpdateState.Downloading(update, 0, update.apkSizeBytes ?: -1)
         val call = client.newCall(Request.Builder().url(update.apk).build())
         coroutineContext.job.invokeOnCompletion { call.cancel() }
         try {
             val hash = call.execute().use { response ->
                 if (!response.isSuccessful) error("The download failed with HTTP ${response.code}.")
-                val total = response.body.contentLength()
+                val total = response.body.contentLength().takeIf { it > 0 } ?: update.apkSizeBytes ?: -1
                 val digest = MessageDigest.getInstance("SHA-256")
                 var bytes = 0L
                 var reported = 0L

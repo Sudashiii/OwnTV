@@ -84,11 +84,11 @@ Every merge to `main` with a `feat`, `fix` or `perf` commit becomes a GitHub rel
 Each release has the signed `owntv-<version>.apk`, its baseline profile as dex metadata (`owntv-<version>-api28.dm` for Android 9 to 11, `owntv-<version>-api31.dm` for Android 12 and later) and an `update.json` for the in-app updater, always at `releases/latest/download/update.json`:
 
 ```json
-{ "versionName": "0.2.0", "versionCode": 2000, "apk": "https://github.com/…/owntv-0.2.0.apk", "sha256": "…", "notes": "### Features …",
+{ "versionName": "0.2.0", "versionCode": 2000, "apk": "https://github.com/…/owntv-0.2.0.apk", "apkSizeBytes": 25000000, "sha256": "…", "notes": "### Features …",
   "dexMetadata": [{ "minSdk": 31, "maxSdk": 2147483647, "url": "https://github.com/…/owntv-0.2.0-api31.dm", "sha256": "…" }, …] }
 ```
 
-`versionCode` is `major * 1000000 + minor * 1000 + patch`. Preview the next version and notes locally with `python3 scripts/release.py --notes -`.
+`versionCode` is `major * 1000000 + minor * 1000 + patch`. `apkSizeBytes` is the APK's download size in bytes, shown before downloading. Older releases can omit it; the updater reads the APK's HTTP headers instead. Preview the next version and notes locally with `python3 scripts/release.py --notes -`.
 
 ### Updating on the TV
 
