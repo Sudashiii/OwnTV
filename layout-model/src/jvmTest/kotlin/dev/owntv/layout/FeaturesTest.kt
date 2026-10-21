@@ -19,7 +19,9 @@ import dev.owntv.layout.validation.Severity
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNotSame
 import kotlin.test.assertNull
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 class FeaturesTest {
@@ -103,6 +105,17 @@ class FeaturesTest {
 
         val text = assertIs<TextNode>(children[2])
         assertEquals(TextStyleName.Headline, text.textStyle) // keys the node type lacks are skipped
+    }
+
+    @Test
+    fun `resolving the same document again reuses the result, an equal copy is resolved anew`() {
+        val doc = LayoutCodec.decode(styled).requireDocument()
+        val resolved = StyleResolver.resolve(doc)
+        assertSame(resolved, StyleResolver.resolve(doc))
+        val copy = doc.copy()
+        val again = StyleResolver.resolve(copy)
+        assertNotSame(resolved, again)
+        assertEquals(resolved, again)
     }
 
     @Test

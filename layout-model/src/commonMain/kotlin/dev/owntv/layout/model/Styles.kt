@@ -7,6 +7,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
+import kotlin.concurrent.Volatile
 
 /**
  * Applies `defaults` (per node type) and named `styles` to nodes. Precedence, lowest first:
@@ -23,10 +24,18 @@ object StyleResolver {
     /** Typed objects that are replaced, not merged: merging a gradient into an image makes no sense. */
     private val replacedWhole = setOf("source", "action", "background")
 
+    /**
+     * The last document resolved, by identity, and its result. Validation (on a background thread) and
+     * every view of the same layout resolve it again; this keeps the work off the main thread.
+     */
+    @Volatile
+    private var last: Pair<LayoutDocument, LayoutDocument>? = null
+
     fun resolve(doc: LayoutDocument): LayoutDocument {
         if (doc.styles.isEmpty() && doc.defaults.isEmpty()) return doc
+        last?.let { (from, resolved) -> if (from === doc) return resolved }
         val json = LayoutCodec.json.encodeToJsonElement(LayoutDocument.serializer(), doc).jsonObject
-        return LayoutCodec.json.decodeFromJsonElement(LayoutDocument.serializer(), expand(json))
+        return LayoutCodec.json.decodeFromJsonElement(LayoutDocument.serializer(), expand(json)).also { last = doc to it }
     }
 
     /** Expands styles in a raw layout object. Unknown style names and cycles are skipped here; the validator reports them. */
