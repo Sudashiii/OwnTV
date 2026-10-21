@@ -88,6 +88,7 @@ import dev.owntv.layout.model.listRef
 import dev.owntv.layout.model.Node
 import dev.owntv.layout.model.RowNode
 import dev.owntv.layout.model.ScrollAlign
+import dev.owntv.layout.model.ScrollMotion
 import dev.owntv.layout.model.ShortcutNode
 import dev.owntv.layout.model.Size
 import dev.owntv.layout.model.SpacerNode
@@ -273,16 +274,17 @@ private fun NodeContent(node: Node, outer: Modifier, padding: Modifier, sizing: 
 private fun ScrollSpecScope(
     align: ScrollAlign,
     margin: Dp,
+    motion: ScrollMotion?,
     minEdge: Dp = 0.dp,
     container: @Composable (children: @Composable (@Composable () -> Unit) -> Unit) -> Unit,
 ) {
     val outer = LocalBringIntoViewSpec.current
     val theme = LocalOwnTheme.current
     val density = LocalDensity.current
-    val spec = remember(align, margin, minEdge, theme, density) {
+    val spec = remember(align, margin, motion, minEdge, theme, density) {
         with(density) {
             val outline = theme.focusBorderWidth + if (theme.glow) theme.glowSize else 0.dp
-            scrollSpec(align, margin.toPx(), FocusReach(theme.focusScale, outline.toPx(), minEdge.toPx()))
+            scrollSpec(align, margin.toPx(), FocusReach(theme.focusScale, outline.toPx(), minEdge.toPx()), motion ?: theme.theme.scrollMotion)
         }
     }
     CompositionLocalProvider(LocalBringIntoViewSpec provides spec) {
@@ -292,7 +294,7 @@ private fun ScrollSpecScope(
 
 @Composable
 private fun ColumnView(node: ColumnNode, modifier: Modifier, padding: Modifier) {
-    ScrollSpecScope(node.scrollAlign, node.scrollMargin.dp) { restore ->
+    ScrollSpecScope(node.scrollAlign, node.scrollMargin.dp, node.scrollMotion) { restore ->
         val scroll = if (node.scroll) Modifier.verticalScroll(rememberScrollState()) else Modifier
         Column(
             modifier = modifier.then(scroll).then(padding),
@@ -310,7 +312,7 @@ private fun ColumnView(node: ColumnNode, modifier: Modifier, padding: Modifier) 
 
 @Composable
 private fun RowView(node: RowNode, modifier: Modifier, padding: Modifier) {
-    ScrollSpecScope(node.scrollAlign, node.scrollMargin.dp) { restore ->
+    ScrollSpecScope(node.scrollAlign, node.scrollMargin.dp, node.scrollMotion) { restore ->
         val scroll = if (node.scroll) Modifier.horizontalScroll(rememberScrollState()) else Modifier
         Row(
             modifier = modifier.then(scroll).then(padding),
@@ -401,7 +403,7 @@ private fun AppRowView(node: AppRowNode, modifier: Modifier) {
         }
         CompositionLocalProvider(LocalListContext provides list) {
             // The LazyRow reaches [bleed] past the row on each side, so its edges are the row's plus bleed.
-            ScrollSpecScope(node.scrollAlign, node.scrollMargin.dp + bleed, minEdge = bleed) { restore ->
+            ScrollSpecScope(node.scrollAlign, node.scrollMargin.dp + bleed, node.scrollMotion, minEdge = bleed) { restore ->
                 // Tiles about a screen ahead are composed in idle time, so a held remote finds the next
                 // tile ready instead of building it while the key is handled.
                 val state = rememberLazyListState(cacheWindow = LazyLayoutCacheWindow(aheadFraction = 1f, behindFraction = 0.5f))

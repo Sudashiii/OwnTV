@@ -50,6 +50,7 @@
         "scroll": true,
         "scrollAlign": "start",
         "scrollMargin": 240,
+        "scrollMotion": { "curve": "ease_out", "duration": 350 },
         "spacing": 16,
         "padding": [56, 20, 56, 0],
         "background": { "type": "gradient", "colors": ["#EB2A0718", "#99640E3A", "#5CE8337F"], "angle": 90 },

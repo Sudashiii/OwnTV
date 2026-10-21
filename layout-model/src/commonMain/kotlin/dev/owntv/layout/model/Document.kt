@@ -94,7 +94,27 @@ data class Theme(
     @Range(0.5, 2.0)
     @Doc("Multiplier for all text sizes. Default 1.")
     val fontScale: Float = 1f,
+    @Doc("How scrolling rows and columns move to the focused item. Containers can set their own. Default: a quick spring that keeps up with a held remote.")
+    val scrollMotion: ScrollMotion? = null,
 )
+
+@Serializable
+@Doc("How a scroll container moves to the focused item.")
+data class ScrollMotion(
+    @Doc("spring (quick, keeps up with a held remote), ease_out (starts fast, glides to a stop), ease_in_out (gentle start and stop) or linear. Default spring.")
+    val curve: ScrollCurve = ScrollCurve.Spring,
+    @Range(50.0, 1500.0)
+    @Doc("About how long one scroll takes, in milliseconds. Longer is slower and softer. Default 120.")
+    val duration: Int = 120,
+)
+
+@Serializable
+enum class ScrollCurve {
+    @SerialName("spring") Spring,
+    @SerialName("ease_out") EaseOut,
+    @SerialName("ease_in_out") EaseInOut,
+    @SerialName("linear") Linear,
+}
 
 @Serializable
 @Doc("Theme color tokens. Values must be hex colors (#RRGGBB or #AARRGGBB).")

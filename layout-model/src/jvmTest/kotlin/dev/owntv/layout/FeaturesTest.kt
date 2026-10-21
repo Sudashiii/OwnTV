@@ -9,6 +9,8 @@ import dev.owntv.layout.model.FocusLinks
 import dev.owntv.layout.model.GradientBackground
 import dev.owntv.layout.model.Placeholders
 import dev.owntv.layout.model.RecentSource
+import dev.owntv.layout.model.ScrollCurve
+import dev.owntv.layout.model.ScrollMotion
 import dev.owntv.layout.model.ShortcutNode
 import dev.owntv.layout.model.Size
 import dev.owntv.layout.model.StyleResolver
@@ -232,6 +234,22 @@ class FeaturesTest {
         assertEquals(listOf("$.pages[0].root.children[3].focusColor"), result.paths(Severity.Error))
         val bad = LayoutCodec.decode(docWithRoot("""{ "type": "shortcut", "id": "s", "label": "x", "action": { "type": "open_input", "input": "hdmi9" } }"""))
         assertEquals(listOf("$.pages[0].root.action.input"), bad.paths(Severity.Error))
+    }
+
+    @Test
+    fun `scroll motion decodes on the theme and on scroll containers`() {
+        val result = LayoutCodec.decode(
+            docWithRoot(
+                """{ "type": "column", "id": "root", "scroll": true, "scrollMotion": { "curve": "ease_out", "duration": 350 }, "children": [ $TILE ] }""",
+                extra = """ "theme": { "scrollMotion": { "duration": 90 } }, """,
+            ),
+        )
+        assertTrue(result.ok, result.issues.joinToString("\n"))
+        val doc = result.requireDocument()
+        assertEquals(ScrollMotion(ScrollCurve.Spring, 90), doc.theme.scrollMotion)
+        assertEquals(ScrollMotion(ScrollCurve.EaseOut, 350), (doc.pages[0].root as ColumnNode).scrollMotion)
+        val bad = LayoutCodec.decode(docWithRoot("""{ "type": "row", "id": "root", "scrollMotion": { "curve": "bouncy", "duration": 5000 }, "children": [ $TILE ] }"""))
+        assertEquals(setOf("$.pages[0].root.scrollMotion.curve", "$.pages[0].root.scrollMotion.duration"), bad.paths(Severity.Error).toSet())
     }
 
     @Test

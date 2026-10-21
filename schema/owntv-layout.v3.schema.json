@@ -121,6 +121,10 @@
           "type": "number",
           "minimum": 0.5,
           "maximum": 2
+        },
+        "scrollMotion": {
+          "description": "How scrolling rows and columns move to the focused item. Containers can set their own. Default: a quick spring that keeps up with a held remote.",
+          "$ref": "#/$defs/ScrollMotion"
         }
       },
       "additionalProperties": false
@@ -217,6 +221,29 @@
             "none",
             "sway"
           ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "ScrollMotion": {
+      "type": "object",
+      "description": "How a scroll container moves to the focused item.",
+      "properties": {
+        "curve": {
+          "description": "spring (quick, keeps up with a held remote), ease_out (starts fast, glides to a stop), ease_in_out (gentle start and stop) or linear. Default spring.",
+          "type": "string",
+          "enum": [
+            "spring",
+            "ease_out",
+            "ease_in_out",
+            "linear"
+          ]
+        },
+        "duration": {
+          "description": "About how long one scroll takes, in milliseconds. Longer is slower and softer. Default 120.",
+          "type": "integer",
+          "minimum": 50,
+          "maximum": 1500
         }
       },
       "additionalProperties": false
@@ -509,6 +536,10 @@
           "minimum": 0,
           "maximum": 400
         },
+        "scrollMotion": {
+          "description": "How the column scrolls to the focused child. Default: the theme's scrollMotion.",
+          "$ref": "#/$defs/ScrollMotion"
+        },
         "width": {
           "description": "\"fill\" (all available width), \"wrap\" (fit content) or a number in dp. Default depends on the widget.",
           "oneOf": [
@@ -766,6 +797,10 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 400
+        },
+        "scrollMotion": {
+          "description": "How the row scrolls to the focused child. Default: the theme's scrollMotion.",
+          "$ref": "#/$defs/ScrollMotion"
         },
         "width": {
           "description": "\"fill\" (all available width), \"wrap\" (fit content) or a number in dp. Default depends on the widget.",
@@ -1598,6 +1633,10 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 400
+        },
+        "scrollMotion": {
+          "description": "How the row scrolls to the focused tile. Default: the theme's scrollMotion.",
+          "$ref": "#/$defs/ScrollMotion"
         },
         "width": {
           "description": "\"fill\" (all available width), \"wrap\" (fit content) or a number in dp. Default depends on the widget.",

@@ -57,6 +57,7 @@ An OwnTV layout is one JSON document. The launcher renders it natively; nothing 
 
 - Token colors: `@background`, `@surface` (tiles), `@primary`, `@text`, `@textMuted`, `@focus`, plus every key in `custom` (`@accent2`). Theme colors themselves must be hex values. `#AARRGGBB` gives transparency.
 - `fontFamily`: `sans`, `serif`, `mono` or `cursive`. `cornerRadius` 0–64, `fontScale` 0.5–2.
+- `scrollMotion`: how scrolling rows and columns move to the focused item, `{ "curve": "ease_out", "duration": 350 }`. `curve` is `spring` (default: quick, keeps up with a held remote), `ease_out` (starts fast, glides to a stop), `ease_in_out` (gentle start and stop) or `linear`; `duration` is about how long one scroll takes in ms (50–1500, default 120). `column`, `row` and `app_row` can set their own `scrollMotion`, e.g. soft vertical scrolling between sections and quick rows. Keep rows quick (`spring`, 150 ms or less): when a row trails behind a held remote, every press has to build the next tile first.
 - `focus`: `scale` 1.0–1.5, `borderWidth` 0–12 (0 = no outline), `glow` on/off, `glowColor` (a dark color such as `#99000000` makes a drop shadow; default is the border color), `glowSize` 0–48, `highlight` (a light sheen moves across the focused tile, default false), `motion` (`none` default, or `sway`: the focused tile tilts gently in 3D like tvOS parallax).
 
 ## Backgrounds
@@ -94,8 +95,8 @@ Every node has `type` and `id` (both required) and may use:
 
 ## Containers
 
-- **`column`**: children top to bottom. `children`, `spacing` (gap, default 0), `contentAlign` (`start` / `center` / `end`, horizontal), `arrange` (`start`, `center`, `end`, `space_between`, `space_around`, `space_evenly`, vertical), `scroll` (`true` scrolls vertically; needed when content is taller than the screen), `scrollAlign` (`nearest` default, `start` = focused child scrolls to the top minus `scrollMargin` (default 32), `center`).
-- **`row`**: children left to right. `children`, `spacing`, `contentAlign` (`top` / `center` / `bottom`, default `center`), `arrange` (horizontal), `scroll` (horizontal), `scrollAlign`, `scrollMargin`.
+- **`column`**: children top to bottom. `children`, `spacing` (gap, default 0), `contentAlign` (`start` / `center` / `end`, horizontal), `arrange` (`start`, `center`, `end`, `space_between`, `space_around`, `space_evenly`, vertical), `scroll` (`true` scrolls vertically; needed when content is taller than the screen), `scrollAlign` (`nearest` default, `start` = focused child scrolls to the top minus `scrollMargin` (default 32), `center`), `scrollMotion` (see Theme).
+- **`row`**: children left to right. `children`, `spacing`, `contentAlign` (`top` / `center` / `bottom`, default `center`), `arrange` (horizontal), `scroll` (horizontal), `scrollAlign`, `scrollMargin`, `scrollMotion`.
 - **`grid`**: `columns` (required, 1–12), `children` (filled row by row), `spacing` (default 16). Children stretch to their cell width; tiles keep their aspect ratio unless they set `height`.
 - **`stack`**: layers children; later ones on top. `contentAlign` (9 positions, default `top_start`) and each child's `align`.
 
@@ -119,7 +120,7 @@ The page `root` fills the screen. Other containers wrap their content unless you
 
 Widgets:
 
-- **`app_row`**: horizontally scrolling tiles. `source` (required), `title`, `titleIcon` (icon before the title, see `shortcut`), `tile`, `spacing` (16), `skip` (leave out the first N apps), `limit`, `missing` (`hide` default, or `placeholder` for apps in a list that are not installed), `scrollAlign` (`start` keeps the focused tile at the left like Google TV and Projectivy; `center`; `nearest` default), `scrollMargin` (with `start`: distance of the focused tile from the row's left edge, default 0, so it lines up with the title). Width fills by default. A row on an empty list shows an "Add apps" tile; other rows with no apps are hidden.
+- **`app_row`**: horizontally scrolling tiles. `source` (required), `title`, `titleIcon` (icon before the title, see `shortcut`), `tile`, `spacing` (16), `skip` (leave out the first N apps), `limit`, `missing` (`hide` default, or `placeholder` for apps in a list that are not installed), `scrollAlign` (`start` keeps the focused tile at the left like Google TV and Projectivy; `center`; `nearest` default), `scrollMargin` (with `start`: distance of the focused tile from the row's left edge, default 0, so it lines up with the title), `scrollMotion` (see Theme). Width fills by default. A row on an empty list shows an "Add apps" tile; other rows with no apps are hidden.
 - **`app_grid`**: tiles in `columns` (default 5) that wrap onto new rows. Same properties as `app_row` except scrolling. Put it in a scrolling column if it may be taller than the screen. `skip` lets a grid continue where a row above stopped: a row with `"limit": 5` and a grid with `"skip": 5` on the same source show every app once.
 - **`app_tile`**: one app. `package` (required), `label`, `tile`, `missing` (`placeholder` default, or `hide`).
 - **`folder`**: a tile with small app images (a 3 × 3 grid of mini banners, or six icons with an `icon` tile) that opens a panel with its apps. `label` and `source` (both required), `tile`, `itemTile` (tiles in the panel), `columns` (default 4), `color` (tile color; a translucent color such as `#33FFFFFF` looks like tvOS glass).
