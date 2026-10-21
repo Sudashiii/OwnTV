@@ -56,7 +56,10 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // R8 makes Compose markedly faster on TV chips (inlining, no unused code, no checks).
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             signingConfig = signingConfigs.findByName("release")
         }
     }
