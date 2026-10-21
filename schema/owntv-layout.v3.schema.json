@@ -649,7 +649,7 @@
           "type": "string"
         },
         "keepSpace": {
-          "description": "With showWhenFocused: keep the node's space while it is hidden and only fade it in and out, so nothing around it moves when focus changes. Default false (the node collapses).",
+          "description": "With showWhenFocused: keep the node's space while it is hidden and only fade it in and out, so nothing around it moves when focus changes. While the watched node has nothing to focus (an empty row) it takes no space. Default false (the node collapses).",
           "type": "boolean"
         },
         "visible": {
@@ -907,7 +907,7 @@
           "type": "string"
         },
         "keepSpace": {
-          "description": "With showWhenFocused: keep the node's space while it is hidden and only fade it in and out, so nothing around it moves when focus changes. Default false (the node collapses).",
+          "description": "With showWhenFocused: keep the node's space while it is hidden and only fade it in and out, so nothing around it moves when focus changes. While the watched node has nothing to focus (an empty row) it takes no space. Default false (the node collapses).",
           "type": "boolean"
         },
         "visible": {
@@ -1090,7 +1090,7 @@
           "type": "string"
         },
         "keepSpace": {
-          "description": "With showWhenFocused: keep the node's space while it is hidden and only fade it in and out, so nothing around it moves when focus changes. Default false (the node collapses).",
+          "description": "With showWhenFocused: keep the node's space while it is hidden and only fade it in and out, so nothing around it moves when focus changes. While the watched node has nothing to focus (an empty row) it takes no space. Default false (the node collapses).",
           "type": "boolean"
         },
         "visible": {
@@ -1277,7 +1277,7 @@
           "type": "string"
         },
         "keepSpace": {
-          "description": "With showWhenFocused: keep the node's space while it is hidden and only fade it in and out, so nothing around it moves when focus changes. Default false (the node collapses).",
+          "description": "With showWhenFocused: keep the node's space while it is hidden and only fade it in and out, so nothing around it moves when focus changes. While the watched node has nothing to focus (an empty row) it takes no space. Default false (the node collapses).",
           "type": "boolean"
         },
         "visible": {
@@ -1461,7 +1461,7 @@
           "type": "string"
         },
         "keepSpace": {
-          "description": "With showWhenFocused: keep the node's space while it is hidden and only fade it in and out, so nothing around it moves when focus changes. Default false (the node collapses).",
+          "description": "With showWhenFocused: keep the node's space while it is hidden and only fade it in and out, so nothing around it moves when focus changes. While the watched node has nothing to focus (an empty row) it takes no space. Default false (the node collapses).",
           "type": "boolean"
         },
         "visible": {
@@ -1739,7 +1739,7 @@
           "type": "string"
         },
         "keepSpace": {
-          "description": "With showWhenFocused: keep the node's space while it is hidden and only fade it in and out, so nothing around it moves when focus changes. Default false (the node collapses).",
+          "description": "With showWhenFocused: keep the node's space while it is hidden and only fade it in and out, so nothing around it moves when focus changes. While the watched node has nothing to focus (an empty row) it takes no space. Default false (the node collapses).",
           "type": "boolean"
         },
         "visible": {
@@ -2079,7 +2079,7 @@
           "type": "string"
         },
         "keepSpace": {
-          "description": "With showWhenFocused: keep the node's space while it is hidden and only fade it in and out, so nothing around it moves when focus changes. Default false (the node collapses).",
+          "description": "With showWhenFocused: keep the node's space while it is hidden and only fade it in and out, so nothing around it moves when focus changes. While the watched node has nothing to focus (an empty row) it takes no space. Default false (the node collapses).",
           "type": "boolean"
         },
         "visible": {
@@ -2271,7 +2271,7 @@
           "type": "string"
         },
         "keepSpace": {
-          "description": "With showWhenFocused: keep the node's space while it is hidden and only fade it in and out, so nothing around it moves when focus changes. Default false (the node collapses).",
+          "description": "With showWhenFocused: keep the node's space while it is hidden and only fade it in and out, so nothing around it moves when focus changes. While the watched node has nothing to focus (an empty row) it takes no space. Default false (the node collapses).",
           "type": "boolean"
         },
         "visible": {
@@ -2485,7 +2485,7 @@
           "type": "string"
         },
         "keepSpace": {
-          "description": "With showWhenFocused: keep the node's space while it is hidden and only fade it in and out, so nothing around it moves when focus changes. Default false (the node collapses).",
+          "description": "With showWhenFocused: keep the node's space while it is hidden and only fade it in and out, so nothing around it moves when focus changes. While the watched node has nothing to focus (an empty row) it takes no space. Default false (the node collapses).",
           "type": "boolean"
         },
         "visible": {
@@ -2911,7 +2911,7 @@
           "type": "string"
         },
         "keepSpace": {
-          "description": "With showWhenFocused: keep the node's space while it is hidden and only fade it in and out, so nothing around it moves when focus changes. Default false (the node collapses).",
+          "description": "With showWhenFocused: keep the node's space while it is hidden and only fade it in and out, so nothing around it moves when focus changes. While the watched node has nothing to focus (an empty row) it takes no space. Default false (the node collapses).",
           "type": "boolean"
         },
         "visible": {
@@ -3167,7 +3167,7 @@
           "type": "string"
         },
         "keepSpace": {
-          "description": "With showWhenFocused: keep the node's space while it is hidden and only fade it in and out, so nothing around it moves when focus changes. Default false (the node collapses).",
+          "description": "With showWhenFocused: keep the node's space while it is hidden and only fade it in and out, so nothing around it moves when focus changes. While the watched node has nothing to focus (an empty row) it takes no space. Default false (the node collapses).",
           "type": "boolean"
         },
         "visible": {
@@ -3387,7 +3387,7 @@
           "type": "string"
         },
         "keepSpace": {
-          "description": "With showWhenFocused: keep the node's space while it is hidden and only fade it in and out, so nothing around it moves when focus changes. Default false (the node collapses).",
+          "description": "With showWhenFocused: keep the node's space while it is hidden and only fade it in and out, so nothing around it moves when focus changes. While the watched node has nothing to focus (an empty row) it takes no space. Default false (the node collapses).",
           "type": "boolean"
         },
         "visible": {
@@ -3562,7 +3562,7 @@
           "type": "string"
         },
         "keepSpace": {
-          "description": "With showWhenFocused: keep the node's space while it is hidden and only fade it in and out, so nothing around it moves when focus changes. Default false (the node collapses).",
+          "description": "With showWhenFocused: keep the node's space while it is hidden and only fade it in and out, so nothing around it moves when focus changes. While the watched node has nothing to focus (an empty row) it takes no space. Default false (the node collapses).",
           "type": "boolean"
         },
         "visible": {
@@ -3745,7 +3745,7 @@
           "type": "string"
         },
         "keepSpace": {
-          "description": "With showWhenFocused: keep the node's space while it is hidden and only fade it in and out, so nothing around it moves when focus changes. Default false (the node collapses).",
+          "description": "With showWhenFocused: keep the node's space while it is hidden and only fade it in and out, so nothing around it moves when focus changes. While the watched node has nothing to focus (an empty row) it takes no space. Default false (the node collapses).",
           "type": "boolean"
         },
         "visible": {
@@ -3910,7 +3910,7 @@
           "type": "string"
         },
         "keepSpace": {
-          "description": "With showWhenFocused: keep the node's space while it is hidden and only fade it in and out, so nothing around it moves when focus changes. Default false (the node collapses).",
+          "description": "With showWhenFocused: keep the node's space while it is hidden and only fade it in and out, so nothing around it moves when focus changes. While the watched node has nothing to focus (an empty row) it takes no space. Default false (the node collapses).",
           "type": "boolean"
         },
         "visible": {

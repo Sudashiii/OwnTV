@@ -94,6 +94,7 @@ import dev.owntv.layout.model.TileShape
 import dev.owntv.layout.model.TileStyle
 import dev.owntv.layout.model.UnknownNode
 import dev.owntv.layout.model.VAlign
+import dev.owntv.layout.model.findNode
 import dev.owntv.layout.model.isSingleTile
 import dev.owntv.layout.model.visible
 import dev.owntv.layout.time.Clocks
@@ -118,6 +119,13 @@ fun RenderNode(node: Node, modifier: Modifier = Modifier, fillByDefault: Boolean
     // Shown only while focus is inside another node. Previews have no focus, so it stays hidden there.
     val tracker = LocalFocusTracker.current
     val shown = !LocalPreviewMode.current && tracker?.current?.ancestors?.contains(showWhenFocused) == true
+    if (node.common.keepSpace) {
+        // Space is kept for a node that can get focus; one that shows nothing (an empty row) gets none.
+        val page = LocalPage.current
+        val catalog = LocalApps.current
+        val watchedEmpty = remember(page, catalog, showWhenFocused) { page?.findNode(showWhenFocused)?.rendersFocusable(catalog) == false }
+        if (watchedEmpty) return
+    }
     // While it fades out, {focused} and {description} keep naming the last tile focused inside, not the new one.
     val held = remember { FocusTracker() }
     SideEffect { if (shown) held.current = tracker?.current }

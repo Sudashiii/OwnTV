@@ -89,7 +89,7 @@ Every node has `type` and `id` (both required) and may use:
 | `focus` | `{ "up": "id", "down": "id", "left": "id", "right": "id" }` — where the D-pad goes. On a tile it applies when that tile is focused; on a container or row it applies when focus leaves it in that direction. Ids must be on the same page. |
 | `revealOnFocus` | `true`: when something inside gets focus, scroll so the whole node is visible (e.g. a hero plus the row under it). |
 | `showWhenFocused` | Id of a node on the same page: this node is only shown, and only takes space, while focus is inside that node. It slides open and closed. E.g. a `{focused}` text under a row that appears only while the row has focus. |
-| `keepSpace` | With `showWhenFocused`: `true` keeps the node's space while it is hidden and only fades it, so nothing below moves when focus changes. Give it a fixed `height` when its text can change length. Default `false`. |
+| `keepSpace` | With `showWhenFocused`: `true` keeps the node's space while it is hidden and only fades it, so nothing below moves when focus changes. When the node it watches has nothing to focus (an empty row), it takes no space. Give it a fixed `height` when its text can change length. Default `false`. |
 | `visible` | `false` hides the node. |
 
 ## Containers

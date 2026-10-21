@@ -62,7 +62,7 @@ data class NodeCommon(
     val revealOnFocus: Boolean = false,
     @Doc("Id of a node on the same page: this node is only shown (and takes space) while focus is inside that node, e.g. the name and description of the focused tile under its section. Default: always shown.")
     val showWhenFocused: String? = null,
-    @Doc("With showWhenFocused: keep the node's space while it is hidden and only fade it in and out, so nothing around it moves when focus changes. Default false (the node collapses).")
+    @Doc("With showWhenFocused: keep the node's space while it is hidden and only fade it in and out, so nothing around it moves when focus changes. While the watched node has nothing to focus (an empty row) it takes no space. Default false (the node collapses).")
     val keepSpace: Boolean = false,
     @Doc("Set to false to hide the node without deleting it. Default true.")
     val visible: Boolean = true,

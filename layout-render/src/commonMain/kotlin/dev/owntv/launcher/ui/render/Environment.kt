@@ -27,6 +27,7 @@ import dev.owntv.layout.model.ListRef
 import dev.owntv.layout.model.ListSource
 import dev.owntv.layout.model.Missing
 import dev.owntv.layout.model.Node
+import dev.owntv.layout.model.Page
 import dev.owntv.layout.model.RecentSource
 import dev.owntv.layout.model.ShortcutNode
 import dev.owntv.layout.model.isFocusableWidget
@@ -225,6 +226,9 @@ val LocalAncestors = staticCompositionLocalOf { emptyList<String>() }
 
 /** The node outlined in the editor's preview. */
 val LocalEditorSelection = staticCompositionLocalOf<String?> { null }
+
+/** The page being rendered, so nodes can look up the nodes they point at. */
+val LocalPage = staticCompositionLocalOf<Page?> { null }
 
 /** Title of the page being rendered, for the {page} placeholder. */
 val LocalPageTitle = staticCompositionLocalOf<String?> { null }
