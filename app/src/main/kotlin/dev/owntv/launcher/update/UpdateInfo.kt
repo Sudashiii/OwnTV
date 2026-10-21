@@ -18,6 +18,8 @@ data class UpdateInfo(
     val notes: String = "",
     /** Read leniently by [parse]: a broken entry is left out instead of failing the update. */
     @Transient val dexMetadata: List<DexMetadata> = emptyList(),
+    /** APK download size in bytes; older releases may omit it. */
+    val apkSizeBytes: Long? = null,
 ) {
     fun isNewerThan(installedVersionCode: Long): Boolean = versionCode > installedVersionCode
 
@@ -31,7 +33,11 @@ data class UpdateInfo(
             .mapCatching { info ->
                 require(info.apk.startsWith("https://") || info.apk.startsWith("http://")) { "The APK link is not a web address" }
                 require(SHA256.matches(info.sha256)) { "The checksum is not a SHA-256 hash" }
-                info.copy(sha256 = info.sha256.lowercase(), dexMetadata = dexMetadataOf(text))
+                info.copy(
+                    sha256 = info.sha256.lowercase(),
+                    dexMetadata = dexMetadataOf(text),
+                    apkSizeBytes = info.apkSizeBytes?.takeIf { it > 0 },
+                )
             }
 
         private fun dexMetadataOf(text: String): List<DexMetadata> {
@@ -66,6 +72,7 @@ data class ReleaseEntry(
     val versionCode: Long,
     val updateJsonUrl: String,
     val notes: String,
+    val apkSizeBytes: Long? = null,
 ) {
     companion object {
         private val json = Json { ignoreUnknownKeys = true }
@@ -87,7 +94,9 @@ data class ReleaseEntry(
                 val code = versionCodeOf(release.tag) ?: return@mapNotNull null
                 val url = release.assets.firstOrNull { it.name == "update.json" }?.url ?: return@mapNotNull null
                 if (!url.startsWith("https://") && !url.startsWith("http://")) return@mapNotNull null
-                ReleaseEntry(release.tag.removePrefix("v"), code, url, release.body.orEmpty())
+                val apkSize = release.assets.firstOrNull { it.name == "owntv-${release.tag.removePrefix("v")}.apk" }
+                    ?.size?.takeIf { it > 0 }
+                ReleaseEntry(release.tag.removePrefix("v"), code, url, release.body.orEmpty(), apkSize)
             }.sortedByDescending { it.versionCode }
         }
     }
@@ -105,6 +114,7 @@ private data class GitHubRelease(
 private data class GitHubAsset(
     val name: String,
     @SerialName("browser_download_url") val url: String,
+    val size: Long? = null,
 )
 
 /** Release notes from `scripts/release.py`, reduced to what reads well on a TV: sections of plain bullet points. */

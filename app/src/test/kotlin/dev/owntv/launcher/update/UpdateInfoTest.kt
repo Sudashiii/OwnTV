@@ -31,6 +31,17 @@ class UpdateInfoTest {
     }
 
     @Test
+    fun `reads the apk download size and keeps older releases compatible`() {
+        val text = json().dropLast(1) + ""","apkSizeBytes":25000000}"""
+        assertEquals(25_000_000L, UpdateInfo.parse(text).getOrThrow().apkSizeBytes)
+        assertNull(UpdateInfo.parse(json()).getOrThrow().apkSizeBytes)
+        for (size in listOf("null", "0", "-1")) {
+            val unknown = json().dropLast(1) + ""","apkSizeBytes":$size}"""
+            assertNull(UpdateInfo.parse(unknown).getOrThrow().apkSizeBytes)
+        }
+    }
+
+    @Test
     fun `picks the profile built for the TV's Android version`() {
         val dm = "https://github.com/o/r/releases/download/v0.2.0/owntv-0.2.0-api"
         val text = json().dropLast(1) + ""","dexMetadata":[""" +
@@ -102,5 +113,27 @@ class UpdateInfoTest {
         assertEquals("notes v0.3.0", list.first().notes)
         assertEquals("https://github.com/o/r/releases/download/v0.3.0/update.json", list.first().updateJsonUrl)
         assertTrue(ReleaseEntry.parseGitHub("""{"message":"API rate limit exceeded"}""").isFailure)
+    }
+
+    @Test
+    fun `release download size comes from its apk rather than update json or a profile`() {
+        fun release(version: String, apkSize: String? = null): String {
+            val assets = mutableListOf(
+                """{"name":"update.json","browser_download_url":"https://x/$version/update.json","size":500}""",
+                """{"name":"owntv-$version-api31.dm","browser_download_url":"https://x/$version/profile.dm","size":1000}""",
+                """{"name":"other.apk","browser_download_url":"https://x/$version/other.apk","size":999}""",
+            )
+            if (apkSize != null) assets += """{"name":"owntv-$version.apk","browser_download_url":"https://x/$version/app.apk","size":$apkSize}"""
+            return """{"tag_name":"v$version","assets":[${assets.joinToString(",")}]}"""
+        }
+        val text = listOf(
+            release("0.5.0", "25000000"),
+            release("0.4.0", "null"),
+            release("0.3.0", "0"),
+            release("0.2.0", "-1"),
+            release("0.1.0"),
+        ).joinToString(",", "[", "]")
+        val releases = ReleaseEntry.parseGitHub(text).getOrThrow()
+        assertEquals(listOf(25_000_000L, null, null, null, null), releases.map { it.apkSizeBytes })
     }
 }

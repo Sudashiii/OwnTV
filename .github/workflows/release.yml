@@ -109,10 +109,11 @@ jobs:
             --arg versionName "$VERSION" \
             --argjson versionCode "$(jq '.elements[0].versionCode' "$out/output-metadata.json")" \
             --arg apk "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/download/v$VERSION/owntv-$VERSION.apk" \
+            --argjson apkSizeBytes "$(wc -c < "$apk" | tr -d '[:space:]')" \
             --arg sha256 "$(sha256sum "$apk" | cut -d ' ' -f 1)" \
             --rawfile notes "$RUNNER_TEMP/notes.md" \
             --argjson dexMetadata "$dex_metadata" \
-            '{versionName: $versionName, versionCode: $versionCode, apk: $apk, sha256: $sha256, notes: $notes, dexMetadata: $dexMetadata}' \
+            '{versionName: $versionName, versionCode: $versionCode, apk: $apk, apkSizeBytes: $apkSizeBytes, sha256: $sha256, notes: $notes, dexMetadata: $dexMetadata}' \
             > "$RUNNER_TEMP/dist/update.json"
           cat "$RUNNER_TEMP/dist/update.json"
 

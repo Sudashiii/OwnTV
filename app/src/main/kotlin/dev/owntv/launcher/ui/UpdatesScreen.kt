@@ -107,6 +107,7 @@ private fun UpdateStatus(state: UpdateState, updater: Updater) {
         is UpdateState.Available -> {
             Title("OwnTV ${state.update.versionName} is available")
             Body(state.message ?: "Download it from GitHub and install it. Your layouts stay as they are.")
+            DownloadSize(state.update.apkSizeBytes)
             Actions {
                 Button(onClick = { updater.install(state.update) }, modifier = rememberInitialFocus()) { Text("Download and install") }
                 OutlinedButton(onClick = updater::check) { Text("Check again") }
@@ -118,6 +119,7 @@ private fun UpdateStatus(state: UpdateState, updater: Updater) {
                 "Android asks this once. In the next screen, turn on OwnTV under \"Install unknown apps\", " +
                     "then press Back. The update continues by itself.",
             )
+            DownloadSize(state.update.apkSizeBytes)
             Actions {
                 Button(onClick = { updater.openInstallPermission(state.update) }, modifier = rememberInitialFocus()) { Text("Open settings") }
             }
@@ -146,6 +148,7 @@ private fun UpdateStatus(state: UpdateState, updater: Updater) {
                 },
             )
             Body(state.message)
+            update?.let { DownloadSize(it.apkSizeBytes) }
             state.detail?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Muted, modifier = Modifier.padding(top = 8.dp)) }
             Actions {
                 Button(
@@ -173,6 +176,11 @@ private fun Title(text: String) {
 @Composable
 private fun Body(text: String) {
     Text(text, style = MaterialTheme.typography.bodyLarge, color = Color(0xFFDADDE3), modifier = Modifier.padding(top = 8.dp))
+}
+
+@Composable
+private fun DownloadSize(bytes: Long?) {
+    Body(bytes?.let { "Download size: ${megabytes(it)}" } ?: "Download size unavailable")
 }
 
 @Composable
@@ -275,7 +283,10 @@ private fun VersionCard(entry: ReleaseEntry, installedCode: Long, latest: Boolea
                 }
             }
             if (scroll.canScrollForward) Text("More below", style = MaterialTheme.typography.bodySmall, color = Muted, modifier = Modifier.padding(top = 8.dp))
-            if (action != null) Text(action, style = MaterialTheme.typography.bodySmall, color = Muted, modifier = Modifier.padding(top = 8.dp))
+            if (action != null) {
+                val size = entry.apkSizeBytes?.let { "Download size: ${megabytes(it)} · " }.orEmpty()
+                Text(size + action, style = MaterialTheme.typography.bodySmall, color = Muted, modifier = Modifier.padding(top = 8.dp))
+            }
         }
     }
 }
