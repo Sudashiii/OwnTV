@@ -113,6 +113,8 @@ data class ColumnNode(
     val scrollAlign: ScrollAlign = ScrollAlign.Nearest,
     @Range(0.0, 400.0) @Doc("Distance in dp from the top kept when scrollAlign is start. Default 32.")
     val scrollMargin: Int = 32,
+    @Doc("How the column scrolls to the focused child. Default: the theme's scrollMotion.")
+    val scrollMotion: ScrollMotion? = null,
     @Transient override val common: NodeCommon = NodeCommon(),
 ) : ContainerNode {
     override fun withCommon(common: NodeCommon) = copy(common = common)
@@ -137,6 +139,8 @@ data class RowNode(
     val scrollAlign: ScrollAlign = ScrollAlign.Nearest,
     @Range(0.0, 400.0) @Doc("Distance in dp from the left kept when scrollAlign is start. Default 32.")
     val scrollMargin: Int = 32,
+    @Doc("How the row scrolls to the focused child. Default: the theme's scrollMotion.")
+    val scrollMotion: ScrollMotion? = null,
     @Transient override val common: NodeCommon = NodeCommon(),
 ) : ContainerNode {
     override fun withCommon(common: NodeCommon) = copy(common = common)
@@ -217,6 +221,8 @@ data class AppRowNode(
     val scrollAlign: ScrollAlign = ScrollAlign.Nearest,
     @Range(0.0, 400.0) @Doc("Distance in dp of the focused tile from the row's left edge when scrollAlign is start. Default 0 (in line with the title).")
     val scrollMargin: Int = 0,
+    @Doc("How the row scrolls to the focused tile. Default: the theme's scrollMotion.")
+    val scrollMotion: ScrollMotion? = null,
     @Transient override val common: NodeCommon = NodeCommon(),
 ) : Node {
     override fun withCommon(common: NodeCommon) = copy(common = common)

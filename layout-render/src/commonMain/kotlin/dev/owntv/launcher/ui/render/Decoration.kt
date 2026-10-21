@@ -2,7 +2,11 @@ package dev.owntv.launcher.ui.render
 
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.BringIntoViewSpec
@@ -36,6 +40,8 @@ import dev.owntv.layout.model.GradientBackground
 import dev.owntv.layout.model.ImageBackground
 import dev.owntv.layout.model.NodeCommon
 import dev.owntv.layout.model.ScrollAlign
+import dev.owntv.layout.model.ScrollCurve
+import dev.owntv.layout.model.ScrollMotion
 import kotlin.math.abs
 
 /** Draws a color, gradient or image background filling [modifier]. */
@@ -140,18 +146,32 @@ class FocusReach(private val scale: Float, private val outlinePx: Float, private
     fun of(size: Float): Float = maxOf(minPx, size * (scale - 1f).coerceAtLeast(0f) / 2f + outlinePx)
 }
 
-/** How a scroll container moves a focused child into view, keeping [reach] free at its edges. */
-fun scrollSpec(align: ScrollAlign, marginPx: Float, reach: FocusReach): BringIntoViewSpec = object : BringIntoViewSpec {
+/**
+ * How a scroll container moves a focused child into view, keeping [reach] free at its edges and
+ * moving with [motion].
+ */
+fun scrollSpec(align: ScrollAlign, marginPx: Float, reach: FocusReach, motion: ScrollMotion?): BringIntoViewSpec = object : BringIntoViewSpec {
     override fun calculateScrollDistance(offset: Float, size: Float, containerSize: Float): Float =
         scrollDistance(align, marginPx, reach.of(size), offset, size, containerSize)
 
-    // Stiffer than the default, so a row keeps up with a held remote. When the scroll trails behind,
-    // focus runs past the laid-out tiles and every press has to build and measure the next one first.
     @Deprecated("Animation spec customization is no longer supported.")
-    override val scrollAnimationSpec: AnimationSpec<Float> = SCROLL_SPRING
+    override val scrollAnimationSpec: AnimationSpec<Float> = (motion ?: ScrollMotion()).animationSpec()
 }
 
-private val SCROLL_SPRING: AnimationSpec<Float> = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 3000f)
+/**
+ * The animation for a [ScrollMotion]. The default spring (120 ms) is stiff enough for a row to keep
+ * up with a held remote: when the scroll trails behind, focus runs past the laid-out tiles and every
+ * press has to build and measure the next one first. For the spring, the duration sets the stiffness.
+ */
+fun ScrollMotion.animationSpec(): AnimationSpec<Float> {
+    val seconds = duration / 1000f
+    return when (curve) {
+        ScrollCurve.Spring -> spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = (6.6f / seconds).let { it * it })
+        ScrollCurve.EaseOut -> tween(duration, easing = LinearOutSlowInEasing)
+        ScrollCurve.EaseInOut -> tween(duration, easing = FastOutSlowInEasing)
+        ScrollCurve.Linear -> tween(duration, easing = LinearEasing)
+    }
+}
 
 /**
  * The scroll distance for an item at [offset] with [size] in a viewport of [containerSize], keeping
