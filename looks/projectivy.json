@@ -24,8 +24,7 @@
     "section": { "width": "fill", "spacing": 8, "unfocusedOpacity": 0.5, "revealOnFocus": true },
     "section_title": { "textStyle": "title", "bold": true, "color": "@text" },
     "section_row": { "spacing": 14, "padding": [0, 4] },
-    "details_collapsing": { "spacing": 2, "padding": [0, 10, 0, 0] },
-    "details": { "style": "details_collapsing", "keepSpace": true },
+    "details": { "spacing": 2, "padding": [0, 10, 0, 0], "keepSpace": true },
     "details_long": { "style": "details", "height": 72 },
     "focused_name": { "textStyle": "title", "color": "@text", "maxLines": 1 },
     "focused_description": { "fontSize": 13, "color": "@textMuted", "maxLines": 2, "width": 440 },
@@ -149,7 +148,7 @@
               {
                 "type": "column",
                 "id": "mobile_details",
-                "style": "details_collapsing",
+                "style": "details",
                 "showWhenFocused": "mobile_section",
                 "children": [
                   { "type": "text", "id": "mobile_name", "text": "{focused}", "style": "focused_name" }

@@ -82,6 +82,7 @@ private fun PageView(page: Page, focusTrigger: Int, modifier: Modifier) {
         CompositionLocalProvider(
             LocalFocusRegistry provides registry,
             LocalFocusTracker provides tracker,
+            LocalPage provides page,
             LocalPageTitle provides page.title,
             LocalAncestors provides emptyList(),
         ) {
