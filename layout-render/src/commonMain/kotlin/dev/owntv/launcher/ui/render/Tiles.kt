@@ -1,5 +1,7 @@
 package dev.owntv.launcher.ui.render
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -48,6 +50,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -131,7 +134,14 @@ fun TileSurface(
     val effects = theme.theme.focus
     val phase = rememberSwayPhase(focused && effects.motion == FocusMotion.Sway)
     val tileColor = if (focused && focusedColor != null) focusedColor else color
-    surfaces.Tile(onClick, onLongClick, modifier.sway(effects.motion, focused, phase), shape, tileColor, focusedScale ?: theme.focusScale, interactionSource) {
+    // The zoom is animated here and only read while drawing, so a tile zooming in or out does not
+    // recompose every frame (tv-material's own scale does, which stutters when the remote is held).
+    val zoom = animateFloatAsState(if (focused) focusedScale ?: theme.focusScale else 1f, tween(if (focused) 150 else 200))
+    val zoomLayer = Modifier.graphicsLayer {
+        scaleX = zoom.value
+        scaleY = zoom.value
+    }
+    surfaces.Tile(onClick, onLongClick, modifier.then(zoomLayer).sway(effects.motion, focused, phase), shape, tileColor, 1f, interactionSource) {
         content()
         if (rim) TileRim(shape)
         if (focused && effects.highlight) FocusSheen(phase)
@@ -166,7 +176,6 @@ fun AppTileView(
     val override = catalog.override(entry.packageName)
     val label = labelOverride ?: app?.let(catalog::labelOf) ?: entry.packageName
     val list = LocalListContext.current
-    val target = ContextTarget(label, app, entry.packageName, ancestors.lastOrNull(), list)
     val arranger = LocalAppArranger.current
     val moving = list != null && arranger != null && arranger.moving == MovingApp(list.ref, entry.packageName)
 
@@ -209,7 +218,8 @@ fun AppTileView(
     TileFrame(tile, sizing, label, focused, modifier.then(moveKeys)) { surfaceModifier ->
         TileSurface(
             onClick = { if (app != null) handler.openApp(app) else handler.openMissing(entry.packageName) },
-            onLongClick = { if (!moving) handler.longPress(target) },
+            // The menu target is built on demand: a new one per composition would keep the tile from skipping.
+            onLongClick = { if (!moving) handler.longPress(ContextTarget(label, app, entry.packageName, ancestors.lastOrNull(), list)) },
             modifier = surfaceModifier,
             color = theme.color(override?.color) ?: theme.surface,
             interactionSource = interaction,
@@ -300,7 +310,6 @@ fun ShortcutView(node: ShortcutNode, sizing: TileSizing, modifier: Modifier = Mo
     val interaction = remember { MutableInteractionSource() }
     val focused by interaction.collectIsFocusedAsState()
     val launchPackage = (node.action as? LaunchAppAction)?.packageName
-    val target = ContextTarget(node.label, launchPackage?.let { catalog[it] }, launchPackage, ancestors.lastOrNull())
     val labelInside = node.tile.shape != TileShape.Icon
 
     ReportFocus(focused) {
@@ -313,7 +322,7 @@ fun ShortcutView(node: ShortcutNode, sizing: TileSizing, modifier: Modifier = Mo
     TileFrame(node.tile, sizing, node.label, focused, modifier, showOutsideLabel = !labelInside) { surfaceModifier ->
         TileSurface(
             onClick = { handler.perform(node.action) },
-            onLongClick = { handler.longPress(target) },
+            onLongClick = { handler.longPress(ContextTarget(node.label, launchPackage?.let { catalog[it] }, launchPackage, ancestors.lastOrNull())) },
             modifier = surfaceModifier,
             color = theme.color(node.color) ?: theme.surface,
             interactionSource = interaction,

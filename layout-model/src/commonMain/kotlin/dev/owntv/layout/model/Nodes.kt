@@ -215,7 +215,7 @@ data class AppRowNode(
     val missing: Missing = Missing.Hide,
     @Doc("Where the focused tile is scrolled to: nearest, start (Google TV style, focused tile stays at the left) or center. Default nearest.")
     val scrollAlign: ScrollAlign = ScrollAlign.Nearest,
-    @Range(0.0, 400.0) @Doc("Distance in dp from the left kept when scrollAlign is start. Default 0.")
+    @Range(0.0, 400.0) @Doc("Distance in dp of the focused tile from the row's left edge when scrollAlign is start. Default 0 (in line with the title).")
     val scrollMargin: Int = 0,
     @Transient override val common: NodeCommon = NodeCommon(),
 ) : Node {

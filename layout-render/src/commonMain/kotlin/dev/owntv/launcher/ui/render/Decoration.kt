@@ -1,5 +1,8 @@
 package dev.owntv.launcher.ui.render
 
+import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.BringIntoViewSpec
@@ -128,16 +131,42 @@ private class RevealNode : Modifier.Node(), BringIntoViewModifierNode {
     }
 }
 
-/** How a scroll container moves a focused child into view. */
-fun scrollSpec(align: ScrollAlign, marginPx: Float): BringIntoViewSpec = when (align) {
-    ScrollAlign.Nearest -> NearestSpec
-    ScrollAlign.Start -> object : BringIntoViewSpec {
-        override fun calculateScrollDistance(offset: Float, size: Float, containerSize: Float): Float =
-            if (size + marginPx > containerSize) NearestSpec.calculateScrollDistance(offset, size, containerSize) else offset - marginPx
-    }
-    ScrollAlign.Center -> object : BringIntoViewSpec {
-        override fun calculateScrollDistance(offset: Float, size: Float, containerSize: Float): Float =
-            offset + size / 2f - containerSize / 2f
+/**
+ * How far a focused item of a given size reaches past its bounds: half of what its zoom adds, plus
+ * border and glow. Scroll containers keep at least this much room at their edges, so a focused tile
+ * is never cut off. [minPx] is the least room kept (an app row keeps its tiles inside its own bounds).
+ */
+class FocusReach(private val scale: Float, private val outlinePx: Float, private val minPx: Float = 0f) {
+    fun of(size: Float): Float = maxOf(minPx, size * (scale - 1f).coerceAtLeast(0f) / 2f + outlinePx)
+}
+
+/** How a scroll container moves a focused child into view, keeping [reach] free at its edges. */
+fun scrollSpec(align: ScrollAlign, marginPx: Float, reach: FocusReach): BringIntoViewSpec = object : BringIntoViewSpec {
+    override fun calculateScrollDistance(offset: Float, size: Float, containerSize: Float): Float =
+        scrollDistance(align, marginPx, reach.of(size), offset, size, containerSize)
+
+    // Stiffer than the default, so a row keeps up with a held remote. When the scroll trails behind,
+    // focus runs past the laid-out tiles and every press has to build and measure the next one first.
+    @Deprecated("Animation spec customization is no longer supported.")
+    override val scrollAnimationSpec: AnimationSpec<Float> = SCROLL_SPRING
+}
+
+private val SCROLL_SPRING: AnimationSpec<Float> = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 3000f)
+
+/**
+ * The scroll distance for an item at [offset] with [size] in a viewport of [containerSize], keeping
+ * [edge] free on both sides. An item too big for that room gets what is left, split evenly.
+ */
+internal fun scrollDistance(align: ScrollAlign, marginPx: Float, edge: Float, offset: Float, size: Float, containerSize: Float): Float {
+    val room = edge.coerceAtMost(((containerSize - size) / 2f).coerceAtLeast(0f))
+    val nearest = { NearestSpec.calculateScrollDistance(offset - room, size + 2 * room, containerSize) }
+    return when (align) {
+        ScrollAlign.Nearest -> nearest()
+        ScrollAlign.Start -> {
+            val lead = maxOf(marginPx, room)
+            if (lead + size + room > containerSize) nearest() else offset - lead
+        }
+        ScrollAlign.Center -> offset + size / 2f - containerSize / 2f
     }
 }
 

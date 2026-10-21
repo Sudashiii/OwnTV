@@ -6,7 +6,7 @@ An OwnTV layout is one JSON document. The launcher renders it natively; nothing 
 
 - The screen is **960 × 540 dp** (a 1080p TV). All sizes, paddings and gaps are in dp; font sizes are in sp.
 - People use a remote: Up/Down/Left/Right move focus, OK clicks, a long press on OK opens a menu (Open, App info, Launcher settings), Back goes back.
-- Focusable widgets: `app_tile`, `app_row`, `app_grid`, `folder`, `shortcut`, and a `hero` whose slides have actions. Focus moves to the nearest focusable widget in the pressed direction unless `focus` links say otherwise. A focused tile grows and gets the border and glow from `theme.focus`.
+- Focusable widgets: `app_tile`, `app_row`, `app_grid`, `folder`, `shortcut`, and a `hero` whose slides have actions. Focus moves to the nearest focusable widget in the pressed direction unless `focus` links say otherwise. A focused tile grows and gets the border and glow from `theme.focus`. Scrolling rows and columns always keep room at their edges for that, so a focused tile is never cut off.
 
 ## Document
 
@@ -119,7 +119,7 @@ The page `root` fills the screen. Other containers wrap their content unless you
 
 Widgets:
 
-- **`app_row`**: horizontally scrolling tiles. `source` (required), `title`, `titleIcon` (icon before the title, see `shortcut`), `tile`, `spacing` (16), `skip` (leave out the first N apps), `limit`, `missing` (`hide` default, or `placeholder` for apps in a list that are not installed), `scrollAlign` (`start` keeps the focused tile at the left like Google TV; `center`; `nearest` default), `scrollMargin`. Width fills by default. A row on an empty list shows an "Add apps" tile; other rows with no apps are hidden.
+- **`app_row`**: horizontally scrolling tiles. `source` (required), `title`, `titleIcon` (icon before the title, see `shortcut`), `tile`, `spacing` (16), `skip` (leave out the first N apps), `limit`, `missing` (`hide` default, or `placeholder` for apps in a list that are not installed), `scrollAlign` (`start` keeps the focused tile at the left like Google TV and Projectivy; `center`; `nearest` default), `scrollMargin` (with `start`: distance of the focused tile from the row's left edge, default 0, so it lines up with the title). Width fills by default. A row on an empty list shows an "Add apps" tile; other rows with no apps are hidden.
 - **`app_grid`**: tiles in `columns` (default 5) that wrap onto new rows. Same properties as `app_row` except scrolling. Put it in a scrolling column if it may be taller than the screen. `skip` lets a grid continue where a row above stopped: a row with `"limit": 5` and a grid with `"skip": 5` on the same source show every app once.
 - **`app_tile`**: one app. `package` (required), `label`, `tile`, `missing` (`placeholder` default, or `hide`).
 - **`folder`**: a tile with small app images (a 3 × 3 grid of mini banners, or six icons with an `icon` tile) that opens a panel with its apps. `label` and `source` (both required), `tile`, `itemTile` (tiles in the panel), `columns` (default 4), `color` (tile color; a translucent color such as `#33FFFFFF` looks like tvOS glass).
