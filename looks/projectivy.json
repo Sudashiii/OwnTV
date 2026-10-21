@@ -38,7 +38,7 @@
       "focusColor": "@tileFocused",
       "focusIconColor": "@tileIconFocused"
     },
-    "app_row": { "spacing": 14, "tile": { "showLabel": "never" } }
+    "app_row": { "spacing": 14, "scrollAlign": "start", "tile": { "showLabel": "never" } }
   },
   "pages": [
     {
