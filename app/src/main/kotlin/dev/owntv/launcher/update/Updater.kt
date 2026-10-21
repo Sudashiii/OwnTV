@@ -71,6 +71,7 @@ sealed interface ReleasesState {
 /**
  * Updates OwnTV from its GitHub releases: reads the latest release's `update.json`, downloads the
  * APK it points at, checks its SHA-256 and signing key, and installs it with [PackageInstaller].
+ * The release's baseline profile (`.dm`) goes into the same install, so the new version starts compiled.
  * Android installs it only over an app signed with the same key, so a debug build cannot take a release.
  */
 class Updater(
@@ -101,6 +102,9 @@ class Updater(
     private var lastCheck = 0L
 
     @Volatile private var sessionId: Int? = null
+
+    /** The running install session includes the baseline profile. */
+    @Volatile private var sessionHasProfile = false
 
     /** This process is the first run of a version the updater installed. */
     private var justUpdated = false
@@ -188,7 +192,8 @@ class Updater(
         installNow(update, skipPermissionCheck)
     }
 
-    private suspend fun installNow(update: UpdateInfo, skipPermissionCheck: Boolean) {
+    /** [withProfile] false installs the APK alone, after Android refused it together with its profile. */
+    private suspend fun installNow(update: UpdateInfo, skipPermissionCheck: Boolean, withProfile: Boolean = true) {
         if (!skipPermissionCheck && !context.packageManager.canRequestPackageInstalls()) {
             _state.value = UpdateState.NeedsPermission(update)
             return
@@ -196,8 +201,9 @@ class Updater(
         try {
             val apk = download(update)
             withContext(Dispatchers.IO) { verify(apk, update) }
+            val profile = if (withProfile) downloadProfile(update) else null
             _state.value = UpdateState.Installing(update)
-            withContext(Dispatchers.IO) { commit(apk, update) }
+            withContext(Dispatchers.IO) { commit(apk, profile, update) }
         } catch (e: Exception) {
             // A cancelled download ends in an IOException from OkHttp, so look at the job, not the exception.
             _state.value = if (currentCoroutineContext().isActive) UpdateState.Failed(describe(e), update) else UpdateState.Available(update)
@@ -242,7 +248,13 @@ class Updater(
             }
             return
         }
+        val hadProfile = sessionHasProfile
         sessionFinished()
+        if (hadProfile && update != null && status != PackageInstaller.STATUS_SUCCESS && status != PackageInstaller.STATUS_FAILURE_ABORTED) {
+            // The profile only makes the first start faster; never let it stand in the way of the update.
+            launchExclusive { installNow(update, skipPermissionCheck = true, withProfile = false) }
+            return
+        }
         _state.value = when (status) {
             // Usually the process is replaced before this arrives; reportFinishedInstall() says so on the next start.
             PackageInstaller.STATUS_SUCCESS -> update?.let { UpdateState.UpToDate(it) } ?: UpdateState.Idle
@@ -278,7 +290,10 @@ class Updater(
     private suspend fun fetchInfo(url: String = updateUrl): UpdateInfo =
         UpdateInfo.parse(fetchText(url, MAX_INFO_BYTES, "update.json")).getOrElse { error("update.json is not valid: ${it.message}") }
 
-    private suspend fun fetchText(url: String, maxBytes: Int, what: String): String = withContext(Dispatchers.IO) {
+    private suspend fun fetchText(url: String, maxBytes: Int, what: String): String =
+        fetchBytes(url, maxBytes, what).toString(Charsets.UTF_8)
+
+    private suspend fun fetchBytes(url: String, maxBytes: Int, what: String): ByteArray = withContext(Dispatchers.IO) {
         val request = Request.Builder().url(url).header("Cache-Control", "no-cache").build()
         client.newCall(request).execute().use { response ->
             if (response.code == 404) error("No release was found at $url.")
@@ -293,7 +308,7 @@ class Updater(
                     if (out.size() > maxBytes) error("$what is too large.")
                 }
             }
-            out.toString(Charsets.UTF_8.name())
+            out.toByteArray()
         }
     }
 
@@ -343,6 +358,25 @@ class Updater(
         }
     }
 
+    /**
+     * The `.dm` with the update's baseline profile for this Android version, or null. It is optional: when the release
+     * has none, or it does not download or match its checksum, the update installs without it, as before.
+     */
+    private suspend fun downloadProfile(update: UpdateInfo): File? {
+        val dm = update.dexMetadataFor(Build.VERSION.SDK_INT) ?: return null
+        return try {
+            val target = File(folder, "owntv-${update.versionCode}.dm")
+            if (withContext(Dispatchers.IO) { target.isFile && sha256(target) == dm.sha256 }) return target
+            val bytes = fetchBytes(dm.url, MAX_DM_BYTES, "The profile")
+            if (MessageDigest.getInstance("SHA-256").digest(bytes).toHex() != dm.sha256) return null
+            withContext(Dispatchers.IO) { target.writeBytes(bytes) }
+            target
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            null
+        }
+    }
+
     /** Catches APKs Android would refuse anyway, with a message that says why. */
     private fun verify(apk: File, update: UpdateInfo) {
         val pm = context.packageManager
@@ -373,12 +407,13 @@ class Updater(
         return if (info.hasMultipleSigners()) info.apkContentsSigners.toSet() else info.signingCertificateHistory.toSet()
     }
 
-    private fun commit(apk: File, update: UpdateInfo) {
+    /** [profile] is the `.dm`; its name must match the APK's for Android to use it. */
+    private fun commit(apk: File, profile: File?, update: UpdateInfo) {
         val installer = context.packageManager.packageInstaller
         sessionId?.let { runCatching { installer.abandonSession(it) } }
         val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL).apply {
             setAppPackageName(context.packageName)
-            setSize(apk.length())
+            setSize(apk.length() + (profile?.length() ?: 0))
             setInstallReason(PackageManager.INSTALL_REASON_USER)
             // With UPDATE_PACKAGES_WITHOUT_USER_ACTION, Android 12+ updates OwnTV without asking again.
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED)
@@ -386,11 +421,18 @@ class Updater(
         }
         val id = installer.createSession(params)
         sessionId = id
+        sessionHasProfile = profile != null
         try {
             installer.openSession(id).use { session ->
                 session.openWrite("owntv.apk", 0, apk.length()).use { output ->
                     apk.inputStream().use { it.copyTo(output) }
                     session.fsync(output)
+                }
+                if (profile != null) {
+                    session.openWrite("owntv.dm", 0, profile.length()).use { output ->
+                        profile.inputStream().use { it.copyTo(output) }
+                        session.fsync(output)
+                    }
                 }
                 prefs.edit().putLong(PENDING_CODE, update.versionCode).putString(PENDING_NAME, update.versionName).apply()
                 val status = Intent(context, UpdateInstallReceiver::class.java).setPackage(context.packageName)
@@ -406,6 +448,7 @@ class Updater(
 
     private fun sessionFinished() {
         sessionId = null
+        sessionHasProfile = false
         prefs.edit().remove(PENDING_CODE).remove(PENDING_NAME).apply()
     }
 
@@ -457,6 +500,7 @@ class Updater(
         const val MAX_INFO_BYTES = 64 * 1024
         const val MAX_RELEASES_BYTES = 2 * 1024 * 1024
         const val MAX_APK_BYTES = 200L * 1024 * 1024
+        const val MAX_DM_BYTES = 4 * 1024 * 1024
         const val PROGRESS_STEP_BYTES = 256 * 1024
         const val PENDING_CODE = "pending_version_code"
         const val PENDING_NAME = "pending_version_name"

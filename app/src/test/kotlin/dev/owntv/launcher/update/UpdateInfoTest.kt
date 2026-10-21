@@ -3,6 +3,7 @@ package dev.owntv.launcher.update
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class UpdateInfoTest {
@@ -27,6 +28,36 @@ class UpdateInfoTest {
         assertTrue(UpdateInfo.parse(json(sha256 = "abc")).isFailure)
         assertTrue(UpdateInfo.parse("""{"versionName":"0.2.0"}""").isFailure)
         assertTrue(UpdateInfo.parse("<html>Not Found</html>").isFailure)
+    }
+
+    @Test
+    fun `picks the profile built for the TV's Android version`() {
+        val dm = "https://github.com/o/r/releases/download/v0.2.0/owntv-0.2.0-api"
+        val text = json().dropLast(1) + ""","dexMetadata":[""" +
+            """{"minSdk":28,"maxSdk":30,"url":"${dm}28.dm","sha256":"${"CD".repeat(32)}"},""" +
+            """{"minSdk":31,"maxSdk":2147483647,"url":"${dm}31.dm","sha256":"${"ef".repeat(32)}"}]}"""
+        val info = UpdateInfo.parse(text).getOrThrow()
+        assertNull(info.dexMetadataFor(27))
+        assertEquals("${dm}28.dm", info.dexMetadataFor(29)?.url)
+        assertEquals("cd".repeat(32), info.dexMetadataFor(30)?.sha256, "the checksum is compared in lower case")
+        assertEquals("${dm}31.dm", info.dexMetadataFor(34)?.url)
+    }
+
+    @Test
+    fun `a missing or broken profile never blocks the update`() {
+        assertEquals(emptyList(), UpdateInfo.parse(json()).getOrThrow().dexMetadata, "update.json from before profiles")
+        val good = """{"minSdk":31,"url":"https://x/owntv.dm","sha256":"${"ab".repeat(32)}"}"""
+        val broken = listOf(
+            """{"minSdk":28,"maxSdk":30,"url":"file:///sdcard/evil.dm","sha256":"${"ab".repeat(32)}"}""",
+            """{"minSdk":28,"url":"https://x/owntv.dm","sha256":"abc"}""",
+            """{"url":"https://x/owntv.dm"}""",
+            """"owntv.dm"""",
+        )
+        val info = UpdateInfo.parse(json().dropLast(1) + ""","dexMetadata":[${(broken + good).joinToString(",")}]}""").getOrThrow()
+        assertEquals(listOf(31), info.dexMetadata.map { it.minSdk })
+        assertEquals(Int.MAX_VALUE, info.dexMetadata.single().maxSdk)
+        assertNull(info.dexMetadataFor(29))
+        assertTrue(UpdateInfo.parse(json().dropLast(1) + ""","dexMetadata":"none"}""").getOrThrow().dexMetadata.isEmpty())
     }
 
     @Test
