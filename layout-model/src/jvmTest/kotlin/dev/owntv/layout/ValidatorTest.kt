@@ -2,6 +2,8 @@ package dev.owntv.layout
 
 import dev.owntv.layout.codec.LayoutCodec
 import dev.owntv.layout.model.BuiltInLayouts
+import dev.owntv.layout.model.screensaverPage
+import dev.owntv.layout.model.tabPages
 import dev.owntv.layout.validation.LayoutValidator
 import dev.owntv.layout.validation.Severity
 import dev.owntv.layout.validation.toAiFeedback
@@ -164,6 +166,36 @@ class ValidatorTest {
                 { "type": "hero", "id": "h", "target": "tile", "slides": [ { "title": "Hi", "action": { "type": "open_launcher_settings" } } ] } ] }"""),
         )
         assertEquals(listOf("$.pages"), unfocusableHero.paths(Severity.Error))
+    }
+
+    @Test
+    fun `a screensaver page needs nothing focusable and is left out of page tabs`() {
+        val saverPage = """{ "id": "saver", "root": { "type": "clock", "id": "saver_clock" } }"""
+        val doc = """
+            { "schemaVersion": 3, "pageTabs": true, "screensaver": { "page": "saver", "after": 60 },
+              "pages": [ { "id": "home", "root": $SETTINGS_LINK }, { "id": "more", "root": $TILE }, $saverPage ] }
+        """
+        val result = LayoutCodec.decode(doc)
+        assertTrue(result.issues.isEmpty(), result.issues.joinToString())
+        val decoded = result.requireDocument()
+        assertEquals("saver", decoded.screensaverPage?.id)
+        assertEquals(listOf("home", "more"), decoded.tabPages.map { it.id })
+
+        val withTile = LayoutCodec.decode(doc.replace(saverPage, """{ "id": "saver", "root": $TILE }""").replace("""{ "id": "more", "root": $TILE }, """, ""))
+        assertEquals(listOf("$.pages[1].root"), withTile.paths(Severity.Warning))
+    }
+
+    @Test
+    fun `the screensaver page must exist and must not be the home page`() {
+        val missing = LayoutCodec.decode(docWithRoot(TILE, extra = """"screensaver": { "page": "nope" },"""))
+        assertEquals(listOf("$.screensaver.page"), missing.paths(Severity.Error))
+        assertNull(missing.document?.screensaverPage)
+
+        val home = LayoutCodec.decode(docWithRoot(TILE, extra = """"screensaver": { "page": "home" },"""))
+        assertEquals(listOf("$.screensaver.page"), home.paths(Severity.Error))
+
+        val tooSoon = LayoutCodec.decode(docWithRoot(TILE, extra = """"screensaver": { "page": "settings_page", "after": 5 },"""))
+        assertTrue("$.screensaver.after" in tooSoon.issues.map { it.path }, tooSoon.issues.joinToString())
     }
 
     @Test

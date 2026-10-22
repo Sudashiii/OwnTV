@@ -34,7 +34,7 @@ import dev.owntv.launcher.ui.render.LocalWallpaperFolders
 import dev.owntv.launcher.ui.render.LocalWatchNext
 
 @Composable
-fun OwnTvRoot(container: AppContainer, nav: Navigator) {
+fun OwnTvRoot(container: AppContainer, nav: Navigator, idle: IdleTracker) {
     val layoutState by container.layouts.state.collectAsStateWithLifecycle()
     val apps by container.apps.apps.collectAsStateWithLifecycle()
     val appsLoaded by container.apps.loaded.collectAsStateWithLifecycle()
@@ -79,7 +79,7 @@ fun OwnTvRoot(container: AppContainer, nav: Navigator) {
                 // draw and focus search skips it.
                 Box(Modifier.fillMaxSize().placedOnlyIf(nav.current == Screen.Home)) {
                     CompositionLocalProvider(LocalBackgroundPaused provides (nav.current != Screen.Home)) {
-                        HomeScreen(container, nav, layoutState, catalog, arranger)
+                        HomeScreen(container, nav, layoutState, catalog, arranger, idle)
                     }
                 }
                 when (val screen = nav.current) {

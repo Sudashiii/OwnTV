@@ -14,12 +14,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.currentStateAsState
 import androidx.tv.material3.Button
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
@@ -53,16 +57,23 @@ import dev.owntv.layout.model.TileShape
 import dev.owntv.layout.model.TileSize
 import dev.owntv.layout.model.TileStyle
 import dev.owntv.layout.model.WatchNextEntry
+import dev.owntv.layout.model.screensaverPage
 import kotlinx.coroutines.launch
 
 /** Handles widget clicks for the live launcher. */
 @Composable
-private fun rememberActionHandler(container: AppContainer, nav: Navigator, onLongPress: (ContextTarget) -> Unit): ActionHandler =
-    remember(container, nav) {
+private fun rememberActionHandler(
+    container: AppContainer,
+    nav: Navigator,
+    goToPage: (String) -> Unit = nav::goToPage,
+    onLongPress: (ContextTarget) -> Unit,
+): ActionHandler {
+    val currentGoToPage by rememberUpdatedState(goToPage)
+    return remember(container, nav) {
         object : ActionHandler {
             override fun perform(action: Action) {
                 when (action) {
-                    is GoToPageAction -> nav.goToPage(action.page)
+                    is GoToPageAction -> currentGoToPage(action.page)
                     OpenAppDrawerAction -> nav.push(Screen.AppDrawer)
                     OpenLauncherSettingsAction -> nav.push(Screen.Settings)
                     else -> container.actions.execute(action)
@@ -88,13 +99,22 @@ private fun rememberActionHandler(container: AppContainer, nav: Navigator, onLon
             }
         }
     }
+}
 
 @Composable
-fun HomeScreen(container: AppContainer, nav: Navigator, state: LayoutState, catalog: AppCatalog, arranger: LauncherArranger) {
+fun HomeScreen(container: AppContainer, nav: Navigator, state: LayoutState, catalog: AppCatalog, arranger: LauncherArranger, idle: IdleTracker) {
     var menuTarget by remember { mutableStateOf<ContextTarget?>(null) }
-    val handler = rememberActionHandler(container, nav) { menuTarget = it }
+    // A go_to_page action to the screensaver page starts the screensaver.
+    val handler = rememberActionHandler(
+        container,
+        nav,
+        goToPage = { id -> if (id == state.document.screensaverPage?.id) idle.start() else nav.goToPage(id) },
+    ) { menuTarget = it }
     val scope = rememberCoroutineScope()
     val builtInUpdate by container.layouts.builtInUpdate.collectAsStateWithLifecycle()
+    // Home stays composed under other screens, so only ask while it is the one the user sees.
+    val updatePrompt = builtInUpdate?.takeIf { !it.dismissed && nav.current == Screen.Home && menuTarget == null }
+    val lifecycle by LocalLifecycleOwner.current.lifecycle.currentStateAsState()
 
     if (!state.loaded) {
         Box(Modifier.fillMaxSize().background(Color.Black))
@@ -107,25 +127,29 @@ fun HomeScreen(container: AppContainer, nav: Navigator, state: LayoutState, cata
         LocalApps provides catalog,
         LocalAppImages provides container.images,
     ) {
-        Box(Modifier.fillMaxSize()) {
-            LayoutView(
-                doc = state.document,
-                pageId = nav.pageId,
-                onSelectPage = { nav.pageId = it },
-                focusTrigger = nav.focusTrigger,
-            )
+        val screensaverAllowed = nav.current == Screen.Home && menuTarget == null && updatePrompt == null &&
+            catalog.loaded && lifecycle.isAtLeast(Lifecycle.State.RESUMED)
+        ScreensaverHost(state.document, idle, screensaverAllowed) {
+            Box(Modifier.fillMaxSize()) {
+                LayoutView(
+                    doc = state.document,
+                    pageId = nav.pageId,
+                    onSelectPage = { nav.pageId = it },
+                    focusTrigger = nav.focusTrigger,
+                )
 
-            // A layout must never lock the user out: if nothing on the page can take focus, offer settings.
-            val resolved = rememberResolved(state.document)
-            val page = resolved.pages.firstOrNull { it.id == nav.pageId } ?: resolved.pages.first()
-            val pageCatalog = catalog.withOverrides(resolved.apps)
-            val watchNext by container.watchNext.state.collectAsStateWithLifecycle()
-            val hasFocusable = remember(page, pageCatalog, watchNext) { page.root.rendersFocusable(pageCatalog, watchNext) }
-            if (catalog.loaded && !hasFocusable) {
-                FallbackButton(onClick = { nav.push(Screen.Settings) }, modifier = Modifier.align(Alignment.BottomCenter))
+                // A layout must never lock the user out: if nothing on the page can take focus, offer settings.
+                val resolved = rememberResolved(state.document)
+                val page = resolved.pages.firstOrNull { it.id == nav.pageId } ?: resolved.pages.first()
+                val pageCatalog = catalog.withOverrides(resolved.apps)
+                val watchNext by container.watchNext.state.collectAsStateWithLifecycle()
+                val hasFocusable = remember(page, pageCatalog, watchNext) { page.root.rendersFocusable(pageCatalog, watchNext) }
+                if (catalog.loaded && !hasFocusable) {
+                    FallbackButton(onClick = { nav.push(Screen.Settings) }, modifier = Modifier.align(Alignment.BottomCenter))
+                }
+
+                state.problem?.let { ProblemBanner(it, Modifier.align(Alignment.BottomStart)) }
             }
-
-            state.problem?.let { ProblemBanner(it, Modifier.align(Alignment.BottomStart)) }
         }
     }
 
@@ -141,8 +165,7 @@ fun HomeScreen(container: AppContainer, nav: Navigator, state: LayoutState, cata
         )
     }
 
-    // Home stays composed under other screens, so only ask while it is the one the user sees.
-    builtInUpdate?.takeIf { !it.dismissed && nav.current == Screen.Home && menuTarget == null }?.let { update ->
+    updatePrompt?.let { update ->
         BuiltInUpdatePrompt(
             update,
             onUpdate = {

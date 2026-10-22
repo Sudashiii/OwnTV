@@ -21,6 +21,7 @@ An OwnTV layout is one JSON document. The launcher renders it natively; nothing 
   "defaults": { "app_row": { "tile": { "shape": "card" } } },
   "apps": { "com.netflix.ninja": { "description": "Movies and series", "backdrop": "https://example.com/netflix.jpg" } },
   "pageTabs": false,
+  "screensaver": { "page": "night", "after": 300 },
   "pages": [ { "id": "home", "initialFocus": "favorites", "root": { "type": "column", "id": "root", "children": [] } } ]
 }
 ```
@@ -35,6 +36,7 @@ An OwnTV layout is one JSON document. The launcher renders it natively; nothing 
 | `defaults` | | Default properties per node type, e.g. `{ "app_row": { "spacing": 24 } }`. |
 | `apps` | | Per-app settings keyed by package name; see Apps. |
 | `pageTabs` | | `true` shows page titles as tabs at the top (only with 2+ pages). Default `false`. |
+| `screensaver` | | Shows one of the pages as a screensaver after the remote has been idle on Home; see Screensaver. Default: none. |
 | `pages` | yes | List of pages. The first page is the home page; Back returns to it. |
 
 **Page**: `id` (required, unique), `title` (tab label and `{page}`), `initialFocus` (id of the node focused when the page opens; default: first focusable widget), `background` (overrides the layout background), `root` (required node; it fills the screen).
@@ -90,6 +92,28 @@ Used by the document, pages, any node (`background`) and hero slides.
 
   Its wallpapers come from up to three sources: `images` (each with an optional `dim`, `blur`, `fit` and `adjust` of its own; sources ending in `.mp4`, `.webm`, `.mkv`, `.mov` or `.m3u8` play as videos), `folder` (every picture and video in that folder of the TV's storage and its subfolders, on USB drives too, e.g. `Pictures/OwnTV`; OwnTV asks once for access to photos and videos) and `randomUrl` (an address that returns a different picture on every request; it takes one turn and brings a new picture each time). At least one source is needed. `interval`: seconds between changes (0–86400, default 300; 0 changes only when the launcher starts and with `next_wallpaper`); while the launcher is in the background the timer waits, so coming back after a while brings a new wallpaper. `order`: `shuffle` (default, never the same wallpaper twice in a row) or `sequential` (images, then the folder, then the random address). `transition`: crossfade in ms (0–5000, default 1000); pictures are downloaded before they fade in. `dim`, `blur`, `fit` and `adjust` apply to every wallpaper that does not set its own. With `dynamicColors`, the theme follows the picture shown now. A shortcut with the `next_wallpaper` action changes the screen's slideshow (the page's, else the layout's) at once.
 - `{ "type": "glass", "tint": "#1FFFFFFF", "variant": "regular" }` — Liquid Glass (tvOS 26 style): blurs and refracts the page background, heroes and images behind the node, with a light rim. `variant` is `regular` (frosted) or `clear` (more see-through). Use it on a node above a hero, e.g. a dock row in a `stack`, and give the node a `cornerRadius`. Android 12+; older devices show only the tint.
+
+## Screensaver
+
+```json
+"screensaver": { "page": "night", "after": 300, "drift": true },
+"pages": [
+  { "id": "home", "root": { … } },
+  {
+    "id": "night",
+    "background": { "type": "slideshow", "folder": "Pictures/OwnTV", "randomUrl": "https://picsum.photos/1920/1080", "interval": 60, "dim": 0.2 },
+    "root": {
+      "type": "column", "id": "night_root", "padding": [48, 40], "arrange": "end",
+      "children": [
+        { "type": "clock", "id": "night_clock", "format": "HH:mm", "textStyle": "display" },
+        { "type": "text", "id": "night_date", "text": "{date:EEEE, d MMMM}", "textStyle": "title" }
+      ]
+    }
+  }
+]
+```
+
+When nobody has pressed a key on the home screen for `after` seconds (30–7200, default 300), the page `page` fades in over it, full screen and without page tabs. Any key ends it, and that key does nothing else. Give the screensaver a page of its own: not the first page (the home page), and with nothing focusable on it (clocks, text, images and heroes that follow their slides fit; tiles and shortcuts cannot be selected there). Page tabs leave it out, and a `go_to_page` action to it starts the screensaver at once (e.g. a shortcut with the `wallpaper` icon). `drift` (default `true`) moves the page a few dp every minute, so a clock does not stay on the same pixels for hours. The home screen's videos pause while it is covered; the screensaver's own background (a `slideshow` or a `video` fits well) keeps running. It only runs while OwnTV is in front: the TV's own screen saver and sleep timer still apply and win when they are shorter.
 
 ## Common node properties
 
@@ -273,4 +297,4 @@ On the TV, long-press an app tile for:
 
 ## Validation
 
-OwnTV checks every layout before it can be applied and reports problems with a JSON path, for example `ERROR at $.pages[0].root.children[1].source: Missing required property "list".` Errors block the layout; a layout without a visible `open_launcher_settings` link is an error, because the TV could not reach OwnTV's settings (and through them the Android settings) any more. Warnings (unknown properties or placeholders, apps that are not installed, pages with nothing to focus) do not. Text around a ```json code block, comments and trailing commas are tolerated.
+OwnTV checks every layout before it can be applied and reports problems with a JSON path, for example `ERROR at $.pages[0].root.children[1].source: Missing required property "list".` Errors block the layout; a layout without a visible `open_launcher_settings` link is an error, because the TV could not reach OwnTV's settings (and through them the Android settings) any more. Warnings (unknown properties or placeholders, apps that are not installed, pages with nothing to focus, focusable widgets on the screensaver page) do not. Text around a ```json code block, comments and trailing commas are tolerated.
