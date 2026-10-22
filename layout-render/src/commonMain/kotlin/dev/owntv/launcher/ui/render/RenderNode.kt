@@ -79,7 +79,6 @@ import dev.owntv.layout.model.GlassBackground
 import dev.owntv.layout.model.GridNode
 import dev.owntv.layout.model.HAlign
 import dev.owntv.layout.model.HeroNode
-import dev.owntv.layout.model.ImageBackground
 import dev.owntv.layout.model.ImageFit
 import dev.owntv.layout.model.ImageNode
 import dev.owntv.layout.model.ListSource
@@ -210,7 +209,7 @@ private fun NodeBody(node: Node, modifier: Modifier, fillByDefault: Boolean, fil
 
     // Tiles adapt to the width they get when the node or its parent sets one.
     val sizing = TileSizing(adaptive = common.width != null || fillWidthByDefault, fixedHeight = common.height is Size.Fixed)
-    val image = common.background as? ImageBackground
+    val image = common.background?.takeIf { it.isMedia }
 
     CompositionLocalProvider(LocalAncestors provides LocalAncestors.current + node.id) {
         if (image != null) {

@@ -67,7 +67,28 @@ Used by the document, pages, any node (`background`) and hero slides.
 
 - `"#101010"` or `"@surface"` — a solid color (shorthand for `{ "type": "color", "color": "#101010" }`).
 - `{ "type": "gradient", "colors": ["#000000", "#203040"], "angle": 180 }` — 2+ colors; angle like CSS: 0 = bottom→top, 90 = left→right, 180 = top→bottom (default).
-- `{ "type": "image", "src": "https://…/bg.jpg", "dim": 0.3, "blur": 0, "fit": "cover" }` — `dim` 0–1 darkens, `blur` 0–60 dp (Android 12+), `fit` is `cover`, `contain` or `fill`. Image links (`https://…`) work everywhere an image is accepted (backgrounds, heroes, `image` nodes, tiles, app artwork). The TV downloads each one once and caches it locally (about 30 days, up to 256 MB), so it loads instantly afterwards and works offline; to replace an image, change its URL.
+- `{ "type": "image", "src": "https://…/bg.jpg", "dim": 0.3, "blur": 0, "fit": "cover", "adjust": { "brightness": 0, "contrast": 1, "saturation": 1, "hue": 0 } }` — `dim` 0–1 darkens, `blur` 0–60 dp (Android 12+), `fit` is `cover`, `contain` or `fill`. Animated GIFs and WebPs play. `adjust` (optional) changes the picture like a photo editor: `brightness` −1–1 (0 = unchanged), `contrast` 0–2 (1 = unchanged, 0 = flat gray), `saturation` 0–2 (1 = unchanged, 0 = black and white), `hue` −180–180 degrees around the color wheel. Image links (`https://…`) work everywhere an image is accepted (backgrounds, heroes, `image` nodes, tiles, app artwork). The TV downloads each one once and caches it locally (about 30 days, up to 256 MB), so it loads instantly afterwards and works offline; to replace an image, change its URL.
+- `{ "type": "video", "src": "https://…/aquarium.mp4", "dim": 0.3, "fit": "cover" }` — a silent video that loops (MP4, WebM, MKV or an HLS `.m3u8` stream, or `asset:`), with `dim`, `blur`, `fit` and `adjust` like an image. It pauses while the launcher is in the background or covered by its settings. Videos are cached on the TV too (up to 512 MB), so a loop is downloaded once. The web preview shows a placeholder.
+- `{ "type": "slideshow", … }` — wallpapers that take turns, like Projectivy's:
+
+  ```json
+  "background": {
+    "type": "slideshow",
+    "images": [
+      { "src": "https://…/mountains.jpg" },
+      { "src": "https://…/city.jpg", "dim": 0.5, "adjust": { "saturation": 0.6 } },
+      { "src": "https://…/fireplace.mp4" }
+    ],
+    "folder": "Pictures/OwnTV",
+    "randomUrl": "https://picsum.photos/1920/1080",
+    "interval": 600,
+    "order": "shuffle",
+    "transition": 1000,
+    "dim": 0.3
+  }
+  ```
+
+  Its wallpapers come from up to three sources: `images` (each with an optional `dim`, `blur`, `fit` and `adjust` of its own; sources ending in `.mp4`, `.webm`, `.mkv`, `.mov` or `.m3u8` play as videos), `folder` (every picture and video in that folder of the TV's storage and its subfolders, on USB drives too, e.g. `Pictures/OwnTV`; OwnTV asks once for access to photos and videos) and `randomUrl` (an address that returns a different picture on every request; it takes one turn and brings a new picture each time). At least one source is needed. `interval`: seconds between changes (0–86400, default 300; 0 changes only when the launcher starts and with `next_wallpaper`); while the launcher is in the background the timer waits, so coming back after a while brings a new wallpaper. `order`: `shuffle` (default, never the same wallpaper twice in a row) or `sequential` (images, then the folder, then the random address). `transition`: crossfade in ms (0–5000, default 1000); pictures are downloaded before they fade in. `dim`, `blur`, `fit` and `adjust` apply to every wallpaper that does not set its own. With `dynamicColors`, the theme follows the picture shown now. A shortcut with the `next_wallpaper` action changes the screen's slideshow (the page's, else the layout's) at once.
 - `{ "type": "glass", "tint": "#1FFFFFFF", "variant": "regular" }` — Liquid Glass (tvOS 26 style): blurs and refracts the page background, heroes and images behind the node, with a light rim. `variant` is `regular` (frosted) or `clear` (more see-through). Use it on a node above a hero, e.g. a dock row in a `stack`, and give the node a `cornerRadius`. Android 12+; older devices show only the tint.
 
 ## Common node properties
@@ -200,6 +221,7 @@ On the TV, long-press an app tile for:
 - `{ "type": "open_input", "input": "hdmi1" }` — switches the TV to an input: `hdmi1` to `hdmi4` or `av`. Only TVs have inputs; other devices show a message.
 - `{ "type": "go_to_page", "page": "apps" }`
 - `{ "type": "open_app_drawer" }` — built-in list of all apps.
+- `{ "type": "next_wallpaper" }` — shows the next wallpaper of the screen's `slideshow` background at once (the page's, else the layout's), e.g. from a shortcut with the `wallpaper` icon.
 - `{ "type": "open_system_settings", "screen": "main" | "network" | "bluetooth" | "display" | "sound" | "apps" | "date_time" | "accessibility" }`
 - `{ "type": "open_launcher_settings" }` — OwnTV's own settings: import, looks, templates, history, the layout editor and an entry that opens the Android settings. **Every layout needs at least one visible, focusable link to it** (a `shortcut` with this action, or a hero slide with it when `follow` is `slides`); see Validation.
 

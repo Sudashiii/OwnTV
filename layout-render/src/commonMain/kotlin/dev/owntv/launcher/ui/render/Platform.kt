@@ -20,7 +20,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
 import coil3.request.ImageRequest
+import dev.owntv.layout.model.ImageFit
 import dev.owntv.layout.model.Node
+import dev.owntv.layout.wallpaper.FolderFile
 
 // What the renderer needs from the platform. The TV app and the web preview each provide these.
 
@@ -97,6 +99,38 @@ interface RenderMetrics {
 }
 
 val LocalRenderMetrics = staticCompositionLocalOf<RenderMetrics?> { null }
+
+/**
+ * Pictures and videos in a folder on the device, for slideshow backgrounds. The TV reads its shared
+ * storage; the web preview has none.
+ */
+interface WallpaperFolders {
+    /** Changes (as snapshot state) when the folders may read differently, e.g. once access is granted. */
+    val generation: Int
+
+    /** The pictures and videos in [path] and its subfolders, by name; empty when there are none or they cannot be read. */
+    suspend fun list(path: String): List<FolderFile>
+}
+
+val LocalWallpaperFolders = staticCompositionLocalOf<WallpaperFolders?> { null }
+
+/** Plays video backgrounds. The TV app provides one; without it videos show a placeholder. */
+interface VideoPlayers {
+    /**
+     * A silent, looping video filling [modifier], scaled by [fit] and colored by [colorMatrix]
+     * (see [dev.owntv.layout.wallpaper.Wallpapers.colorMatrix]). It plays only while [playing].
+     */
+    @Composable
+    fun Video(src: String, fit: ImageFit, colorMatrix: FloatArray?, playing: Boolean, modifier: Modifier)
+}
+
+val LocalVideoPlayers = staticCompositionLocalOf<VideoPlayers?> { null }
+
+/**
+ * True while the layout is covered by another screen (the TV keeps the home screen composed under
+ * its other screens): videos pause and slideshows wait.
+ */
+val LocalBackgroundPaused = compositionLocalOf { false }
 
 /** Turns a layout `asset:` path into a URL the image loader understands. */
 expect fun assetUrl(path: String): String

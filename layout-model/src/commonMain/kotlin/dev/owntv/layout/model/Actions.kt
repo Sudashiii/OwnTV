@@ -80,6 +80,11 @@ data class OpenSystemSettingsAction(
 ) : Action
 
 @Serializable
+@SerialName("next_wallpaper")
+@Doc("Changes a slideshow background to its next wallpaper at once: the page's, else the layout's.")
+data object NextWallpaperAction : Action
+
+@Serializable
 @SerialName("open_launcher_settings")
 @Doc("Opens OwnTV's own settings (import, templates, history, Android settings). Every layout needs at least one visible shortcut with this action, or it is rejected.")
 data object OpenLauncherSettingsAction : Action

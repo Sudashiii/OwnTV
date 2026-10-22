@@ -25,9 +25,12 @@ import dev.owntv.launcher.metrics.MetricsMode
 import dev.owntv.launcher.ui.editor.EditorScreen
 import dev.owntv.launcher.ui.render.AppCatalog
 import dev.owntv.launcher.ui.render.LocalAppArranger
+import dev.owntv.launcher.ui.render.LocalBackgroundPaused
 import dev.owntv.launcher.ui.render.LocalInteractiveSurfaces
 import dev.owntv.launcher.ui.render.LocalNetworkState
 import dev.owntv.launcher.ui.render.LocalRenderMetrics
+import dev.owntv.launcher.ui.render.LocalVideoPlayers
+import dev.owntv.launcher.ui.render.LocalWallpaperFolders
 import dev.owntv.launcher.ui.render.LocalWatchNext
 
 @Composable
@@ -67,13 +70,17 @@ fun OwnTvRoot(container: AppContainer, nav: Navigator) {
             LocalWatchNext provides watchNext,
             LocalNetworkState provides rememberNetworkState(),
             LocalRenderMetrics provides container.perf.takeIf { metricsMode != MetricsMode.Off },
+            LocalVideoPlayers provides ExoVideoPlayers,
+            LocalWallpaperFolders provides container.wallpaperFolders,
         ) {
             Box(Modifier.fillMaxSize().background(Color.Black)) {
                 // Home stays composed under the other screens, so going back does not build the whole layout
                 // again (that took most of a second). While covered it is measured but not placed: it does not
                 // draw and focus search skips it.
                 Box(Modifier.fillMaxSize().placedOnlyIf(nav.current == Screen.Home)) {
-                    HomeScreen(container, nav, layoutState, catalog, arranger)
+                    CompositionLocalProvider(LocalBackgroundPaused provides (nav.current != Screen.Home)) {
+                        HomeScreen(container, nav, layoutState, catalog, arranger)
+                    }
                 }
                 when (val screen = nav.current) {
                     Screen.Home -> {}
