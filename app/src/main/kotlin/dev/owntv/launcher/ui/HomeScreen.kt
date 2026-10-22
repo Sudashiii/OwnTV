@@ -12,6 +12,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -52,6 +53,7 @@ import dev.owntv.layout.model.TileShape
 import dev.owntv.layout.model.TileSize
 import dev.owntv.layout.model.TileStyle
 import dev.owntv.layout.model.WatchNextEntry
+import kotlinx.coroutines.launch
 
 /** Handles widget clicks for the live launcher. */
 @Composable
@@ -91,6 +93,8 @@ private fun rememberActionHandler(container: AppContainer, nav: Navigator, onLon
 fun HomeScreen(container: AppContainer, nav: Navigator, state: LayoutState, catalog: AppCatalog, arranger: LauncherArranger) {
     var menuTarget by remember { mutableStateOf<ContextTarget?>(null) }
     val handler = rememberActionHandler(container, nav) { menuTarget = it }
+    val scope = rememberCoroutineScope()
+    val builtInUpdate by container.layouts.builtInUpdate.collectAsStateWithLifecycle()
 
     if (!state.loaded) {
         Box(Modifier.fillMaxSize().background(Color.Black))
@@ -134,6 +138,22 @@ fun HomeScreen(container: AppContainer, nav: Navigator, state: LayoutState, cata
             arranger = arranger,
             onDismiss = { menuTarget = null },
             onEditLayout = { nav.push(Screen.Editor(target.nodeId)) },
+        )
+    }
+
+    // Home stays composed under other screens, so only ask while it is the one the user sees.
+    builtInUpdate?.takeIf { !it.dismissed && nav.current == Screen.Home && menuTarget == null }?.let { update ->
+        BuiltInUpdatePrompt(
+            update,
+            onUpdate = {
+                scope.launch {
+                    if (container.layouts.applyBuiltInUpdate()) {
+                        container.actions.toast("Updated to the new \"${update.name}\" ${update.ref.kind.label}")
+                        nav.home()
+                    }
+                }
+            },
+            onLater = { scope.launch { container.layouts.dismissBuiltInUpdate() } },
         )
     }
 }
