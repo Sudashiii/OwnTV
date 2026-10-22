@@ -26,7 +26,11 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.rememberHazeState
+import dev.owntv.layout.model.Action
+import dev.owntv.layout.model.ImageBackground
 import dev.owntv.layout.model.LayoutDocument
+import dev.owntv.layout.model.NextWallpaperAction
+import dev.owntv.layout.model.SlideshowBackground
 import dev.owntv.layout.model.Page
 import dev.owntv.layout.model.StyleResolver
 import dev.owntv.layout.model.TextStyleName
@@ -55,14 +59,19 @@ fun LayoutView(
     val page = resolved.pages.firstOrNull { it.id == pageId } ?: resolved.pages.first()
     val background = page.background ?: resolved.background
     val tracker = remember(page.id) { FocusTracker() }
-    val seed = rememberDynamicSeed(resolved.theme.dynamicColors, background, resolved.theme.colors, tracker)
+    val slideshow = (background as? SlideshowBackground)?.let { rememberSlideshow(it) }
+    // Dynamic colors follow the picture a slideshow shows now, as adjusted (videos have none).
+    val wallpaper = if (slideshow != null) slideshow.current?.takeUnless { it.video }?.let { ImageBackground(it.src, adjust = it.adjust) } else background
+    val seed = rememberDynamicSeed(resolved.theme.dynamicColors, wallpaper, resolved.theme.colors, tracker)
     val theme = remember(resolved.theme, fonts, seed) { OwnTheme(resolved.theme.withDynamicSeed(seed), fonts) }
     val catalog = LocalApps.current.withOverrides(resolved.apps)
     val haze = rememberHazeState()
-    CompositionLocalProvider(LocalOwnTheme provides theme, LocalApps provides catalog, LocalHazeState provides haze) {
+    val actions = LocalActionHandler.current
+    val handler = remember(actions, slideshow) { if (slideshow == null) actions else SlideshowActions(actions, slideshow) }
+    CompositionLocalProvider(LocalOwnTheme provides theme, LocalApps provides catalog, LocalHazeState provides haze, LocalActionHandler provides handler) {
         Box(modifier.fillMaxSize()) {
             val backgroundModifier = Modifier.fillMaxSize().glassSource(0f)
-            if (background != null) BackgroundFill(background, backgroundModifier) else Box(backgroundModifier.background(theme.background))
+            if (background != null) BackgroundFill(background, backgroundModifier, slideshow = slideshow) else Box(backgroundModifier.background(theme.background))
             Column(Modifier.fillMaxSize()) {
                 if (resolved.pageTabs && resolved.pages.size > 1) {
                     PageTabs(resolved.pages, page.id, onSelectPage)
@@ -70,6 +79,13 @@ fun LayoutView(
                 PageView(page, tracker, focusTrigger, Modifier.weight(1f).fillMaxWidth())
             }
         }
+    }
+}
+
+/** Handles next_wallpaper for the screen's [slideshow]; everything else goes to [actions]. */
+private class SlideshowActions(private val actions: ActionHandler, private val slideshow: SlideshowState) : ActionHandler by actions {
+    override fun perform(action: Action) {
+        if (action == NextWallpaperAction) slideshow.next() else actions.perform(action)
     }
 }
 

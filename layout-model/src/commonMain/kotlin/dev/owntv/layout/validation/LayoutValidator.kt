@@ -21,6 +21,9 @@ import dev.owntv.layout.model.GridNode
 import dev.owntv.layout.model.HeroFollow
 import dev.owntv.layout.model.HeroNode
 import dev.owntv.layout.model.ImageBackground
+import dev.owntv.layout.model.NextWallpaperAction
+import dev.owntv.layout.model.SlideshowBackground
+import dev.owntv.layout.model.VideoBackground
 import dev.owntv.layout.model.IconNames
 import dev.owntv.layout.model.ImageNode
 import dev.owntv.layout.model.IntentAction
@@ -54,6 +57,9 @@ import kotlinx.serialization.json.contentOrNull
 /** Checks the meaning of a decoded layout: references, ids, colors, and things that make a TV unusable. */
 object LayoutValidator {
     const val MAX_DEPTH = 24
+
+    /** Slideshows changing faster than this many seconds get a warning. */
+    const val MIN_SLIDESHOW_INTERVAL = 10
     private val idPattern = Regex("^[A-Za-z0-9_.-]+$")
     private val listNamePattern = Regex("^[A-Za-z0-9_-]+$")
     private val packagePattern = Regex("^[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z0-9_]+)+$")
@@ -309,6 +315,9 @@ object LayoutValidator {
                 is IntentAction -> if (action.action == null && action.packageName == null && action.component == null) {
                     out.error(path, "An intent needs at least one of action, package or component.")
                 }
+                NextWallpaperAction -> if (doc.background !is SlideshowBackground && doc.pages.none { it.background is SlideshowBackground }) {
+                    out.warning(path, "next_wallpaper changes a slideshow background, but neither the layout nor a page has one.")
+                }
                 else -> Unit
             }
         }
@@ -321,7 +330,23 @@ object LayoutValidator {
                     background.colors.forEachIndexed { i, c -> checkColorRef(c, "$path.colors[$i]") }
                 }
                 is ImageBackground -> checkImageSrc(background.src, "$path.src")
+                is VideoBackground -> checkImageSrc(background.src, "$path.src")
+                is SlideshowBackground -> checkSlideshow(background, path)
                 is GlassBackground -> checkColorRef(background.tint, "$path.tint")
+            }
+        }
+
+        fun checkSlideshow(slideshow: SlideshowBackground, path: String) {
+            slideshow.images.forEachIndexed { i, image -> checkImageSrc(image.src, "$path.images[$i].src") }
+            slideshow.folder?.let { if (it.isBlank()) out.error("$path.folder", "Name a folder on the TV, e.g. \"Pictures/OwnTV\".") }
+            slideshow.randomUrl?.let {
+                if (!it.startsWith("https://") && !it.startsWith("http://")) out.error("$path.randomUrl", "randomUrl must start with https:// or http://.")
+            }
+            if (slideshow.images.isEmpty() && slideshow.folder.isNullOrBlank() && slideshow.randomUrl.isNullOrBlank()) {
+                out.error(path, "A slideshow needs images, a folder or a randomUrl.")
+            }
+            if (slideshow.interval in 1 until MIN_SLIDESHOW_INTERVAL) {
+                out.warning("$path.interval", "Changing the wallpaper every ${slideshow.interval} s is distracting and downloads a lot; use $MIN_SLIDESHOW_INTERVAL or more.")
             }
         }
 

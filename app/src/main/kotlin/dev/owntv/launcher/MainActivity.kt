@@ -7,6 +7,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import dev.owntv.launcher.data.apps.WatchNextRepository
+import dev.owntv.launcher.data.layout.WallpaperFolderRepository
 import dev.owntv.launcher.ui.Navigator
 import dev.owntv.launcher.ui.OwnTvRoot
 import dev.owntv.launcher.ui.Screen
@@ -17,12 +18,16 @@ class MainActivity : ComponentActivity() {
     private val watchNextPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         container.watchNext.onPermissionResult(granted)
     }
+    private val wallpaperPermission = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+        container.wallpaperFolders.onPermissionResult()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         handleLaunchIntent(intent)
         container.perf.attach(this)
         container.watchNext.permissionLauncher = { watchNextPermission.launch(WatchNextRepository.PERMISSION) }
+        container.wallpaperFolders.permissionLauncher = { wallpaperPermission.launch(WallpaperFolderRepository.PERMISSIONS) }
         setContent { OwnTvRoot(container, nav) }
     }
 
@@ -39,6 +44,7 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         container.perf.detach(this)
         container.watchNext.permissionLauncher = null
+        container.wallpaperFolders.permissionLauncher = null
         super.onDestroy()
     }
 
@@ -67,6 +73,7 @@ class MainActivity : ComponentActivity() {
         container.apps.refresh()
         container.recent.refresh()
         container.watchNext.refresh()
+        container.wallpaperFolders.refresh()
         container.updater.takeUpdateNotice()?.let(container.actions::toast)
     }
 

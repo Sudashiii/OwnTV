@@ -204,7 +204,7 @@ enum class FocusMotion {
 }
 
 /**
- * A background: a solid color, a gradient or an image. In JSON a plain color string such as
+ * A background: a solid color, a gradient, an image, a video, a slideshow or glass. In JSON a plain color string such as
  * `"#202020"` or `"@surface"` is a shorthand for `{"type": "color", "color": …}`.
  */
 @Serializable(with = BackgroundSerializer::class)
@@ -241,7 +241,87 @@ data class ImageBackground(
     val blur: Int = 0,
     @Doc("How the image fills the area. Default cover.")
     val fit: ImageFit = ImageFit.Cover,
+    @Doc("Brightness, contrast, saturation and hue of the image. Default: unchanged.")
+    val adjust: ImageAdjust? = null,
 ) : Background
+
+@Serializable
+@SerialName("video")
+@Doc("A video that plays silently in a loop, e.g. an aquarium or a fireplace. Shown on the TV; the web preview shows a placeholder.")
+data class VideoBackground(
+    @Doc("Video location: an https:// URL (MP4, WebM, MKV or an HLS .m3u8 stream) or \"asset:<path>\".")
+    val src: String,
+    @Range(0.0, 1.0) @Doc("Darkens the video so text stays readable: 0 = none, 1 = black. Default 0.3.")
+    val dim: Float = 0.3f,
+    @Range(0.0, 60.0) @Doc("Blur radius in dp (Android 12 and newer). Default 0.")
+    val blur: Int = 0,
+    @Doc("How the video fills the area. Default cover.")
+    val fit: ImageFit = ImageFit.Cover,
+    @Doc("Brightness, contrast, saturation and hue of the video. Default: unchanged.")
+    val adjust: ImageAdjust? = null,
+) : Background
+
+@Serializable
+@SerialName("slideshow")
+@Doc("Wallpapers that take turns: pictures (animated GIFs too) and videos from a list, from a folder on the TV and from a web address that returns a new random picture each time. They change on a timer, at random or in order, with a crossfade; a shortcut with the next_wallpaper action changes them at once.")
+data class SlideshowBackground(
+    @Doc("Pictures and videos to show, each with its own look. Sources ending in .mp4, .webm, .mkv, .mov or .m3u8 play as videos.")
+    val images: List<SlideshowImage> = emptyList(),
+    @Doc("A folder on the TV whose pictures and videos join the slideshow, e.g. \"Pictures/OwnTV\" (its subfolders and the same folder on USB drives count too). OwnTV asks once for access to photos and videos.")
+    val folder: String? = null,
+    @Doc("A web address that returns a different picture on every request, e.g. \"https://picsum.photos/1920/1080\". It takes one turn in the slideshow and brings a new picture every time.")
+    val randomUrl: String? = null,
+    @Range(0.0, 86400.0)
+    @Doc("Seconds between changes; 0 changes only when the launcher starts and with next_wallpaper. Default 300 (5 minutes).")
+    val interval: Int = 300,
+    @Doc("shuffle (a random wallpaper each time, never the same one twice in a row) or sequential (in the listed order, then the folder). Default shuffle.")
+    val order: SlideshowOrder = SlideshowOrder.Shuffle,
+    @Range(0.0, 5000.0)
+    @Doc("Length of the crossfade between wallpapers in milliseconds; 0 switches at once. Default 1000.")
+    val transition: Int = 1000,
+    @Range(0.0, 1.0) @Doc("Darkens every wallpaper that does not set its own dim: 0 = none, 1 = black. Default 0.3.")
+    val dim: Float = 0.3f,
+    @Range(0.0, 60.0) @Doc("Blur radius in dp for wallpapers that do not set their own (Android 12 and newer). Default 0.")
+    val blur: Int = 0,
+    @Doc("How wallpapers that do not set their own fit fill the area. Default cover.")
+    val fit: ImageFit = ImageFit.Cover,
+    @Doc("Brightness, contrast, saturation and hue for wallpapers that do not set their own. Default: unchanged.")
+    val adjust: ImageAdjust? = null,
+) : Background
+
+@Serializable
+@Doc("One picture or video of a slideshow. Unset properties come from the slideshow.")
+data class SlideshowImage(
+    @Doc("Location: an https:// URL or \"asset:<path>\". Animated GIFs and WebPs play; .mp4, .webm, .mkv, .mov and .m3u8 play as videos.")
+    val src: String,
+    @Range(0.0, 1.0) @Doc("Darkens this wallpaper: 0 = none, 1 = black. Default: the slideshow's dim.")
+    val dim: Float? = null,
+    @Range(0.0, 60.0) @Doc("Blur radius in dp. Default: the slideshow's blur.")
+    val blur: Int? = null,
+    @Doc("How this wallpaper fills the area. Default: the slideshow's fit.")
+    val fit: ImageFit? = null,
+    @Doc("Brightness, contrast, saturation and hue of this wallpaper. Default: the slideshow's adjust.")
+    val adjust: ImageAdjust? = null,
+)
+
+@Serializable
+enum class SlideshowOrder {
+    @SerialName("shuffle") Shuffle,
+    @SerialName("sequential") Sequential,
+}
+
+@Serializable
+@Doc("Color adjustments for a picture or video, like a photo editor's.")
+data class ImageAdjust(
+    @Range(-1.0, 1.0) @Doc("Brighter (up to 1) or darker (down to -1). Default 0.")
+    val brightness: Float = 0f,
+    @Range(0.0, 2.0) @Doc("1 keeps the contrast, 0 is flat gray, 2 doubles it. Default 1.")
+    val contrast: Float = 1f,
+    @Range(0.0, 2.0) @Doc("1 keeps the colors, 0 is black and white, 2 is twice as colorful. Default 1.")
+    val saturation: Float = 1f,
+    @Range(-180.0, 180.0) @Doc("Turns every color around the color wheel by this many degrees. Default 0.")
+    val hue: Int = 0,
+)
 
 @Serializable
 @SerialName("glass")
@@ -274,6 +354,8 @@ object BackgroundSerializer : KSerializer<Background> {
         "color" to ColorBackground.serializer(),
         "gradient" to GradientBackground.serializer(),
         "image" to ImageBackground.serializer(),
+        "video" to VideoBackground.serializer(),
+        "slideshow" to SlideshowBackground.serializer(),
         "glass" to GlassBackground.serializer(),
     )
 
@@ -299,6 +381,8 @@ object BackgroundSerializer : KSerializer<Background> {
         val (type, body) = when (value) {
             is GradientBackground -> "gradient" to output.json.encodeToJsonElement(GradientBackground.serializer(), value)
             is ImageBackground -> "image" to output.json.encodeToJsonElement(ImageBackground.serializer(), value)
+            is VideoBackground -> "video" to output.json.encodeToJsonElement(VideoBackground.serializer(), value)
+            is SlideshowBackground -> "slideshow" to output.json.encodeToJsonElement(SlideshowBackground.serializer(), value)
             is GlassBackground -> "glass" to output.json.encodeToJsonElement(GlassBackground.serializer(), value)
             is ColorBackground -> error("handled above")
         }

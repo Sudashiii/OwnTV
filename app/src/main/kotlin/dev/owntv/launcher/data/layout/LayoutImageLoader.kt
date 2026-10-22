@@ -5,6 +5,7 @@ import coil3.EventListener
 import coil3.ImageLoader
 import coil3.SingletonImageLoader
 import coil3.disk.DiskCache
+import coil3.gif.AnimatedImageDecoder
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.CachePolicy
 import okhttp3.OkHttpClient
@@ -17,7 +18,7 @@ import java.util.concurrent.TimeUnit
  * Every image is stored on the TV the first time it is shown and then served from there: the cache lives
  * in `cache/layout-images`, ignores the server's no-store/no-cache headers and keeps images for [MAX_AGE_DAYS]
  * days, so the home screen does not wait for the network and still shows its artwork offline. To refresh an
- * image the layout changes its URL (the URL is the cache key).
+ * image the layout changes its URL (the URL is the cache key). Animated GIFs and WebPs play.
  */
 object LayoutImageLoader {
     private const val MAX_AGE_DAYS = 30L
@@ -35,7 +36,10 @@ object LayoutImageLoader {
             }
             .build()
         return ImageLoader.Builder(context)
-            .components { add(OkHttpNetworkFetcherFactory(callFactory = { client })) }
+            .components {
+                add(OkHttpNetworkFetcherFactory(callFactory = { client }))
+                add(AnimatedImageDecoder.Factory())
+            }
             .diskCache {
                 DiskCache.Builder()
                     .directory(context.cacheDir.resolve("layout-images").toOkioPath())

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 3,
   "name": "Projectivy",
-  "description": "Projectivy Launcher style: a tinted wallpaper whose colors tint the whole theme, one section per category stacked vertically, the focused section bright and the others dimmed, with the name and description of the focused tile under its row, plus a Continue watching row.",
+  "description": "Projectivy Launcher style: a slideshow of wallpapers whose colors tint the whole theme, one section per category stacked vertically, the focused section bright and the others dimmed, with the name and description of the focused tile under its row, plus a Continue watching row.",
   "theme": {
     "colors": {
       "background": "#2A0715",
@@ -20,9 +20,17 @@
     "dynamicColors": { "source": "wallpaper", "style": "tonal_spot" }
   },
   "background": {
-    "type": "image",
-    "src": "https://images.unsplash.com/photo-1565479715608-5338dec5ff7a?w=1920&q=80&fm=jpg",
-    "fit": "cover"
+    "type": "slideshow",
+    "images": [
+      { "src": "https://images.unsplash.com/photo-1565479715608-5338dec5ff7a?w=1920&q=80&fm=jpg" },
+      { "src": "https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1920&q=80&fm=jpg" },
+      { "src": "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1920&q=80&fm=jpg" },
+      { "src": "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=1920&q=80&fm=jpg" },
+      { "src": "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=80&fm=jpg" }
+    ],
+    "interval": 600,
+    "order": "sequential",
+    "transition": 1500
   },
   "styles": {
     "section": { "width": "fill", "spacing": 8, "unfocusedOpacity": 0.5, "revealOnFocus": true },
@@ -371,11 +379,11 @@
                   {
                     "type": "shortcut",
                     "id": "about_wallpaper",
-                    "label": "Looks and wallpaper",
+                    "label": "Next wallpaper",
                     "icon": "wallpaper",
                     "style": "card",
-                    "description": "Try another look, or change the wallpaper in this layout's background.",
-                    "action": { "type": "open_launcher_settings" }
+                    "description": "Shows the next wallpaper now; they also change every 10 minutes. Put your own pictures, GIFs and videos into the slideshow in this layout's background, or name a folder on the TV.",
+                    "action": { "type": "next_wallpaper" }
                   }
                 ]
               },

@@ -240,7 +240,7 @@ internal fun FieldDialog(state: EditorState, edit: FieldEdit, catalog: AppCatalo
                     }
                     FieldKind.Background -> {
                         PanelRow("Solid color…", modifier = rememberInitialFocus()) { state.dialog = edit.copy(spec = edit.spec.copy(kind = FieldKind.Color)) }
-                        listOf("gradient", "image").forEach { type ->
+                        listOf("gradient", "image", "video", "slideshow").forEach { type ->
                             PanelRow("${type.label()} ›") {
                                 val existing = current as? JsonObject
                                 if ((existing?.get("type") as? JsonPrimitive)?.contentOrNull == type ||

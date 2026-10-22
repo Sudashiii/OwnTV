@@ -299,6 +299,12 @@
           "$ref": "#/$defs/Background.image"
         },
         {
+          "$ref": "#/$defs/Background.video"
+        },
+        {
+          "$ref": "#/$defs/Background.slideshow"
+        },
+        {
           "$ref": "#/$defs/Background.glass"
         }
       ]
@@ -362,10 +368,200 @@
             "contain",
             "fill"
           ]
+        },
+        "adjust": {
+          "description": "Brightness, contrast, saturation and hue of the image. Default: unchanged.",
+          "$ref": "#/$defs/ImageAdjust"
         }
       },
       "required": [
         "type",
+        "src"
+      ],
+      "additionalProperties": false
+    },
+    "ImageAdjust": {
+      "type": "object",
+      "description": "Color adjustments for a picture or video, like a photo editor's.",
+      "properties": {
+        "brightness": {
+          "description": "Brighter (up to 1) or darker (down to -1). Default 0.",
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1
+        },
+        "contrast": {
+          "description": "1 keeps the contrast, 0 is flat gray, 2 doubles it. Default 1.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "saturation": {
+          "description": "1 keeps the colors, 0 is black and white, 2 is twice as colorful. Default 1.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "hue": {
+          "description": "Turns every color around the color wheel by this many degrees. Default 0.",
+          "type": "integer",
+          "minimum": -180,
+          "maximum": 180
+        }
+      },
+      "additionalProperties": false
+    },
+    "Background.video": {
+      "type": "object",
+      "description": "A video that plays silently in a loop, e.g. an aquarium or a fireplace. Shown on the TV; the web preview shows a placeholder.",
+      "properties": {
+        "type": {
+          "const": "video"
+        },
+        "src": {
+          "description": "Video location: an https:// URL (MP4, WebM, MKV or an HLS .m3u8 stream) or \"asset:<path>\".",
+          "type": "string"
+        },
+        "dim": {
+          "description": "Darkens the video so text stays readable: 0 = none, 1 = black. Default 0.3.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "blur": {
+          "description": "Blur radius in dp (Android 12 and newer). Default 0.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 60
+        },
+        "fit": {
+          "description": "How the video fills the area. Default cover.",
+          "type": "string",
+          "enum": [
+            "cover",
+            "contain",
+            "fill"
+          ]
+        },
+        "adjust": {
+          "description": "Brightness, contrast, saturation and hue of the video. Default: unchanged.",
+          "$ref": "#/$defs/ImageAdjust"
+        }
+      },
+      "required": [
+        "type",
+        "src"
+      ],
+      "additionalProperties": false
+    },
+    "Background.slideshow": {
+      "type": "object",
+      "description": "Wallpapers that take turns: pictures (animated GIFs too) and videos from a list, from a folder on the TV and from a web address that returns a new random picture each time. They change on a timer, at random or in order, with a crossfade; a shortcut with the next_wallpaper action changes them at once.",
+      "properties": {
+        "type": {
+          "const": "slideshow"
+        },
+        "images": {
+          "description": "Pictures and videos to show, each with its own look. Sources ending in .mp4, .webm, .mkv, .mov or .m3u8 play as videos.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SlideshowImage"
+          }
+        },
+        "folder": {
+          "description": "A folder on the TV whose pictures and videos join the slideshow, e.g. \"Pictures/OwnTV\" (its subfolders and the same folder on USB drives count too). OwnTV asks once for access to photos and videos.",
+          "type": "string"
+        },
+        "randomUrl": {
+          "description": "A web address that returns a different picture on every request, e.g. \"https://picsum.photos/1920/1080\". It takes one turn in the slideshow and brings a new picture every time.",
+          "type": "string"
+        },
+        "interval": {
+          "description": "Seconds between changes; 0 changes only when the launcher starts and with next_wallpaper. Default 300 (5 minutes).",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 86400
+        },
+        "order": {
+          "description": "shuffle (a random wallpaper each time, never the same one twice in a row) or sequential (in the listed order, then the folder). Default shuffle.",
+          "type": "string",
+          "enum": [
+            "shuffle",
+            "sequential"
+          ]
+        },
+        "transition": {
+          "description": "Length of the crossfade between wallpapers in milliseconds; 0 switches at once. Default 1000.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5000
+        },
+        "dim": {
+          "description": "Darkens every wallpaper that does not set its own dim: 0 = none, 1 = black. Default 0.3.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "blur": {
+          "description": "Blur radius in dp for wallpapers that do not set their own (Android 12 and newer). Default 0.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 60
+        },
+        "fit": {
+          "description": "How wallpapers that do not set their own fit fill the area. Default cover.",
+          "type": "string",
+          "enum": [
+            "cover",
+            "contain",
+            "fill"
+          ]
+        },
+        "adjust": {
+          "description": "Brightness, contrast, saturation and hue for wallpapers that do not set their own. Default: unchanged.",
+          "$ref": "#/$defs/ImageAdjust"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "SlideshowImage": {
+      "type": "object",
+      "description": "One picture or video of a slideshow. Unset properties come from the slideshow.",
+      "properties": {
+        "src": {
+          "description": "Location: an https:// URL or \"asset:<path>\". Animated GIFs and WebPs play; .mp4, .webm, .mkv, .mov and .m3u8 play as videos.",
+          "type": "string"
+        },
+        "dim": {
+          "description": "Darkens this wallpaper: 0 = none, 1 = black. Default: the slideshow's dim.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "blur": {
+          "description": "Blur radius in dp. Default: the slideshow's blur.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 60
+        },
+        "fit": {
+          "description": "How this wallpaper fills the area. Default: the slideshow's fit.",
+          "type": "string",
+          "enum": [
+            "cover",
+            "contain",
+            "fill"
+          ]
+        },
+        "adjust": {
+          "description": "Brightness, contrast, saturation and hue of this wallpaper. Default: the slideshow's adjust.",
+          "$ref": "#/$defs/ImageAdjust"
+        }
+      },
+      "required": [
         "src"
       ],
       "additionalProperties": false
@@ -2816,6 +3012,9 @@
           "$ref": "#/$defs/Action.launch_app"
         },
         {
+          "$ref": "#/$defs/Action.next_wallpaper"
+        },
+        {
           "$ref": "#/$defs/Action.open_app_drawer"
         },
         {
@@ -2908,6 +3107,19 @@
       "required": [
         "type",
         "package"
+      ],
+      "additionalProperties": false
+    },
+    "Action.next_wallpaper": {
+      "type": "object",
+      "description": "Changes a slideshow background to its next wallpaper at once: the page's, else the layout's.",
+      "properties": {
+        "type": {
+          "const": "next_wallpaper"
+        }
+      },
+      "required": [
+        "type"
       ],
       "additionalProperties": false
     },

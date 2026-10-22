@@ -12,6 +12,7 @@ import dev.owntv.launcher.data.apps.WatchNextRepository
 import dev.owntv.launcher.data.layout.BundledAssets
 import dev.owntv.launcher.data.layout.LayoutImageLoader
 import dev.owntv.launcher.data.layout.LayoutRepository
+import dev.owntv.launcher.data.layout.WallpaperFolderRepository
 import dev.owntv.launcher.importexport.FileImporter
 import dev.owntv.launcher.importexport.PasteSession
 import dev.owntv.launcher.importexport.UrlImporter
@@ -43,6 +44,7 @@ class AppContainer(context: Context) {
     val apps = InstalledAppsRepository(context, scope)
     val recent = RecentAppsRepository(context, scope)
     val watchNext = WatchNextRepository(context, scope)
+    val wallpaperFolders = WallpaperFolderRepository(context)
     val images: AppImageLoader = AppImageLoader(context, onLoaded = perf::appImageLoaded)
     val appLists = AppListsRepository(context, scope, assets)
     val layouts = LayoutRepository(context, scope, assets, keepLists = appLists::seed, onLoaded = perf::layoutDecoded)

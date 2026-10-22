@@ -31,7 +31,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
 import dev.owntv.layout.model.Background
 import dev.owntv.layout.model.ColorBackground
 import dev.owntv.layout.model.FocusLinks
@@ -42,11 +41,16 @@ import dev.owntv.layout.model.NodeCommon
 import dev.owntv.layout.model.ScrollAlign
 import dev.owntv.layout.model.ScrollCurve
 import dev.owntv.layout.model.ScrollMotion
+import dev.owntv.layout.model.SlideshowBackground
+import dev.owntv.layout.model.VideoBackground
 import kotlin.math.abs
 
-/** Draws a color, gradient or image background filling [modifier]. */
+/**
+ * Draws a background filling [modifier]. A slideshow uses [slideshow] when given (the screen's, which
+ * next_wallpaper and dynamic colors follow), else runs its own.
+ */
 @Composable
-fun BackgroundFill(background: Background, modifier: Modifier, shape: Shape = RectangleShape) {
+fun BackgroundFill(background: Background, modifier: Modifier, shape: Shape = RectangleShape, slideshow: SlideshowState? = null) {
     val theme = LocalOwnTheme.current
     when (background) {
         is ColorBackground -> Box(modifier.background(theme.color(background.color) ?: Color.Transparent, shape))
@@ -56,20 +60,17 @@ fun BackgroundFill(background: Background, modifier: Modifier, shape: Shape = Re
                 onDrawBehind { drawRect(brush) }
             },
         )
-        is ImageBackground -> Box(modifier.clip(shape)) {
-            AsyncImage(
-                model = imageModel(background.src),
-                contentDescription = null,
-                contentScale = background.fit.toContentScale(),
-                modifier = Modifier.matchParentSize().then(if (background.blur > 0) Modifier.blur(background.blur.dp) else Modifier),
-            )
-            if (background.dim > 0f) Box(Modifier.matchParentSize().background(Color.Black.copy(alpha = background.dim)))
-        }
+        is ImageBackground -> with(background) { MediaFill(src, video = false, dim, blur, fit, adjust, modifier.clip(shape)) }
+        is VideoBackground -> with(background) { MediaFill(src, video = true, dim, blur, fit, adjust, modifier.clip(shape)) }
+        is SlideshowBackground -> SlideshowFill(slideshow ?: rememberSlideshow(background), background.transition, modifier, shape)
         is GlassBackground -> Box(modifier.glassBackground(background, shape as? RoundedCornerShape ?: RoundedCornerShape(0.dp)))
     }
 }
 
-/** Shadow, opacity, color or gradient background and border of a node. Image backgrounds are drawn by the caller. */
+/** True for backgrounds drawn as content under a node (pictures, videos, slideshows) rather than as a modifier. */
+val Background.isMedia: Boolean get() = this is ImageBackground || this is VideoBackground || this is SlideshowBackground
+
+/** Shadow, opacity, color or gradient background and border of a node. Media backgrounds ([isMedia]) are drawn by the caller. */
 fun Modifier.nodeDecoration(common: NodeCommon, theme: OwnTheme, shape: Shape): Modifier {
     var m = this
     common.shadow?.takeIf { it > 0 }?.let { m = m.shadow(it.dp, shape, clip = false) }

@@ -212,8 +212,10 @@ class EditTest {
             LayoutCodec.json.decodeFromJsonElement(AppSource.serializer(), Fields.newSealed(sourceDescriptor, type))
         }
         val background = Background.serializer().descriptor
-        assertEquals(setOf("color", "gradient", "image", "glass"), Fields.subtypes(background).keys)
-        LayoutCodec.json.decodeFromJsonElement(Background.serializer(), Fields.newSealed(background, "gradient"))
+        assertEquals(setOf("color", "gradient", "image", "video", "slideshow", "glass"), Fields.subtypes(background).keys)
+        Fields.subtypes(background).keys.forEach { type ->
+            LayoutCodec.json.decodeFromJsonElement(Background.serializer(), Fields.newSealed(background, type))
+        }
     }
 
     @Test
@@ -257,6 +259,7 @@ class EditTest {
         NodeRegistry.types.forEach { visit(it, Fields.forNode(it)) }
         visit("page", Fields.forDescriptors(listOf(Page.serializer().descriptor), skip = setOf("root", "id")))
         visit("layout", Fields.forDescriptors(listOf(LayoutDocument.serializer().descriptor), skip = setOf("pages", "styles", "defaults", "apps", "schemaVersion")))
+        Fields.subtypes(Background.serializer().descriptor).forEach { (type, descriptor) -> visit("background<$type>", Fields.forDescriptor(descriptor)) }
         // Maps are edited in the JSON for now (docs/HANDOFF-phase2.md, "Deliberate boundaries").
         val allowed = setOf("shortcut.action<intent>.extras", "layout.theme.colors.custom")
         assertEquals(allowed, unsupported, "Fields without an editor control (update the list when one gains a control)")

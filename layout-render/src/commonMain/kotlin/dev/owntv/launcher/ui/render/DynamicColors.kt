@@ -20,9 +20,13 @@ import dev.owntv.layout.model.DynamicColorSource
 import dev.owntv.layout.model.DynamicColors
 import dev.owntv.layout.model.GlassBackground
 import dev.owntv.layout.model.GradientBackground
+import dev.owntv.layout.model.ImageAdjust
 import dev.owntv.layout.model.ImageBackground
+import dev.owntv.layout.model.SlideshowBackground
+import dev.owntv.layout.model.VideoBackground
 import dev.owntv.layout.model.Theme
 import dev.owntv.layout.model.ThemeColors
+import dev.owntv.layout.wallpaper.Wallpapers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -66,15 +70,16 @@ internal fun rememberDynamicSeed(dynamic: DynamicColors?, wallpaper: Background?
 /** Where a seed color comes from. */
 private sealed interface SeedImage {
     data class Solid(val colors: List<Int>) : SeedImage
-    data class Url(val src: String) : SeedImage
+    /** A picture, colored by [adjust] as it is drawn. */
+    data class Url(val src: String, val adjust: ImageAdjust? = null) : SeedImage
     data class Banner(val app: AppInfo) : SeedImage
 }
 
 private fun Background.seedImage(colors: ThemeColors): SeedImage? = when (this) {
-    is ImageBackground -> SeedImage.Url(src)
+    is ImageBackground -> SeedImage.Url(src, adjust)
     is ColorBackground -> colors.resolve(color)?.let { SeedImage.Solid(listOf(it)) }
     is GradientBackground -> SeedImage.Solid(this.colors.mapNotNull(colors::resolve)).takeIf { it.colors.isNotEmpty() }
-    is GlassBackground -> null
+    is GlassBackground, is VideoBackground, is SlideshowBackground -> null
 }
 
 private fun FocusedTile.seedImage(catalog: AppCatalog): SeedImage? =
@@ -87,7 +92,9 @@ private suspend fun SeedImage.loadSeed(context: PlatformContext, images: AppImag
         is SeedImage.Url -> {
             val request = ImageRequest.Builder(context).data(imageModel(src)).size(SAMPLE_SIZE).readablePixels().build()
             val result = SingletonImageLoader.get(context).execute(request) as? SuccessResult ?: return null
-            runCatching { result.image.toImageBitmap().pixels() }.getOrNull() ?: return null
+            val pixels = runCatching { result.image.toImageBitmap().pixels() }.getOrNull() ?: return null
+            Wallpapers.colorMatrix(adjust)?.let { matrix -> for (i in pixels.indices) pixels[i] = Wallpapers.applyMatrix(pixels[i], matrix) }
+            pixels
         }
         is SeedImage.Banner -> images?.load(app, AppImages.Kind.Banner)?.let { runCatching { it.pixels() }.getOrNull() } ?: return null
     }
