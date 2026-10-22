@@ -43,6 +43,7 @@ import dev.owntv.layout.model.RecentSource
 import dev.owntv.layout.model.ShortcutNode
 import dev.owntv.layout.model.TextNode
 import dev.owntv.layout.model.WatchNextRowNode
+import dev.owntv.layout.model.screensaverPage
 import dev.owntv.layout.model.walk
 
 @Composable
@@ -104,7 +105,9 @@ internal fun OutlinePanel(state: EditorState) {
         }
         if (doc.pages.size > 1) {
             item {
-                PanelRow("Page ${state.pageIndex + 1} of ${doc.pages.size}: ${page.title ?: page.id}", "Press OK to edit the next page") {
+                val title = page.title ?: page.id
+                val label = if (page === doc.screensaverPage && !title.contains("screensaver", ignoreCase = true)) "$title (screensaver)" else title
+                PanelRow("Page ${state.pageIndex + 1} of ${doc.pages.size}: $label", "Press OK to edit the next page") {
                     state.showPage((state.pageIndex + 1) % doc.pages.size)
                 }
             }

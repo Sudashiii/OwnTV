@@ -14,16 +14,21 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.currentStateAsState
 import androidx.tv.material3.Button
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import dev.owntv.launcher.AppContainer
+import dev.owntv.launcher.actions.StandbyService
 import dev.owntv.launcher.ui.render.AppInfo
 import dev.owntv.launcher.data.layout.LayoutState
 import dev.owntv.launcher.ui.render.ActionHandler
@@ -46,6 +51,7 @@ import dev.owntv.layout.model.OpenAppDrawerAction
 import dev.owntv.layout.model.OpenLauncherSettingsAction
 import dev.owntv.layout.model.NodeCommon
 import dev.owntv.layout.model.Padding
+import dev.owntv.layout.model.StandbyAction
 import dev.owntv.layout.model.Page
 import dev.owntv.layout.model.TextNode
 import dev.owntv.layout.model.TextStyleName
@@ -53,16 +59,26 @@ import dev.owntv.layout.model.TileShape
 import dev.owntv.layout.model.TileSize
 import dev.owntv.layout.model.TileStyle
 import dev.owntv.layout.model.WatchNextEntry
+import dev.owntv.layout.model.screensaverPage
 import kotlinx.coroutines.launch
 
 /** Handles widget clicks for the live launcher. */
 @Composable
-private fun rememberActionHandler(container: AppContainer, nav: Navigator, onLongPress: (ContextTarget) -> Unit): ActionHandler =
-    remember(container, nav) {
+private fun rememberActionHandler(
+    container: AppContainer,
+    nav: Navigator,
+    goToPage: (String) -> Unit = nav::goToPage,
+    standby: () -> Unit = {},
+    onLongPress: (ContextTarget) -> Unit,
+): ActionHandler {
+    val currentGoToPage by rememberUpdatedState(goToPage)
+    val currentStandby by rememberUpdatedState(standby)
+    return remember(container, nav) {
         object : ActionHandler {
             override fun perform(action: Action) {
                 when (action) {
-                    is GoToPageAction -> nav.goToPage(action.page)
+                    is GoToPageAction -> currentGoToPage(action.page)
+                    StandbyAction -> currentStandby()
                     OpenAppDrawerAction -> nav.push(Screen.AppDrawer)
                     OpenLauncherSettingsAction -> nav.push(Screen.Settings)
                     else -> container.actions.execute(action)
@@ -88,13 +104,29 @@ private fun rememberActionHandler(container: AppContainer, nav: Navigator, onLon
             }
         }
     }
+}
 
 @Composable
-fun HomeScreen(container: AppContainer, nav: Navigator, state: LayoutState, catalog: AppCatalog, arranger: LauncherArranger) {
+fun HomeScreen(container: AppContainer, nav: Navigator, state: LayoutState, catalog: AppCatalog, arranger: LauncherArranger, idle: IdleTracker) {
     var menuTarget by remember { mutableStateOf<ContextTarget?>(null) }
-    val handler = rememberActionHandler(container, nav) { menuTarget = it }
+    // The device sleeps through OwnTV's standby service; without it the screen goes black until a key is pressed.
+    fun standby(asked: Boolean) {
+        if (StandbyService.sleep()) return
+        idle.blackout()
+        if (asked) container.actions.toast("To switch the TV off, turn on \"OwnTV standby\" in Settings > Accessibility")
+    }
+    // A go_to_page action to the screensaver page starts the screensaver.
+    val handler = rememberActionHandler(
+        container,
+        nav,
+        goToPage = { id -> if (id == state.document.screensaverPage?.id) idle.start() else nav.goToPage(id) },
+        standby = { standby(asked = true) },
+    ) { menuTarget = it }
     val scope = rememberCoroutineScope()
     val builtInUpdate by container.layouts.builtInUpdate.collectAsStateWithLifecycle()
+    // Home stays composed under other screens, so only ask while it is the one the user sees.
+    val updatePrompt = builtInUpdate?.takeIf { !it.dismissed && nav.current == Screen.Home && menuTarget == null }
+    val lifecycle by LocalLifecycleOwner.current.lifecycle.currentStateAsState()
 
     if (!state.loaded) {
         Box(Modifier.fillMaxSize().background(Color.Black))
@@ -107,25 +139,29 @@ fun HomeScreen(container: AppContainer, nav: Navigator, state: LayoutState, cata
         LocalApps provides catalog,
         LocalAppImages provides container.images,
     ) {
-        Box(Modifier.fillMaxSize()) {
-            LayoutView(
-                doc = state.document,
-                pageId = nav.pageId,
-                onSelectPage = { nav.pageId = it },
-                focusTrigger = nav.focusTrigger,
-            )
+        val screensaverAllowed = nav.current == Screen.Home && menuTarget == null && updatePrompt == null &&
+            catalog.loaded && lifecycle.isAtLeast(Lifecycle.State.RESUMED)
+        ScreensaverHost(state.document, idle, screensaverAllowed, onStandby = { standby(asked = false) }) {
+            Box(Modifier.fillMaxSize()) {
+                LayoutView(
+                    doc = state.document,
+                    pageId = nav.pageId,
+                    onSelectPage = { nav.pageId = it },
+                    focusTrigger = nav.focusTrigger,
+                )
 
-            // A layout must never lock the user out: if nothing on the page can take focus, offer settings.
-            val resolved = rememberResolved(state.document)
-            val page = resolved.pages.firstOrNull { it.id == nav.pageId } ?: resolved.pages.first()
-            val pageCatalog = catalog.withOverrides(resolved.apps)
-            val watchNext by container.watchNext.state.collectAsStateWithLifecycle()
-            val hasFocusable = remember(page, pageCatalog, watchNext) { page.root.rendersFocusable(pageCatalog, watchNext) }
-            if (catalog.loaded && !hasFocusable) {
-                FallbackButton(onClick = { nav.push(Screen.Settings) }, modifier = Modifier.align(Alignment.BottomCenter))
+                // A layout must never lock the user out: if nothing on the page can take focus, offer settings.
+                val resolved = rememberResolved(state.document)
+                val page = resolved.pages.firstOrNull { it.id == nav.pageId } ?: resolved.pages.first()
+                val pageCatalog = catalog.withOverrides(resolved.apps)
+                val watchNext by container.watchNext.state.collectAsStateWithLifecycle()
+                val hasFocusable = remember(page, pageCatalog, watchNext) { page.root.rendersFocusable(pageCatalog, watchNext) }
+                if (catalog.loaded && !hasFocusable) {
+                    FallbackButton(onClick = { nav.push(Screen.Settings) }, modifier = Modifier.align(Alignment.BottomCenter))
+                }
+
+                state.problem?.let { ProblemBanner(it, Modifier.align(Alignment.BottomStart)) }
             }
-
-            state.problem?.let { ProblemBanner(it, Modifier.align(Alignment.BottomStart)) }
         }
     }
 
@@ -141,8 +177,7 @@ fun HomeScreen(container: AppContainer, nav: Navigator, state: LayoutState, cata
         )
     }
 
-    // Home stays composed under other screens, so only ask while it is the one the user sees.
-    builtInUpdate?.takeIf { !it.dismissed && nav.current == Screen.Home && menuTarget == null }?.let { update ->
+    updatePrompt?.let { update ->
         BuiltInUpdatePrompt(
             update,
             onUpdate = {

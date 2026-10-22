@@ -41,6 +41,7 @@ import dev.owntv.layout.codec.DecodeResult
 import dev.owntv.layout.codec.LayoutCodec
 import dev.owntv.layout.model.LayoutDocument
 import dev.owntv.layout.model.StyleResolver
+import dev.owntv.layout.model.screensaverPage
 import kotlinx.browser.document
 import kotlinx.serialization.json.addJsonObject
 import kotlinx.serialization.json.buildJsonObject
@@ -106,10 +107,12 @@ class PreviewState {
                 }
             }
             putJsonArray("pages") {
+                val screensaver = shown?.screensaverPage
                 shown?.pages?.forEach { page ->
                     addJsonObject {
                         put("id", page.id)
-                        put("title", page.title ?: page.id)
+                        val title = page.title ?: page.id
+                        put("title", if (page === screensaver && !title.contains("screensaver", ignoreCase = true)) "$title (screensaver)" else title)
                     }
                 }
             }

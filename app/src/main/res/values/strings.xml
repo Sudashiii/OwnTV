@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="standby_service_description">Lets OwnTV put the TV into standby: from a shortcut with the standby action, or after the screensaver has run for a while. With HDMI-CEC the TV switches off too. OwnTV does not read the screen or anything you do.</string>
+</resources>

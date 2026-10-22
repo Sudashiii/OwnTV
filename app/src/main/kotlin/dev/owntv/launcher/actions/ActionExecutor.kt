@@ -59,6 +59,11 @@ class ActionExecutor(
         start(Intent(Settings.ACTION_SETTINGS), "Could not open settings")
     }
 
+    /** Opens the Android accessibility settings, where the user turns on OwnTV's standby service. */
+    fun openAccessibilitySettings() {
+        if (!start(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS), null)) openSystemSettings()
+    }
+
     /** Switches to a TV input through the system's TV app, like the remote's input button. */
     private fun openInput(input: TvInput): Boolean {
         val name = input.displayName()

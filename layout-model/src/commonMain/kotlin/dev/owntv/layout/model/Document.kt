@@ -43,6 +43,8 @@ data class LayoutDocument(
     val apps: Map<String, AppOverride> = emptyMap(),
     @Doc("Show a row of page tabs at the top when there is more than one page. Default false.")
     val pageTabs: Boolean = false,
+    @Doc("Shows one of the pages as a screensaver when nobody has pressed a key on the home screen for a while. Default: no screensaver.")
+    val screensaver: Screensaver? = null,
     @Doc("Pages of the launcher. The first page is the home page.")
     val pages: List<Page>,
 )
@@ -61,6 +63,36 @@ data class Page(
     @Doc("Root node. It fills the whole 960 x 540 dp screen.")
     val root: Node,
 )
+
+@Serializable
+@Doc("A page shown full screen, without page tabs, after the remote has been idle on the home screen. Any key ends it, and that key does nothing else.")
+data class Screensaver(
+    @Doc("Id of the page to show, e.g. one with a slideshow background and a clock. Not the first page, which is the home page. Nothing on it can be selected, and page tabs leave it out; a go_to_page action to it starts the screensaver at once.")
+    val page: String,
+    @Range(30.0, 7200.0)
+    @Doc("Seconds without a key press on the home screen before the screensaver starts. The TV's own screen saver and sleep timer still apply and win when they are shorter. Default 300 (5 minutes).")
+    val after: Int = 300,
+    @Doc("Moves the page a few dp every minute, so clocks and text do not stay on the same pixels for hours. Default true.")
+    val drift: Boolean = true,
+    @Doc("Puts the TV into standby after the screensaver has run for a while. Default: the screensaver runs until a key is pressed (or the TV's own sleep timer ends it).")
+    val standby: ScreensaverStandby? = null,
+)
+
+@Serializable
+@Doc("Standby after the screensaver: the TV box goes to sleep and, with HDMI-CEC, the TV switches off. Needs OwnTV's standby service, turned on once in the Android accessibility settings; without it the screen goes black instead.")
+data class ScreensaverStandby(
+    @Range(60.0, 86400.0)
+    @Doc("Seconds the screensaver runs before standby. Default 3600 (1 hour).")
+    val after: Int = 3600,
+)
+
+/** The page [LayoutDocument.screensaver] shows, or null when there is none or it does not exist. */
+val LayoutDocument.screensaverPage: Page?
+    get() = screensaver?.let { saver -> pages.drop(1).firstOrNull { it.id == saver.page } }
+
+/** The pages page tabs offer: every page but the screensaver. */
+val LayoutDocument.tabPages: List<Page>
+    get() = screensaverPage?.let { saver -> pages.filter { it !== saver } } ?: pages
 
 @Serializable
 @Doc("Settings for one app, used everywhere the app appears.")

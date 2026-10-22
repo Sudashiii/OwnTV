@@ -8,12 +8,14 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import dev.owntv.launcher.data.apps.WatchNextRepository
 import dev.owntv.launcher.data.layout.WallpaperFolderRepository
+import dev.owntv.launcher.ui.IdleTracker
 import dev.owntv.launcher.ui.Navigator
 import dev.owntv.launcher.ui.OwnTvRoot
 import dev.owntv.launcher.ui.Screen
 
 class MainActivity : ComponentActivity() {
     private val nav = Navigator()
+    private val idle = IdleTracker()
     private val container: AppContainer get() = (application as OwnTvApp).container
     private val watchNextPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         container.watchNext.onPermissionResult(granted)
@@ -28,7 +30,7 @@ class MainActivity : ComponentActivity() {
         container.perf.attach(this)
         container.watchNext.permissionLauncher = { watchNextPermission.launch(WatchNextRepository.PERMISSION) }
         container.wallpaperFolders.permissionLauncher = { wallpaperPermission.launch(WallpaperFolderRepository.PERMISSIONS) }
-        setContent { OwnTvRoot(container, nav) }
+        setContent { OwnTvRoot(container, nav, idle) }
     }
 
     override fun onStart() {
@@ -49,7 +51,7 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean =
-        container.perf.dispatchKey(event) { super.dispatchKeyEvent(event) }
+        idle.onKey(event) || container.perf.dispatchKey(event) { super.dispatchKeyEvent(event) }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
@@ -58,6 +60,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleLaunchIntent(intent: Intent) {
+        idle.reset()
         when {
             intent.component?.className == "$packageName.SettingsShortcut" -> {
                 nav.home()
@@ -70,6 +73,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        // Keys pressed in other apps never reach OwnTV, so the idle time starts over.
+        idle.reset()
         container.apps.refresh()
         container.recent.refresh()
         container.watchNext.refresh()

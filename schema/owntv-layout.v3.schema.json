@@ -76,6 +76,10 @@
           "description": "Show a row of page tabs at the top when there is more than one page. Default false.",
           "type": "boolean"
         },
+        "screensaver": {
+          "description": "Shows one of the pages as a screensaver when nobody has pressed a key on the home screen for a while. Default: no screensaver.",
+          "$ref": "#/$defs/Screensaver"
+        },
         "pages": {
           "description": "Pages of the launcher. The first page is the home page.",
           "type": "array",
@@ -620,6 +624,47 @@
           "description": "Tile background color behind the app's artwork.",
           "type": "string",
           "pattern": "^(#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})|@[A-Za-z][A-Za-z0-9_]*)$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Screensaver": {
+      "type": "object",
+      "description": "A page shown full screen, without page tabs, after the remote has been idle on the home screen. Any key ends it, and that key does nothing else.",
+      "properties": {
+        "page": {
+          "description": "Id of the page to show, e.g. one with a slideshow background and a clock. Not the first page, which is the home page. Nothing on it can be selected, and page tabs leave it out; a go_to_page action to it starts the screensaver at once.",
+          "type": "string"
+        },
+        "after": {
+          "description": "Seconds without a key press on the home screen before the screensaver starts. The TV's own screen saver and sleep timer still apply and win when they are shorter. Default 300 (5 minutes).",
+          "type": "integer",
+          "minimum": 30,
+          "maximum": 7200
+        },
+        "drift": {
+          "description": "Moves the page a few dp every minute, so clocks and text do not stay on the same pixels for hours. Default true.",
+          "type": "boolean"
+        },
+        "standby": {
+          "description": "Puts the TV into standby after the screensaver has run for a while. Default: the screensaver runs until a key is pressed (or the TV's own sleep timer ends it).",
+          "$ref": "#/$defs/ScreensaverStandby"
+        }
+      },
+      "required": [
+        "page"
+      ],
+      "additionalProperties": false
+    },
+    "ScreensaverStandby": {
+      "type": "object",
+      "description": "Standby after the screensaver: the TV box goes to sleep and, with HDMI-CEC, the TV switches off. Needs OwnTV's standby service, turned on once in the Android accessibility settings; without it the screen goes black instead.",
+      "properties": {
+        "after": {
+          "description": "Seconds the screensaver runs before standby. Default 3600 (1 hour).",
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 86400
         }
       },
       "additionalProperties": false
@@ -3028,6 +3073,9 @@
         },
         {
           "$ref": "#/$defs/Action.open_url"
+        },
+        {
+          "$ref": "#/$defs/Action.standby"
         }
       ]
     },
@@ -3216,6 +3264,19 @@
       "required": [
         "type",
         "url"
+      ],
+      "additionalProperties": false
+    },
+    "Action.standby": {
+      "type": "object",
+      "description": "Puts the TV box into standby; with HDMI-CEC the TV switches off too. Needs OwnTV's standby service, turned on once in the Android accessibility settings. Without it the screen goes black until a key is pressed.",
+      "properties": {
+        "type": {
+          "const": "standby"
+        }
+      },
+      "required": [
+        "type"
       ],
       "additionalProperties": false
     },

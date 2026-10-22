@@ -134,13 +134,24 @@ object LayoutValidator {
                         !target.containsFocusable() -> out.warning("$path.initialFocus", "Node \"$id\" has nothing focusable.")
                     }
                 }
-                if (!page.root.containsFocusable()) {
+                if (i > 0 && page.id == doc.screensaver?.page) {
+                    if (page.root.containsFocusable()) {
+                        out.warning("$path.root", "Nothing on the screensaver page can be selected: any key ends the screensaver. Leave out tiles, rows and shortcuts.")
+                    }
+                } else if (!page.root.containsFocusable()) {
                     out.warning(
                         "$path.root",
                         "Page \"${page.id}\" has no focusable widget (app_tile, app_row, app_grid, watch_next_row, folder or shortcut), so the remote cannot do anything on it.",
                     )
                 }
                 page.root.walk("$path.root") { node, nodePath, _ -> checkReferences(page, node, nodePath) }
+            }
+
+            doc.screensaver?.let { saver ->
+                when (doc.pages.indexOfFirst { it.id == saver.page }) {
+                    -1 -> out.error("$.screensaver.page", "No page with id \"${saver.page}\". Pages: ${pageIds.joinToString(", ")}.")
+                    0 -> out.error("$.screensaver.page", "The first page is the home page. Give the screensaver a page of its own.")
+                }
             }
 
             val seenIds = mutableMapOf<String, String>()

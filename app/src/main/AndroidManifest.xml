@@ -87,6 +87,21 @@
             </intent-filter>
         </activity-alias>
 
+        <!-- Puts the device to sleep for the standby action and screensaver.standby (actions/StandbyService.kt).
+             The user turns it on once under Settings > Accessibility. -->
+        <service
+            android:name=".actions.StandbyService"
+            android:exported="true"
+            android:label="OwnTV standby"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/standby_service" />
+        </service>
+
         <!-- Gets the package installer's result for an update and brings OwnTV back once it is installed (update/Updater.kt). -->
         <receiver
             android:name=".update.UpdateInstallReceiver"

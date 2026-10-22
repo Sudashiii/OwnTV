@@ -8,8 +8,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.VectorConverter
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -23,7 +27,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.rememberHazeState
 import dev.owntv.layout.model.Action
@@ -35,7 +41,10 @@ import dev.owntv.layout.model.Page
 import dev.owntv.layout.model.StyleResolver
 import dev.owntv.layout.model.TextStyleName
 import dev.owntv.layout.model.referencedIds
+import dev.owntv.layout.model.screensaverPage
+import dev.owntv.layout.model.tabPages
 import kotlinx.coroutines.delay
+import kotlin.random.Random
 
 /** The layout with styles and type defaults applied, ready to render. */
 @Composable
@@ -45,6 +54,7 @@ fun rememberResolved(doc: LayoutDocument): LayoutDocument =
 /**
  * Renders a whole layout: background, optional page tabs and the current page.
  * [focusTrigger] changes whenever the page's initial focus should be applied again.
+ * The screensaver page is shown as the screensaver: no tabs, nothing focusable, and it drifts.
  */
 @Composable
 fun LayoutView(
@@ -58,6 +68,7 @@ fun LayoutView(
     val fonts = LocalFontFamilies.current
     val page = resolved.pages.firstOrNull { it.id == pageId } ?: resolved.pages.first()
     val background = page.background ?: resolved.background
+    val screensaver = page === resolved.screensaverPage
     val tracker = remember(page.id) { FocusTracker() }
     val slideshow = (background as? SlideshowBackground)?.let { rememberSlideshow(it) }
     // Dynamic colors follow the picture a slideshow shows now, as adjusted (videos have none).
@@ -71,12 +82,22 @@ fun LayoutView(
     CompositionLocalProvider(LocalOwnTheme provides theme, LocalApps provides catalog, LocalHazeState provides haze, LocalActionHandler provides handler) {
         Box(modifier.fillMaxSize()) {
             val backgroundModifier = Modifier.fillMaxSize().glassSource(0f)
+            // The screensaver covers the home screen, also before its first wallpaper has loaded.
+            if (screensaver && background != null) Box(Modifier.fillMaxSize().background(theme.background))
             if (background != null) BackgroundFill(background, backgroundModifier, slideshow = slideshow) else Box(backgroundModifier.background(theme.background))
-            Column(Modifier.fillMaxSize()) {
-                if (resolved.pageTabs && resolved.pages.size > 1) {
-                    PageTabs(resolved.pages, page.id, onSelectPage)
+            if (screensaver) {
+                val drift = resolved.screensaver?.drift == true && !LocalPreviewMode.current
+                CompositionLocalProvider(LocalInteractiveSurfaces provides null) {
+                    PageView(page, tracker, focusTrigger, Modifier.fillMaxSize().then(if (drift) Modifier.drift() else Modifier), takesFocus = false)
                 }
-                PageView(page, tracker, focusTrigger, Modifier.weight(1f).fillMaxWidth())
+            } else {
+                Column(Modifier.fillMaxSize()) {
+                    val tabPages = resolved.tabPages
+                    if (resolved.pageTabs && tabPages.size > 1) {
+                        PageTabs(tabPages, page.id, onSelectPage)
+                    }
+                    PageView(page, tracker, focusTrigger, Modifier.weight(1f).fillMaxWidth())
+                }
             }
         }
     }
@@ -89,8 +110,22 @@ private class SlideshowActions(private val actions: ActionHandler, private val s
     }
 }
 
+/** Every minute the screensaver's content glides to a new spot a few dp from the middle, against burn-in. */
 @Composable
-private fun PageView(page: Page, tracker: FocusTracker, focusTrigger: Int, modifier: Modifier) {
+private fun Modifier.drift(): Modifier {
+    val position = remember { Animatable(Offset.Zero, Offset.VectorConverter) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(DRIFT_INTERVAL_MS)
+            val next = Offset(Random.nextInt(-DRIFT_DP, DRIFT_DP + 1).toFloat(), Random.nextInt(-DRIFT_DP, DRIFT_DP + 1).toFloat())
+            position.animateTo(next, tween(DRIFT_GLIDE_MS))
+        }
+    }
+    return offset { IntOffset(position.value.x.dp.roundToPx(), position.value.y.dp.roundToPx()) }
+}
+
+@Composable
+private fun PageView(page: Page, tracker: FocusTracker, focusTrigger: Int, modifier: Modifier, takesFocus: Boolean = true) {
     val preview = LocalPreviewMode.current
     val appsLoaded = LocalApps.current.loaded
     val registry = remember(page) { FocusRegistry(page.referencedIds()) }
@@ -106,7 +141,7 @@ private fun PageView(page: Page, tracker: FocusTracker, focusTrigger: Int, modif
             RenderNode(page.root, fillByDefault = true)
         }
     }
-    if (!preview) {
+    if (!preview && takesFocus) {
         // Keyed on the trigger, not the page: switching pages with the tabs must keep focus on the tabs.
         LaunchedEffect(focusTrigger, appsLoaded) {
             withFrameNanos { }
@@ -161,3 +196,6 @@ private fun PageTabs(pages: List<Page>, selectedId: String, onSelect: (String) -
 }
 
 private const val TAB_SELECT_DELAY_MS = 250L
+private const val DRIFT_INTERVAL_MS = 60_000L
+private const val DRIFT_GLIDE_MS = 4_000
+private const val DRIFT_DP = 16
