@@ -8,6 +8,8 @@ The entire home screen is described by one JSON document: rows, columns, grids a
 
 **Launcher settings → Looks** has recreations of popular TV home screens: Google TV, Android TV classic, Apple TV (tvOS 26/27 Liquid Glass: full-bleed Top Shelf behind a glass dock, then the app grid), Fire TV, Roku, LG webOS and Projectivy Launcher (category sections over a wallpaper, inputs, a Continue watching row, the focused row bright and the rest dimmed). Use a whole look, or keep your layout and take only its colors, fonts, focus style and tile defaults. They live in [looks/](looks/) and are ordinary layouts, so they are good starting points for your own.
 
+If you use a look or template as it is and a new OwnTV version changes it, the launcher asks on the home screen whether to switch to the new version (**Update now** or **Not now**); the entry stays in launcher settings. Once you edit the layout, import another one or take only a look's style, it is yours and never replaced. The previous layout always stays in history.
+
 ## Editing on the TV
 
 Open **OwnTV Settings** in the app list to reach the editor and built-in looks. It also appears in rows and grids that show all apps, including the Apple TV dock. It is a shortcut provided by OwnTV itself; the Home button still opens your layout.

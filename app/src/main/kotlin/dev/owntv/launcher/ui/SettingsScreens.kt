@@ -23,6 +23,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import dev.owntv.launcher.AppContainer
+import dev.owntv.launcher.data.layout.BuiltInKind
+import dev.owntv.launcher.data.layout.BuiltInRef
 import dev.owntv.launcher.data.layout.HistoryEntry
 import dev.owntv.launcher.data.layout.LayoutImageLoader
 import dev.owntv.launcher.data.layout.LayoutState
@@ -43,6 +45,7 @@ fun SettingsScreen(container: AppContainer, nav: Navigator, state: LayoutState) 
     val problems = state.issues.count { it.severity != Severity.Info }
     val update by container.updater.state.collectAsStateWithLifecycle()
     val metricsMode by container.perf.mode.collectAsStateWithLifecycle()
+    val builtInUpdate by container.layouts.builtInUpdate.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { container.updater.checkIfStale() }
     val available = (update as? UpdateState.Available)?.update?.versionName
     val context = LocalContext.current
@@ -59,6 +62,18 @@ fun SettingsScreen(container: AppContainer, nav: Navigator, state: LayoutState) 
         LazyColumn(Modifier.fillMaxWidth()) {
             item {
                 SettingsItem("Edit layout", "Add, move and customize items with your remote", modifier = initialFocus) { nav.push(Screen.Editor()) }
+            }
+            builtInUpdate?.let { update ->
+                item {
+                    SettingsItem("Update \"${update.name}\"", update.description()) {
+                        scope.launch {
+                            if (container.layouts.applyBuiltInUpdate()) {
+                                container.actions.toast("Updated to the new \"${update.name}\" ${update.ref.kind.label}")
+                                nav.home()
+                            }
+                        }
+                    }
+                }
             }
             item {
                 SettingsItem(
@@ -148,7 +163,7 @@ fun TemplatesScreen(container: AppContainer, nav: Navigator) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
             templates.forEachIndexed { index, (file, name) ->
                 SettingsItem(name, file, modifier = if (index == 0) rememberInitialFocus() else Modifier) {
-                    nav.showPreview(container.decode(container.assets.template(file)), "Template: $name")
+                    nav.showPreview(container.decode(container.assets.template(file)), "Template: $name", BuiltInRef(BuiltInKind.Template, file))
                 }
             }
         }

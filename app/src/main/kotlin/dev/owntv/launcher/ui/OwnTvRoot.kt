@@ -97,7 +97,7 @@ fun OwnTvRoot(container: AppContainer, nav: Navigator) {
                     Screen.Performance -> PerformanceScreen(container)
                     is Screen.ListEditor -> ListEditorScreen(container, screen.name, screen.title, catalog)
                     Screen.HiddenApps -> HiddenAppsScreen(container, catalog)
-                    is Screen.Preview -> PreviewScreen(container, nav, screen.result, screen.source, catalog)
+                    is Screen.Preview -> PreviewScreen(container, nav, screen.result, screen.source, screen.builtIn, catalog)
                 }
                 if (metricsMode == MetricsMode.Live) {
                     PerformanceOverlay(container.perf, Modifier.align(Alignment.BottomEnd).padding(12.dp))
