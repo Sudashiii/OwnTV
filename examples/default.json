@@ -2,6 +2,7 @@
   "schemaVersion": 3,
   "name": "OwnTV default",
   "background": { "type": "gradient", "colors": ["#0E0F13", "#16203A"], "angle": 160 },
+  "screensaver": { "page": "screensaver", "after": 60, "standby": { "after": 240 } },
   "pages": [
     {
       "id": "home",
@@ -53,6 +54,21 @@
             "columns": 5,
             "source": { "type": "all" }
           }
+        ]
+      }
+    },
+    {
+      "id": "screensaver",
+      "title": "Screensaver",
+      "background": { "type": "gradient", "colors": ["#05060A", "#101830"], "angle": 160 },
+      "root": {
+        "type": "column",
+        "id": "screensaver_root",
+        "arrange": "center",
+        "contentAlign": "center",
+        "children": [
+          { "type": "clock", "id": "screensaver_clock", "format": "HH:mm", "fontSize": 96 },
+          { "type": "clock", "id": "screensaver_date", "format": "EEEE, d MMMM", "textStyle": "title", "color": "@textMuted" }
         ]
       }
     }
