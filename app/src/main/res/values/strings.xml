@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="standby_service_description">Lets OwnTV put the TV into standby: from a shortcut with the standby action, or after the screensaver has run for a while. With HDMI-CEC the TV switches off too. OwnTV does not read the screen or anything you do.</string>
+    <string name="remote_service_description">Lets OwnTV see which app is open, so its recent apps include apps you opened any way. OwnTV does not read what the apps show, and nothing is stored or sent apart from when an app was last used.</string>
 </resources>

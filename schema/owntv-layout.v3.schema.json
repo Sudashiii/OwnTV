@@ -2182,7 +2182,7 @@
     },
     "AppSource.recent": {
       "type": "object",
-      "description": "Recently used apps, most recent first. Launches from OwnTV always count; with usage access granted, launches from anywhere count.",
+      "description": "Recently used apps, most recent first. Launches from OwnTV always count; with OwnTV's remote service turned on in the Android accessibility settings, or usage access granted, launches from anywhere count.",
       "properties": {
         "type": {
           "const": "recent"

@@ -164,7 +164,7 @@ The page `root` fills the screen. Other containers wrap their content unless you
 - `{ "type": "list", "list": "favorites" }` — a named app list (see "App lists" below). The layout only names the list; the TV stores its apps.
 - `{ "type": "all", "sort": "custom" | "alphabetical" | "recently_installed", "exclude": ["…"], "includeNonTvApps": false }` — every TV app. `custom` (default) is the order arranged on the TV; apps never moved follow alphabetically.
 - `{ "type": "category", "category": "games" | "apps" | "mobile", "sort": "alphabetical", "exclude": [] }` — games, everything that is not a game, or `mobile`: phone apps sideloaded onto the TV (no TV launcher entry).
-- `{ "type": "recent", "exclude": [] }` — most recently used first. Starts empty and fills as apps are opened.
+- `{ "type": "recent", "exclude": [] }` — most recently used first. Starts empty and fills as apps are opened from OwnTV. With OwnTV's remote service turned on (Settings > Recent apps) or usage access granted, apps opened any other way count too.
 
 Widgets:
 

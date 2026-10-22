@@ -23,6 +23,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import dev.owntv.launcher.AppContainer
+import dev.owntv.launcher.actions.RemoteService
 import dev.owntv.launcher.actions.StandbyService
 import dev.owntv.launcher.data.layout.BuiltInKind
 import dev.owntv.launcher.data.layout.BuiltInRef
@@ -48,6 +49,7 @@ fun SettingsScreen(container: AppContainer, nav: Navigator, state: LayoutState) 
     val metricsMode by container.perf.mode.collectAsStateWithLifecycle()
     val builtInUpdate by container.layouts.builtInUpdate.collectAsStateWithLifecycle()
     val standbyOn by StandbyService.enabled.collectAsStateWithLifecycle()
+    val remoteOn by RemoteService.enabled.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { container.updater.checkIfStale() }
     val available = (update as? UpdateState.Available)?.update?.versionName
     val context = LocalContext.current
@@ -130,6 +132,17 @@ fun SettingsScreen(container: AppContainer, nav: Navigator, state: LayoutState) 
                 ) { container.actions.openAccessibilitySettings() }
             }
             item {
+                // Read each time Settings opens: usage access is granted outside the app.
+                val usageAccess = remember { container.recent.hasUsageAccess() }
+                SettingsItem("Recent apps", recentSummary(remoteOn, usageAccess)) {
+                    when {
+                        !remoteOn -> container.actions.openAccessibilitySettings()
+                        !usageAccess && container.actions.openUsageAccessSettings() -> {}
+                        else -> nav.push(Screen.Help)
+                    }
+                }
+            }
+            item {
                 SettingsItem(
                     "Clear image cache",
                     when (val bytes = cacheBytes) {
@@ -159,6 +172,16 @@ fun SettingsScreen(container: AppContainer, nav: Navigator, state: LayoutState) 
             }
         }
     }
+}
+
+private fun recentSummary(remoteOn: Boolean, usageAccess: Boolean): String {
+    val sources = buildList {
+        add("OwnTV launches")
+        if (remoteOn) add("the open app")
+        if (usageAccess) add("usage access")
+    }
+    val missing = if (remoteOn) "" else ". Turn on \"OwnTV remote\" in Accessibility to include apps opened any other way"
+    return "Counting " + sources.joinToString(", ") + missing
 }
 
 @Composable
@@ -216,7 +239,11 @@ fun HelpScreen(container: AppContainer) {
             Code("adb shell pm enable com.google.android.apps.tv.launcherx")
             HelpText("Layout files can also be copied straight to the TV and opened from Import > Files:")
             Code("adb push my-layout.json ${container.files.adbPath}/")
-            HelpText("Rows with a \"recent\" source always include apps opened from OwnTV. To include apps opened any other way (voice search, notifications), grant usage access once:")
+            HelpText(
+                "Rows with a \"recent\" source always include apps opened from OwnTV. To include apps opened any other way " +
+                    "(voice search, notifications), turn on \"OwnTV remote\" under Accessibility in Android settings (Settings > Recent apps). " +
+                    "It sees which app is open and nothing else. Or grant usage access instead:",
+            )
             Code("adb shell appops set $pkg GET_USAGE_STATS allow")
             HelpText("Long-press OK on any tile to open this launcher's settings from any layout.")
         }

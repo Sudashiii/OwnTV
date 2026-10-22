@@ -6,6 +6,8 @@ import android.content.Context
 import android.os.Process
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,9 +15,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * Recently used apps, most recent first. Launches made from OwnTV are always recorded. When the
- * user grants usage access (`adb shell appops set dev.owntv.launcher GET_USAGE_STATS allow`),
- * apps opened any other way count too.
+ * Recently used apps, most recent first. Launches made from OwnTV are always recorded. Apps opened any
+ * other way count when the remote service is on (it reports the app in front) or the user grants usage
+ * access (`adb shell appops set dev.owntv.launcher GET_USAGE_STATS allow`).
  */
 class RecentAppsRepository(
     private val context: Context,
@@ -25,6 +27,7 @@ class RecentAppsRepository(
 
     private val _recent = MutableStateFlow<List<String>>(emptyList())
     val recent: StateFlow<List<String>> = _recent.asStateFlow()
+    private var pendingRefresh: Job? = null
 
     init {
         refresh()
@@ -35,8 +38,23 @@ class RecentAppsRepository(
         refresh()
     }
 
+    /** An app came to the front without OwnTV launching it (reported by the remote service). */
+    fun recordUse(packageName: String) {
+        prefs.edit().putLong(packageName, System.currentTimeMillis()).apply()
+        refreshSoon()
+    }
+
     fun refresh() {
         scope.launch {
+            _recent.value = withContext(Dispatchers.IO) { load() }
+        }
+    }
+
+    /** Apps can switch quickly (a launch that opens a splash, then the app), so the list updates once things settle. */
+    private fun refreshSoon() {
+        pendingRefresh?.cancel()
+        pendingRefresh = scope.launch {
+            delay(REFRESH_DEBOUNCE_MS)
             _recent.value = withContext(Dispatchers.IO) { load() }
         }
     }
@@ -64,6 +82,7 @@ class RecentAppsRepository(
     }
 
     companion object {
+        private const val REFRESH_DEBOUNCE_MS = 500L
         private const val USAGE_WINDOW_MS = 30L * 24 * 60 * 60 * 1000
     }
 }
