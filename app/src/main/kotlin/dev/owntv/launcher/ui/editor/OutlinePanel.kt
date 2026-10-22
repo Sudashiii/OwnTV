@@ -42,6 +42,7 @@ import dev.owntv.layout.model.NodeRegistry
 import dev.owntv.layout.model.RecentSource
 import dev.owntv.layout.model.ShortcutNode
 import dev.owntv.layout.model.TextNode
+import dev.owntv.layout.model.WatchNextRowNode
 import dev.owntv.layout.model.walk
 
 @Composable
@@ -220,6 +221,7 @@ private fun NodeCategory.label() = when (this) {
 internal fun Node.summary(): String? = when (this) {
     is AppRowNode -> title ?: source.describe()
     is AppGridNode -> title ?: source.describe()
+    is WatchNextRowNode -> title ?: "continue watching"
     is AppTileNode -> label ?: packageName
     is FolderNode -> label
     is ShortcutNode -> label

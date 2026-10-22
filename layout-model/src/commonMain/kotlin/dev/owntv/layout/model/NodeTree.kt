@@ -7,7 +7,7 @@ val Node.children: List<Node>
 /** True for widgets the user can focus and click with the remote. */
 val Node.isFocusableWidget: Boolean
     get() = when (this) {
-        is AppTileNode, is AppRowNode, is AppGridNode, is ShortcutNode, is FolderNode -> true
+        is AppTileNode, is AppRowNode, is AppGridNode, is WatchNextRowNode, is ShortcutNode, is FolderNode -> true
         is HeroNode -> follow == HeroFollow.Slides && slides.any { it.action != null }
         else -> false
     }

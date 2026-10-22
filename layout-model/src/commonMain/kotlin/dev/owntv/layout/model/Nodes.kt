@@ -257,6 +257,38 @@ data class AppGridNode(
 }
 
 @Serializable
+@SerialName("watch_next_row")
+@Doc("A horizontally scrolling row of what the TV's apps offer to continue watching (Android TV's Watch Next), like the \"Continue watching\" row of Google TV: poster, title and a progress bar. OK resumes the entry in its app. The TV asks once for permission to read the entries; a row with nothing to show is hidden. Default width fill.")
+data class WatchNextRowNode(
+    override val id: String,
+    @Doc("Title above the row.")
+    val title: String? = null,
+    @Doc("Icon before the title: a shortcut icon name such as tv or play, or an emoji.")
+    val titleIcon: String? = null,
+    @Doc("Tile look. Default banner, medium, label on focus. The entry's title is the label; {focused} and {description} (app and time left) name the focused entry.")
+    val tile: TileStyle = TileStyle(),
+    @Range(0.0, 200.0) @Doc("Gap between tiles in dp. Default 16.")
+    val spacing: Int = 16,
+    @Range(0.0, 500.0) @Doc("Leave out the first N entries. Default 0.")
+    val skip: Int = 0,
+    @Range(1.0, 500.0) @Doc("Maximum number of tiles.")
+    val limit: Int? = null,
+    @Doc("Package names of apps whose entries are left out.")
+    val exclude: List<String> = emptyList(),
+    @Doc("Draw a progress bar along the bottom of tiles that report how far they are watched. Default true.")
+    val showProgress: Boolean = true,
+    @Doc("Where the focused tile is scrolled to: nearest, start (focused tile stays at the left) or center. Default nearest.")
+    val scrollAlign: ScrollAlign = ScrollAlign.Nearest,
+    @Range(0.0, 400.0) @Doc("Distance in dp of the focused tile from the row's left edge when scrollAlign is start. Default 0 (in line with the title).")
+    val scrollMargin: Int = 0,
+    @Doc("How the row scrolls to the focused tile. Default: the theme's scrollMotion.")
+    val scrollMotion: ScrollMotion? = null,
+    @Transient override val common: NodeCommon = NodeCommon(),
+) : Node {
+    override fun withCommon(common: NodeCommon) = copy(common = common)
+}
+
+@Serializable
 @SerialName("folder")
 @Doc("A tile showing a few app icons that opens a panel with a group of apps, like Apple TV folders.")
 data class FolderNode(

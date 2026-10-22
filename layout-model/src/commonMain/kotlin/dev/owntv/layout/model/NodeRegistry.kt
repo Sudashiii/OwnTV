@@ -48,6 +48,7 @@ object NodeRegistry {
         NodeType(AppTileNode::class, AppTileNode.serializer(), NodeCategory.Apps),
         NodeType(AppRowNode::class, AppRowNode.serializer(), NodeCategory.Apps),
         NodeType(AppGridNode::class, AppGridNode.serializer(), NodeCategory.Apps),
+        NodeType(WatchNextRowNode::class, WatchNextRowNode.serializer(), NodeCategory.Apps),
         NodeType(FolderNode::class, FolderNode.serializer(), NodeCategory.Apps),
         NodeType(ShortcutNode::class, ShortcutNode.serializer(), NodeCategory.Apps),
         NodeType(HeroNode::class, HeroNode.serializer(), NodeCategory.Content),
