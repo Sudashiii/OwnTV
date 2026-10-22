@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
+import coil3.request.ImageRequest
 import dev.owntv.layout.model.Node
 
 // What the renderer needs from the platform. The TV app and the web preview each provide these.
@@ -99,6 +100,12 @@ val LocalRenderMetrics = staticCompositionLocalOf<RenderMetrics?> { null }
 
 /** Turns a layout `asset:` path into a URL the image loader understands. */
 expect fun assetUrl(path: String): String
+
+/** Asks for an image whose pixels can be read (on Android: not a hardware bitmap). */
+internal expect fun ImageRequest.Builder.readablePixels(): ImageRequest.Builder
+
+/** A loaded image as a Compose bitmap. */
+internal expect fun coil3.Image.toImageBitmap(): ImageBitmap
 
 /** Text without a Material library: [BasicText] with the color and overrides the renderer uses. */
 @Composable
