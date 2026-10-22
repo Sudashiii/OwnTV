@@ -29,6 +29,8 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.OutlinedButton
 import androidx.tv.material3.Text
 import dev.owntv.launcher.AppContainer
+import dev.owntv.launcher.data.layout.BuiltInKind
+import dev.owntv.launcher.data.layout.BuiltInRef
 import dev.owntv.launcher.data.layout.LayoutState
 import dev.owntv.launcher.ui.render.AppCatalog
 import dev.owntv.launcher.ui.render.LayoutView
@@ -87,7 +89,7 @@ fun LookPreviewScreen(container: AppContainer, nav: Navigator, fileName: String,
             Button(
                 onClick = {
                     scope.launch {
-                        container.layouts.apply(doc)
+                        container.layouts.apply(doc, builtIn = BuiltInRef(BuiltInKind.Look, fileName))
                         container.actions.toast("Applied the ${doc.name} look")
                         nav.home()
                     }

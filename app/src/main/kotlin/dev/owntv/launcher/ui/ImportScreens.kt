@@ -48,6 +48,7 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.OutlinedButton
 import androidx.tv.material3.Text
 import dev.owntv.launcher.AppContainer
+import dev.owntv.launcher.data.layout.BuiltInRef
 import dev.owntv.launcher.importexport.QrCode
 import dev.owntv.launcher.ui.render.AppCatalog
 import dev.owntv.launcher.ui.render.LayoutView
@@ -160,7 +161,7 @@ private fun UrlField(enabled: Boolean, onSubmit: (String) -> Unit) {
 }
 
 @Composable
-fun PreviewScreen(container: AppContainer, nav: Navigator, result: DecodeResult, source: String, catalog: AppCatalog) {
+fun PreviewScreen(container: AppContainer, nav: Navigator, result: DecodeResult, source: String, builtIn: BuiltInRef?, catalog: AppCatalog) {
     val scope = rememberCoroutineScope()
     val doc = result.document
     val errors = result.issues.count { it.severity == Severity.Error }
@@ -188,7 +189,7 @@ fun PreviewScreen(container: AppContainer, nav: Navigator, result: DecodeResult,
                         Button(
                             onClick = {
                                 scope.launch {
-                                    container.layouts.apply(doc, result.extractedLists)
+                                    container.layouts.apply(doc, result.extractedLists, builtIn)
                                     container.actions.toast("Applied \"${doc.name}\"")
                                     nav.home()
                                 }

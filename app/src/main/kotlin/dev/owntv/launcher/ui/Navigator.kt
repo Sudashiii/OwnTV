@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import dev.owntv.launcher.data.layout.BuiltInRef
 import dev.owntv.layout.codec.DecodeResult
 
 sealed interface Screen {
@@ -22,7 +23,8 @@ sealed interface Screen {
     data object Performance : Screen
     data class ListEditor(val name: String, val title: String?) : Screen
     data object HiddenApps : Screen
-    data class Preview(val result: DecodeResult, val source: String) : Screen
+    /** [builtIn] is set for a look or template, so applying it is remembered (see `LayoutRepository.apply`). */
+    data class Preview(val result: DecodeResult, val source: String, val builtIn: BuiltInRef? = null) : Screen
 }
 
 /** A small back stack. Home is always at the bottom. */
@@ -41,8 +43,9 @@ class Navigator {
         stack.add(screen)
     }
 
-    fun showPreview(result: DecodeResult, source: String) {
-        if (current is Screen.Preview) stack[stack.lastIndex] = Screen.Preview(result, source) else push(Screen.Preview(result, source))
+    fun showPreview(result: DecodeResult, source: String, builtIn: BuiltInRef? = null) {
+        val screen = Screen.Preview(result, source, builtIn)
+        if (current is Screen.Preview) stack[stack.lastIndex] = screen else push(screen)
     }
 
     /** Handles Back. Returns false when there is nowhere to go (Home, first page). */
