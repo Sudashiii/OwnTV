@@ -27,12 +27,14 @@ import dev.owntv.layout.model.VideoBackground
 import dev.owntv.layout.model.IconNames
 import dev.owntv.layout.model.ImageNode
 import dev.owntv.layout.model.IntentAction
+import dev.owntv.layout.model.KeyPress
 import dev.owntv.layout.model.LaunchAppAction
 import dev.owntv.layout.model.ListSource
 import dev.owntv.layout.model.LayoutDocument
 import dev.owntv.layout.model.NetworkNode
 import dev.owntv.layout.model.Node
 import dev.owntv.layout.model.OpenUrlAction
+import dev.owntv.layout.model.RemoteKey
 import dev.owntv.layout.model.Page
 import dev.owntv.layout.model.Placeholders
 import dev.owntv.layout.model.RecentSource
@@ -154,6 +156,8 @@ object LayoutValidator {
                 }
             }
 
+            checkKeyBindings()
+
             val seenIds = mutableMapOf<String, String>()
             doc.walkNodes { _, node, path, depth ->
                 if (depth == MAX_DEPTH) out.error(path, "Nesting is deeper than $MAX_DEPTH levels.")
@@ -166,6 +170,18 @@ object LayoutValidator {
                 node.common.background?.let { checkBackground(it, "$path.background") }
                 node.common.border?.let { checkColorRef(it.color, "$path.border.color") }
                 checkNode(node, path)
+            }
+        }
+
+        fun checkKeyBindings() {
+            val seen = mutableMapOf<Pair<RemoteKey, KeyPress>, Int>()
+            doc.keyBindings.forEachIndexed { i, binding ->
+                val path = "$.keyBindings[$i]"
+                seen.put(binding.key to binding.press, i)?.let { first ->
+                    val name = binding.key.name.replace(Regex("([a-z])([A-Z])"), "$1 $2").lowercase()
+                    out.warning(path, "The ${binding.press.name.lowercase()} press of $name is already bound at $.keyBindings[$first]; only the first binding runs.")
+                }
+                checkAction(binding.action, "$path.action")
             }
         }
 

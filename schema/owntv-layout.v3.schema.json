@@ -80,6 +80,13 @@
           "description": "Shows one of the pages as a screensaver when nobody has pressed a key on the home screen for a while. Default: no screensaver.",
           "$ref": "#/$defs/Screensaver"
         },
+        "keyBindings": {
+          "description": "Remote buttons that run an action, also while another app is open (needs OwnTV's remote service). Default: none.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/KeyBinding"
+          }
+        },
         "pages": {
           "description": "Pages of the launcher. The first page is the home page.",
           "type": "array",
@@ -667,6 +674,287 @@
           "maximum": 86400
         }
       },
+      "additionalProperties": false
+    },
+    "KeyBinding": {
+      "type": "object",
+      "description": "Makes a remote button run an action, also while another app is open. Needs OwnTV's remote service, turned on once in the Android accessibility settings (Settings > Remote buttons); without it nothing happens. Only the TV has it: the web preview ignores key bindings.",
+      "properties": {
+        "key": {
+          "description": "The remote button. D-pad, OK, Back, Home and Power cannot be remapped.",
+          "type": "string",
+          "enum": [
+            "menu",
+            "guide",
+            "info",
+            "settings",
+            "captions",
+            "bookmark",
+            "tv",
+            "tv_input",
+            "dvr",
+            "channel_up",
+            "channel_down",
+            "last_channel",
+            "red",
+            "green",
+            "yellow",
+            "blue"
+          ]
+        },
+        "press": {
+          "description": "short (default) runs the action when the button is released; long runs it while the button is held (about half a second) and the button then does nothing else.",
+          "type": "string",
+          "enum": [
+            "short",
+            "long"
+          ]
+        },
+        "action": {
+          "description": "What the button does. Same actions as a shortcut. Pages and OwnTV's own screens open in OwnTV, which comes to the front.",
+          "$ref": "#/$defs/Action"
+        }
+      },
+      "required": [
+        "key",
+        "action"
+      ],
+      "additionalProperties": false
+    },
+    "Action": {
+      "description": "What happens when a focusable widget is clicked.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/Action.go_to_page"
+        },
+        {
+          "$ref": "#/$defs/Action.intent"
+        },
+        {
+          "$ref": "#/$defs/Action.launch_app"
+        },
+        {
+          "$ref": "#/$defs/Action.next_wallpaper"
+        },
+        {
+          "$ref": "#/$defs/Action.open_app_drawer"
+        },
+        {
+          "$ref": "#/$defs/Action.open_input"
+        },
+        {
+          "$ref": "#/$defs/Action.open_launcher_settings"
+        },
+        {
+          "$ref": "#/$defs/Action.open_system_settings"
+        },
+        {
+          "$ref": "#/$defs/Action.open_url"
+        },
+        {
+          "$ref": "#/$defs/Action.standby"
+        }
+      ]
+    },
+    "Action.go_to_page": {
+      "type": "object",
+      "description": "Switches to another page of this layout.",
+      "properties": {
+        "type": {
+          "const": "go_to_page"
+        },
+        "page": {
+          "description": "Id of the target page.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "page"
+      ],
+      "additionalProperties": false
+    },
+    "Action.intent": {
+      "type": "object",
+      "description": "Starts an Android activity intent. Needs at least one of action, package or component.",
+      "properties": {
+        "type": {
+          "const": "intent"
+        },
+        "action": {
+          "description": "Intent action, e.g. android.intent.action.VIEW.",
+          "type": "string"
+        },
+        "data": {
+          "description": "Data URI.",
+          "type": "string"
+        },
+        "package": {
+          "description": "Target package.",
+          "type": "string"
+        },
+        "component": {
+          "description": "Target component as \"package/.Activity\" or \"package/full.class.Name\".",
+          "type": "string"
+        },
+        "categories": {
+          "description": "Intent categories.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "extras": {
+          "description": "String extras.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "Action.launch_app": {
+      "type": "object",
+      "description": "Opens an installed app.",
+      "properties": {
+        "type": {
+          "const": "launch_app"
+        },
+        "package": {
+          "description": "Package name, e.g. com.netflix.ninja.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "package"
+      ],
+      "additionalProperties": false
+    },
+    "Action.next_wallpaper": {
+      "type": "object",
+      "description": "Changes a slideshow background to its next wallpaper at once: the page's, else the layout's.",
+      "properties": {
+        "type": {
+          "const": "next_wallpaper"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "Action.open_app_drawer": {
+      "type": "object",
+      "description": "Opens the built-in list of all installed apps.",
+      "properties": {
+        "type": {
+          "const": "open_app_drawer"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "Action.open_input": {
+      "type": "object",
+      "description": "Switches the TV to one of its inputs, e.g. HDMI 1. Only TVs have inputs; streaming boxes show a message.",
+      "properties": {
+        "type": {
+          "const": "open_input"
+        },
+        "input": {
+          "description": "hdmi1 to hdmi4, or av (composite).",
+          "type": "string",
+          "enum": [
+            "hdmi1",
+            "hdmi2",
+            "hdmi3",
+            "hdmi4",
+            "av"
+          ]
+        }
+      },
+      "required": [
+        "type",
+        "input"
+      ],
+      "additionalProperties": false
+    },
+    "Action.open_launcher_settings": {
+      "type": "object",
+      "description": "Opens OwnTV's own settings (import, templates, history, Android settings). Every layout needs at least one visible shortcut with this action, or it is rejected.",
+      "properties": {
+        "type": {
+          "const": "open_launcher_settings"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "Action.open_system_settings": {
+      "type": "object",
+      "description": "Opens Android TV system settings.",
+      "properties": {
+        "type": {
+          "const": "open_system_settings"
+        },
+        "screen": {
+          "description": "Which settings screen. Default main.",
+          "type": "string",
+          "enum": [
+            "main",
+            "network",
+            "bluetooth",
+            "display",
+            "sound",
+            "apps",
+            "date_time",
+            "accessibility"
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "Action.open_url": {
+      "type": "object",
+      "description": "Opens a URL with whatever app handles it (deep links work too).",
+      "properties": {
+        "type": {
+          "const": "open_url"
+        },
+        "url": {
+          "description": "The URL or deep link.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "url"
+      ],
+      "additionalProperties": false
+    },
+    "Action.standby": {
+      "type": "object",
+      "description": "Puts the TV box into standby; with HDMI-CEC the TV switches off too. Needs OwnTV's standby service, turned on once in the Android accessibility settings. Without it the screen goes black until a key is pressed.",
+      "properties": {
+        "type": {
+          "const": "standby"
+        }
+      },
+      "required": [
+        "type"
+      ],
       "additionalProperties": false
     },
     "Page": {
@@ -3041,242 +3329,6 @@
         "id",
         "label",
         "action"
-      ],
-      "additionalProperties": false
-    },
-    "Action": {
-      "description": "What happens when a focusable widget is clicked.",
-      "oneOf": [
-        {
-          "$ref": "#/$defs/Action.go_to_page"
-        },
-        {
-          "$ref": "#/$defs/Action.intent"
-        },
-        {
-          "$ref": "#/$defs/Action.launch_app"
-        },
-        {
-          "$ref": "#/$defs/Action.next_wallpaper"
-        },
-        {
-          "$ref": "#/$defs/Action.open_app_drawer"
-        },
-        {
-          "$ref": "#/$defs/Action.open_input"
-        },
-        {
-          "$ref": "#/$defs/Action.open_launcher_settings"
-        },
-        {
-          "$ref": "#/$defs/Action.open_system_settings"
-        },
-        {
-          "$ref": "#/$defs/Action.open_url"
-        },
-        {
-          "$ref": "#/$defs/Action.standby"
-        }
-      ]
-    },
-    "Action.go_to_page": {
-      "type": "object",
-      "description": "Switches to another page of this layout.",
-      "properties": {
-        "type": {
-          "const": "go_to_page"
-        },
-        "page": {
-          "description": "Id of the target page.",
-          "type": "string"
-        }
-      },
-      "required": [
-        "type",
-        "page"
-      ],
-      "additionalProperties": false
-    },
-    "Action.intent": {
-      "type": "object",
-      "description": "Starts an Android activity intent. Needs at least one of action, package or component.",
-      "properties": {
-        "type": {
-          "const": "intent"
-        },
-        "action": {
-          "description": "Intent action, e.g. android.intent.action.VIEW.",
-          "type": "string"
-        },
-        "data": {
-          "description": "Data URI.",
-          "type": "string"
-        },
-        "package": {
-          "description": "Target package.",
-          "type": "string"
-        },
-        "component": {
-          "description": "Target component as \"package/.Activity\" or \"package/full.class.Name\".",
-          "type": "string"
-        },
-        "categories": {
-          "description": "Intent categories.",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "extras": {
-          "description": "String extras.",
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
-        }
-      },
-      "required": [
-        "type"
-      ],
-      "additionalProperties": false
-    },
-    "Action.launch_app": {
-      "type": "object",
-      "description": "Opens an installed app.",
-      "properties": {
-        "type": {
-          "const": "launch_app"
-        },
-        "package": {
-          "description": "Package name, e.g. com.netflix.ninja.",
-          "type": "string"
-        }
-      },
-      "required": [
-        "type",
-        "package"
-      ],
-      "additionalProperties": false
-    },
-    "Action.next_wallpaper": {
-      "type": "object",
-      "description": "Changes a slideshow background to its next wallpaper at once: the page's, else the layout's.",
-      "properties": {
-        "type": {
-          "const": "next_wallpaper"
-        }
-      },
-      "required": [
-        "type"
-      ],
-      "additionalProperties": false
-    },
-    "Action.open_app_drawer": {
-      "type": "object",
-      "description": "Opens the built-in list of all installed apps.",
-      "properties": {
-        "type": {
-          "const": "open_app_drawer"
-        }
-      },
-      "required": [
-        "type"
-      ],
-      "additionalProperties": false
-    },
-    "Action.open_input": {
-      "type": "object",
-      "description": "Switches the TV to one of its inputs, e.g. HDMI 1. Only TVs have inputs; streaming boxes show a message.",
-      "properties": {
-        "type": {
-          "const": "open_input"
-        },
-        "input": {
-          "description": "hdmi1 to hdmi4, or av (composite).",
-          "type": "string",
-          "enum": [
-            "hdmi1",
-            "hdmi2",
-            "hdmi3",
-            "hdmi4",
-            "av"
-          ]
-        }
-      },
-      "required": [
-        "type",
-        "input"
-      ],
-      "additionalProperties": false
-    },
-    "Action.open_launcher_settings": {
-      "type": "object",
-      "description": "Opens OwnTV's own settings (import, templates, history, Android settings). Every layout needs at least one visible shortcut with this action, or it is rejected.",
-      "properties": {
-        "type": {
-          "const": "open_launcher_settings"
-        }
-      },
-      "required": [
-        "type"
-      ],
-      "additionalProperties": false
-    },
-    "Action.open_system_settings": {
-      "type": "object",
-      "description": "Opens Android TV system settings.",
-      "properties": {
-        "type": {
-          "const": "open_system_settings"
-        },
-        "screen": {
-          "description": "Which settings screen. Default main.",
-          "type": "string",
-          "enum": [
-            "main",
-            "network",
-            "bluetooth",
-            "display",
-            "sound",
-            "apps",
-            "date_time",
-            "accessibility"
-          ]
-        }
-      },
-      "required": [
-        "type"
-      ],
-      "additionalProperties": false
-    },
-    "Action.open_url": {
-      "type": "object",
-      "description": "Opens a URL with whatever app handles it (deep links work too).",
-      "properties": {
-        "type": {
-          "const": "open_url"
-        },
-        "url": {
-          "description": "The URL or deep link.",
-          "type": "string"
-        }
-      },
-      "required": [
-        "type",
-        "url"
-      ],
-      "additionalProperties": false
-    },
-    "Action.standby": {
-      "type": "object",
-      "description": "Puts the TV box into standby; with HDMI-CEC the TV switches off too. Needs OwnTV's standby service, turned on once in the Android accessibility settings. Without it the screen goes black until a key is pressed.",
-      "properties": {
-        "type": {
-          "const": "standby"
-        }
-      },
-      "required": [
-        "type"
       ],
       "additionalProperties": false
     },

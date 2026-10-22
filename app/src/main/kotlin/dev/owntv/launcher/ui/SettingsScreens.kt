@@ -132,11 +132,14 @@ fun SettingsScreen(container: AppContainer, nav: Navigator, state: LayoutState) 
                 ) { container.actions.openAccessibilitySettings() }
             }
             item {
+                SettingsItem("Remote buttons", remoteButtonsSummary(remoteOn, state.document.keyBindings.size)) { nav.push(Screen.RemoteButtons) }
+            }
+            item {
                 // Read each time Settings opens: usage access is granted outside the app.
                 val usageAccess = remember { container.recent.hasUsageAccess() }
                 SettingsItem("Recent apps", recentSummary(remoteOn, usageAccess)) {
                     when {
-                        !remoteOn -> container.actions.openAccessibilitySettings()
+                        !remoteOn -> nav.push(Screen.RemoteButtons)
                         !usageAccess && container.actions.openUsageAccessSettings() -> {}
                         else -> nav.push(Screen.Help)
                     }
@@ -251,7 +254,7 @@ fun HelpScreen(container: AppContainer) {
 }
 
 @Composable
-private fun HelpText(text: String) {
+fun HelpText(text: String) {
     Text(text, style = MaterialTheme.typography.bodyLarge, color = Color(0xFFDADDE3), modifier = Modifier.padding(top = 12.dp))
 }
 
