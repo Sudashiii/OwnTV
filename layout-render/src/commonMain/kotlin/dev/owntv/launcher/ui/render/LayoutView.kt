@@ -52,31 +52,32 @@ fun LayoutView(
 ) {
     val resolved = rememberResolved(doc)
     val fonts = LocalFontFamilies.current
-    val theme = remember(resolved.theme, fonts) { OwnTheme(resolved.theme, fonts) }
     val page = resolved.pages.firstOrNull { it.id == pageId } ?: resolved.pages.first()
+    val background = page.background ?: resolved.background
+    val tracker = remember(page.id) { FocusTracker() }
+    val seed = rememberDynamicSeed(resolved.theme.dynamicColors, background, resolved.theme.colors, tracker)
+    val theme = remember(resolved.theme, fonts, seed) { OwnTheme(resolved.theme.withDynamicSeed(seed), fonts) }
     val catalog = LocalApps.current.withOverrides(resolved.apps)
     val haze = rememberHazeState()
     CompositionLocalProvider(LocalOwnTheme provides theme, LocalApps provides catalog, LocalHazeState provides haze) {
         Box(modifier.fillMaxSize()) {
-            val background = page.background ?: resolved.background
             val backgroundModifier = Modifier.fillMaxSize().glassSource(0f)
             if (background != null) BackgroundFill(background, backgroundModifier) else Box(backgroundModifier.background(theme.background))
             Column(Modifier.fillMaxSize()) {
                 if (resolved.pageTabs && resolved.pages.size > 1) {
                     PageTabs(resolved.pages, page.id, onSelectPage)
                 }
-                PageView(page, focusTrigger, Modifier.weight(1f).fillMaxWidth())
+                PageView(page, tracker, focusTrigger, Modifier.weight(1f).fillMaxWidth())
             }
         }
     }
 }
 
 @Composable
-private fun PageView(page: Page, focusTrigger: Int, modifier: Modifier) {
+private fun PageView(page: Page, tracker: FocusTracker, focusTrigger: Int, modifier: Modifier) {
     val preview = LocalPreviewMode.current
     val appsLoaded = LocalApps.current.loaded
     val registry = remember(page) { FocusRegistry(page.referencedIds()) }
-    val tracker = remember(page.id) { FocusTracker() }
     val pageRequester = remember(page.id) { FocusRequester() }
     Box(modifier.focusRequester(pageRequester).focusGroup()) {
         CompositionLocalProvider(

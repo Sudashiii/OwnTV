@@ -12,6 +12,7 @@ import dev.owntv.layout.model.ClockNode
 import dev.owntv.layout.model.ColorBackground
 import dev.owntv.layout.model.Colors
 import dev.owntv.layout.model.ColumnNode
+import dev.owntv.layout.model.DynamicColorSource
 import dev.owntv.layout.model.FolderNode
 import dev.owntv.layout.model.GoToPageAction
 import dev.owntv.layout.model.GlassBackground
@@ -165,6 +166,16 @@ object LayoutValidator {
             }
             checkColorRef(doc.theme.focus.borderColor, "$.theme.focus.borderColor")
             doc.theme.focus.glowColor?.let { checkColorRef(it, "$.theme.focus.glowColor") }
+            doc.theme.dynamicColors?.let { dynamic ->
+                dynamic.exclude.forEachIndexed { i, name ->
+                    if (colors.token(name.removePrefix("@")) == null) {
+                        out.error("$.theme.dynamicColors.exclude[$i]", "Unknown color token \"$name\". Use a name from theme.colors, e.g. \"text\".")
+                    }
+                }
+                if (dynamic.source == DynamicColorSource.Wallpaper && doc.background == null && doc.pages.none { it.background != null }) {
+                    out.warning("$.theme.dynamicColors", "Dynamic colors follow the wallpaper, but the layout has no background. Add an image background.")
+                }
+            }
         }
 
         fun checkApps() {

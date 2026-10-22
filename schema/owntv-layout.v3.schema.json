@@ -126,6 +126,10 @@
         "scrollMotion": {
           "description": "How scrolling rows and columns move to the focused item. Containers can set their own. Default: a quick spring that keeps up with a held remote.",
           "$ref": "#/$defs/ScrollMotion"
+        },
+        "dynamicColors": {
+          "description": "Take the theme colors' hue from the wallpaper, like Material You and Projectivy. Every theme color keeps its lightness and opacity; primary and focus also become clearly colorful. Images without a clear color keep the layout's own colors. Default: off.",
+          "$ref": "#/$defs/DynamicColors"
         }
       },
       "additionalProperties": false
@@ -245,6 +249,37 @@
           "type": "integer",
           "minimum": 50,
           "maximum": 1500
+        }
+      },
+      "additionalProperties": false
+    },
+    "DynamicColors": {
+      "type": "object",
+      "description": "Theme colors taken from an image.",
+      "properties": {
+        "source": {
+          "description": "wallpaper (the page background) or focused (the focused tile's backdrop or app banner, else the wallpaper). Default wallpaper.",
+          "type": "string",
+          "enum": [
+            "wallpaper",
+            "focused"
+          ]
+        },
+        "style": {
+          "description": "How colorful the theme becomes: neutral (a light tint), tonal_spot (calm, the Material You default) or vibrant. Colors that are already more colorful keep it. Default tonal_spot.",
+          "type": "string",
+          "enum": [
+            "neutral",
+            "tonal_spot",
+            "vibrant"
+          ]
+        },
+        "exclude": {
+          "description": "Theme color tokens that keep their own color, e.g. [\"text\", \"tile\"]. Default: none, every token follows the image.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       },
       "additionalProperties": false

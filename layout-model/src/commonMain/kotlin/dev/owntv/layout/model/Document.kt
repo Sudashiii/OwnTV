@@ -96,7 +96,33 @@ data class Theme(
     val fontScale: Float = 1f,
     @Doc("How scrolling rows and columns move to the focused item. Containers can set their own. Default: a quick spring that keeps up with a held remote.")
     val scrollMotion: ScrollMotion? = null,
+    @Doc("Take the theme colors' hue from the wallpaper, like Material You and Projectivy. Every theme color keeps its lightness and opacity; primary and focus also become clearly colorful. Images without a clear color keep the layout's own colors. Default: off.")
+    val dynamicColors: DynamicColors? = null,
 )
+
+@Serializable
+@Doc("Theme colors taken from an image.")
+data class DynamicColors(
+    @Doc("wallpaper (the page background) or focused (the focused tile's backdrop or app banner, else the wallpaper). Default wallpaper.")
+    val source: DynamicColorSource = DynamicColorSource.Wallpaper,
+    @Doc("How colorful the theme becomes: neutral (a light tint), tonal_spot (calm, the Material You default) or vibrant. Colors that are already more colorful keep it. Default tonal_spot.")
+    val style: DynamicColorStyle = DynamicColorStyle.TonalSpot,
+    @Doc("Theme color tokens that keep their own color, e.g. [\"text\", \"tile\"]. Default: none, every token follows the image.")
+    val exclude: List<String> = emptyList(),
+)
+
+@Serializable
+enum class DynamicColorSource {
+    @SerialName("wallpaper") Wallpaper,
+    @SerialName("focused") Focused,
+}
+
+@Serializable
+enum class DynamicColorStyle {
+    @SerialName("neutral") Neutral,
+    @SerialName("tonal_spot") TonalSpot,
+    @SerialName("vibrant") Vibrant,
+}
 
 @Serializable
 @Doc("How a scroll container moves to the focused item.")

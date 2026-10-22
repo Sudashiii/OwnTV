@@ -1,7 +1,7 @@
 {
   "schemaVersion": 3,
   "name": "Projectivy",
-  "description": "Projectivy Launcher style: a tinted wallpaper, one section per category stacked vertically, the focused section bright and the others dimmed, with the name and description of the focused tile under its row, plus a Continue watching row.",
+  "description": "Projectivy Launcher style: a tinted wallpaper whose colors tint the whole theme, one section per category stacked vertically, the focused section bright and the others dimmed, with the name and description of the focused tile under its row, plus a Continue watching row.",
   "theme": {
     "colors": {
       "background": "#2A0715",
@@ -10,10 +10,14 @@
       "text": "#FFE6EE",
       "textMuted": "#F2AFC6",
       "focus": "#FF8AB3",
-      "custom": { "tile": "#F7A3C0", "tileIcon": "#9C1C4C", "tileFocused": "#6E1235", "tileIconFocused": "#FFC9DA" }
+      "custom": {
+        "tile": "#F7A3C0", "tileIcon": "#9C1C4C", "tileFocused": "#6E1235", "tileIconFocused": "#FFC9DA",
+        "glow": "#B3FF3F7F", "scrimStart": "#EB2A0718", "scrimMiddle": "#99640E3A", "scrimEnd": "#5CE8337F"
+      }
     },
     "cornerRadius": 10,
-    "focus": { "scale": 1.25, "borderWidth": 3, "borderColor": "@focus", "glow": true, "glowColor": "#B3FF3F7F", "glowSize": 16 }
+    "focus": { "scale": 1.25, "borderWidth": 3, "borderColor": "@focus", "glow": true, "glowColor": "@glow", "glowSize": 16 },
+    "dynamicColors": { "source": "wallpaper", "style": "tonal_spot" }
   },
   "background": {
     "type": "image",
@@ -54,7 +58,7 @@
         "scrollMotion": { "curve": "ease_out", "duration": 350 },
         "spacing": 16,
         "padding": [56, 20, 56, 0],
-        "background": { "type": "gradient", "colors": ["#EB2A0718", "#99640E3A", "#5CE8337F"], "angle": 90 },
+        "background": { "type": "gradient", "colors": ["@scrimStart", "@scrimMiddle", "@scrimEnd"], "angle": 90 },
         "children": [
           {
             "type": "row",
