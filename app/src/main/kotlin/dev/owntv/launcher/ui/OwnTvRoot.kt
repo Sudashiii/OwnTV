@@ -28,6 +28,7 @@ import dev.owntv.launcher.ui.render.LocalAppArranger
 import dev.owntv.launcher.ui.render.LocalInteractiveSurfaces
 import dev.owntv.launcher.ui.render.LocalNetworkState
 import dev.owntv.launcher.ui.render.LocalRenderMetrics
+import dev.owntv.launcher.ui.render.LocalWatchNext
 
 @Composable
 fun OwnTvRoot(container: AppContainer, nav: Navigator) {
@@ -36,6 +37,7 @@ fun OwnTvRoot(container: AppContainer, nav: Navigator) {
     val appsLoaded by container.apps.loaded.collectAsStateWithLifecycle()
     val recent by container.recent.recent.collectAsStateWithLifecycle()
     val lists by container.appLists.lists.collectAsStateWithLifecycle()
+    val watchNext by container.watchNext.state.collectAsStateWithLifecycle()
     val catalog = remember(apps, appsLoaded, recent, lists) { AppCatalog(apps, appsLoaded, recent, lists = lists) }
     val arranger = remember(container) { LauncherArranger(container.appLists) }
     val metricsMode by container.perf.mode.collectAsStateWithLifecycle()
@@ -62,6 +64,7 @@ fun OwnTvRoot(container: AppContainer, nav: Navigator) {
         CompositionLocalProvider(
             LocalInteractiveSurfaces provides TvSurfaces,
             LocalAppArranger provides arranger,
+            LocalWatchNext provides watchNext,
             LocalNetworkState provides rememberNetworkState(),
             LocalRenderMetrics provides container.perf.takeIf { metricsMode != MetricsMode.Off },
         ) {

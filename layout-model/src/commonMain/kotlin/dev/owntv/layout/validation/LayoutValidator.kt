@@ -39,6 +39,7 @@ import dev.owntv.layout.model.StyleResolver
 import dev.owntv.layout.model.TextNode
 import dev.owntv.layout.model.ThemeColors
 import dev.owntv.layout.model.UnknownNode
+import dev.owntv.layout.model.WatchNextRowNode
 import dev.owntv.layout.model.containsFocusable
 import dev.owntv.layout.model.findNode
 import dev.owntv.layout.model.opensLauncherSettings
@@ -129,7 +130,7 @@ object LayoutValidator {
                 if (!page.root.containsFocusable()) {
                     out.warning(
                         "$path.root",
-                        "Page \"${page.id}\" has no focusable widget (app_tile, app_row, app_grid, folder or shortcut), so the remote cannot do anything on it.",
+                        "Page \"${page.id}\" has no focusable widget (app_tile, app_row, app_grid, watch_next_row, folder or shortcut), so the remote cannot do anything on it.",
                     )
                 }
                 page.root.walk("$path.root") { node, nodePath, _ -> checkReferences(page, node, nodePath) }
@@ -215,6 +216,7 @@ object LayoutValidator {
                     checkSource(node.source, "$path.source")
                     node.titleIcon?.let { checkIcon(it, "$path.titleIcon") }
                 }
+                is WatchNextRowNode -> node.titleIcon?.let { checkIcon(it, "$path.titleIcon") }
                 is FolderNode -> {
                     checkSource(node.source, "$path.source")
                     node.color?.let { checkColorRef(it, "$path.color") }

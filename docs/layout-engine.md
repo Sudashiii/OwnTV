@@ -25,7 +25,7 @@ text ──▶ LayoutCodec.decode ──▶ LayoutDocument ──▶ StyleResolv
 ## Model (`layout-model`, pure Kotlin)
 
 - `LayoutDocument` holds `theme`, `background`, `styles`, `defaults`, `apps` (per-app overrides), `pageTabs` and `pages`. A `Page` has an `id`, `initialFocus`, optional `background` and one `root` node.
-- Nodes are registered in `NodeRegistry`: containers (`column`, `row`, `grid`, `stack`), app nodes (`app_tile`, `app_row`, `app_grid`, `folder`, `shortcut`) and content (`hero`, `text`, `clock`, `image`, `spacer`). In JSON a node is flat; in Kotlin the shared properties (size, padding, background, border, focus links, ...) live in `node.common` and `NodeSerializer` splits and joins them.
+- Nodes are registered in `NodeRegistry`: containers (`column`, `row`, `grid`, `stack`), app nodes (`app_tile`, `app_row`, `app_grid`, `watch_next_row`, `folder`, `shortcut`) and content (`hero`, `text`, `clock`, `image`, `spacer`). In JSON a node is flat; in Kotlin the shared properties (size, padding, background, border, focus links, ...) live in `node.common` and `NodeSerializer` splits and joins them.
 - Typed values (`Background`, `Size`, `Padding`, `AppSource`, `Action`) are sealed types with custom serializers that accept shorthands such as `"#101010"`.
 - Everything is annotated with `@Doc`, `@Range` and `@ColorValue`. The same descriptors drive the validator, the generated JSON Schema (`schema/owntv-layout.v3.schema.json`, `JsonSchemaGenerator`), the AI prompt and the on-TV editor forms (`edit/Fields.kt`).
 - `edit/LayoutOps` are pure tree edits (return a new document or `null`); the editor never mutates state, so undo/redo work.

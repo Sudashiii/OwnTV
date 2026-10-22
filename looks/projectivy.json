@@ -1,7 +1,7 @@
 {
   "schemaVersion": 3,
   "name": "Projectivy",
-  "description": "Projectivy Launcher style: a tinted wallpaper, one section per category stacked vertically, the focused section bright and the others dimmed, with the name and description of the focused tile under its row.",
+  "description": "Projectivy Launcher style: a tinted wallpaper, one section per category stacked vertically, the focused section bright and the others dimmed, with the name and description of the focused tile under its row, plus a Continue watching row.",
   "theme": {
     "colors": {
       "background": "#2A0715",
@@ -38,7 +38,8 @@
       "focusColor": "@tileFocused",
       "focusIconColor": "@tileIconFocused"
     },
-    "app_row": { "spacing": 14, "scrollAlign": "start", "tile": { "showLabel": "never" } }
+    "app_row": { "spacing": 14, "scrollAlign": "start", "tile": { "showLabel": "never" } },
+    "watch_next_row": { "spacing": 14, "scrollAlign": "start", "tile": { "showLabel": "never" } }
   },
   "pages": [
     {
@@ -153,6 +154,30 @@
                 "showWhenFocused": "mobile_section",
                 "children": [
                   { "type": "text", "id": "mobile_name", "text": "{focused}", "style": "focused_name" }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "column",
+            "id": "continue_section",
+            "style": "section",
+            "children": [
+              {
+                "type": "watch_next_row",
+                "id": "continue",
+                "title": "Continue watching",
+                "titleIcon": "play",
+                "tile": { "shape": "banner", "width": 176 }
+              },
+              {
+                "type": "column",
+                "id": "continue_details",
+                "style": "details_long",
+                "showWhenFocused": "continue_section",
+                "children": [
+                  { "type": "text", "id": "continue_name", "text": "{focused}", "style": "focused_name" },
+                  { "type": "text", "id": "continue_description", "text": "{description}", "style": "focused_description" }
                 ]
               }
             ]

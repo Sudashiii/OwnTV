@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -31,6 +32,9 @@ import dev.owntv.layout.model.Node
 import dev.owntv.layout.model.Page
 import dev.owntv.layout.model.RecentSource
 import dev.owntv.layout.model.ShortcutNode
+import dev.owntv.layout.model.WatchNext
+import dev.owntv.layout.model.WatchNextEntry
+import dev.owntv.layout.model.WatchNextRowNode
 import dev.owntv.layout.model.isFocusableWidget
 import dev.owntv.layout.model.visible
 
@@ -121,16 +125,60 @@ sealed interface AppEntry {
     data class NotInstalled(override val packageName: String) : AppEntry
 }
 
+/** Whether the TV lets OwnTV read the apps' "continue watching" entries. */
+enum class WatchNextAccess { Granted, NeedsPermission }
+
+/** The "continue watching" entries apps published to the TV, for `watch_next_row`. */
+data class WatchNextCatalog(
+    val access: WatchNextAccess = WatchNextAccess.Granted,
+    val entries: List<WatchNextEntry> = emptyList(),
+) {
+    /** What [node] shows: its exclusions, order, skip and limit applied. */
+    fun resolve(node: WatchNextRowNode): List<WatchNextEntry> = WatchNext.select(entries, node.exclude, node.skip, node.limit)
+
+    companion object {
+        /** Stand-in entries for previews (editor, looks, web), which have no TV behind them. */
+        val Sample = WatchNextCatalog(
+            entries = listOf(
+                sample("harbour", "com.google.android.youtube.tv", "Harbour Lights: the Full Documentary", 138, 62),
+                sample("race", "com.plexapp.android", "Mountain Race Archive", 98, 31),
+                sample("longway", "com.netflix.ninja", "The Long Way Home, Episode 4", 52, 44),
+                sample("kitchen", "com.disney.disneyplus", "Kitchen Stories", 24, 5),
+                sample("night", "com.amazon.amazonvideo.livingroom", "Night Train to Lisbon", 115, 90),
+            ),
+        )
+
+        private fun sample(id: String, pkg: String, title: String, minutes: Int, watched: Int) = WatchNextEntry(
+            id = "sample/$id",
+            packageName = pkg,
+            title = title,
+            posterUri = null,
+            durationMillis = minutes * 60_000L,
+            positionMillis = watched * 60_000L,
+            intentUri = null,
+            lastEngagementMillis = 1_700_000_000_000L - minutes,
+        )
+    }
+}
+
+/** The entries the page shows now. Previews have no TV behind them and show samples while there are none. */
+@Composable
+internal fun effectiveWatchNext(): WatchNextCatalog {
+    val live = LocalWatchNext.current
+    return if (LocalPreviewMode.current && live.entries.isEmpty()) WatchNextCatalog.Sample else live
+}
+
 /** True when this node will draw at least one focusable tile with the apps that are installed now. */
-fun Node.rendersFocusable(catalog: AppCatalog): Boolean = visible && when (this) {
+fun Node.rendersFocusable(catalog: AppCatalog, watchNext: WatchNextCatalog = WatchNextCatalog()): Boolean = visible && when (this) {
     is ShortcutNode -> true
     is AppTileNode -> catalog[packageName] != null || (missing == Missing.Placeholder && catalog.loaded)
     // A list source always draws something: its apps, or an "Add apps" tile when it is empty.
     is AppRowNode -> source is ListSource || catalog.resolve(source, missing, limit, skip).isNotEmpty()
     is AppGridNode -> source is ListSource || catalog.resolve(source, missing, limit, skip).isNotEmpty()
+    is WatchNextRowNode -> watchNext.access == WatchNextAccess.NeedsPermission || watchNext.resolve(this).isNotEmpty()
     is FolderNode -> source is ListSource || catalog.resolve(source, Missing.Hide, null).isNotEmpty()
     is HeroNode -> isFocusableWidget
-    is ContainerNode -> children.any { it.rendersFocusable(catalog) }
+    is ContainerNode -> children.any { it.rendersFocusable(catalog, watchNext) }
     else -> false
 }
 
@@ -174,6 +222,12 @@ interface ActionHandler {
     fun openMissing(packageName: String)
     fun longPress(target: ContextTarget)
 
+    /** Resumes a "continue watching" entry in its app. */
+    fun openWatchNext(entry: WatchNextEntry) = Unit
+
+    /** Asks for permission to read the "continue watching" entries. */
+    fun allowWatchNext() = Unit
+
     /** Opens the screen to pick the apps of an empty list. */
     fun editList(ref: ListRef, title: String?) = Unit
 
@@ -213,6 +267,8 @@ class FocusTracker {
 }
 
 val LocalApps = staticCompositionLocalOf { AppCatalog(emptyList(), loaded = false) }
+/** The TV's "continue watching" entries. Not static: they change while the home screen is open. */
+val LocalWatchNext = compositionLocalOf { WatchNextCatalog() }
 val LocalAppImages = staticCompositionLocalOf<AppImages?> { null }
 val LocalActionHandler = staticCompositionLocalOf<ActionHandler> { ActionHandler.None }
 val LocalFocusRegistry = staticCompositionLocalOf<FocusRegistry?> { null }

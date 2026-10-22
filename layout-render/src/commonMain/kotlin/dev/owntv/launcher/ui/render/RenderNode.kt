@@ -53,6 +53,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.CompositingStrategy
@@ -100,6 +101,7 @@ import dev.owntv.layout.model.TileShape
 import dev.owntv.layout.model.TileStyle
 import dev.owntv.layout.model.UnknownNode
 import dev.owntv.layout.model.VAlign
+import dev.owntv.layout.model.WatchNextRowNode
 import dev.owntv.layout.model.findNode
 import dev.owntv.layout.model.isSingleTile
 import dev.owntv.layout.model.visible
@@ -134,7 +136,8 @@ fun RenderNode(node: Node, modifier: Modifier = Modifier, fillByDefault: Boolean
         // Space is kept for a node that can get focus; one that shows nothing (an empty row) gets none.
         val page = LocalPage.current
         val catalog = LocalApps.current
-        val watchedEmpty = remember(page, catalog, showWhenFocused) { page?.findNode(showWhenFocused)?.rendersFocusable(catalog) == false }
+        val watchNext = effectiveWatchNext()
+        val watchedEmpty = remember(page, catalog, watchNext, showWhenFocused) { page?.findNode(showWhenFocused)?.rendersFocusable(catalog, watchNext) == false }
         if (watchedEmpty) return
     }
     // While it fades out, {focused} and {description} keep naming the last tile focused inside, not the new one.
@@ -176,7 +179,7 @@ private fun NodeBody(node: Node, modifier: Modifier, fillByDefault: Boolean, fil
     val registry = LocalFocusRegistry.current
     val common = node.common
     val shape = RoundedCornerShape((common.cornerRadius ?: 0).dp)
-    val fillWidth = fillByDefault || fillWidthByDefault || node is AppRowNode || node is AppGridNode || node is HeroNode
+    val fillWidth = fillByDefault || fillWidthByDefault || node is AppRowNode || node is AppGridNode || node is WatchNextRowNode || node is HeroNode
     val selected = LocalEditorSelection.current == node.id
     val bringIntoView = remember { BringIntoViewRequester() }
     LaunchedEffect(selected) {
@@ -244,6 +247,7 @@ private fun NodeContent(node: Node, outer: Modifier, padding: Modifier, sizing: 
         }
         is AppRowNode -> AppRowView(node, modifier)
         is AppGridNode -> AppGridView(node, modifier)
+        is WatchNextRowNode -> WatchNextRowView(node, modifier)
         is FolderNode -> FolderView(node, sizing, modifier)
         is ShortcutNode -> ShortcutView(node, sizing, modifier)
         is HeroNode -> HeroView(node, modifier)
@@ -416,6 +420,48 @@ private fun AppRowView(node: AppRowNode, modifier: Modifier) {
                     items(entries, key = { it.packageName }) { entry ->
                         restore { AppTileView(entry, node.tile, TileSizing(adaptive = false, fixedHeight = false)) }
                     }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun WatchNextRowView(node: WatchNextRowNode, modifier: Modifier) {
+    val watchNext = effectiveWatchNext()
+    val entries = remember(watchNext, node.exclude, node.skip, node.limit) { watchNext.resolve(node) }
+    val needsPermission = watchNext.access == WatchNextAccess.NeedsPermission
+    if (entries.isEmpty() && !needsPermission) return
+    val bleed = focusBleed(LocalOwnTheme.current, node.tile)
+    val sizing = TileSizing(adaptive = false, fixedHeight = false)
+    // The "Allow access" tile that had focus is replaced by the entries once the permission is granted: focus moves on to the first one.
+    var askedForAccess by remember { mutableStateOf(false) }
+    val firstTile = remember { FocusRequester() }
+    LaunchedEffect(entries.isEmpty()) {
+        if (entries.isNotEmpty() && askedForAccess) {
+            askedForAccess = false
+            withFrameNanos { }
+            runCatching { firstTile.requestFocus() }
+        }
+    }
+    Column(modifier) {
+        node.title?.let { SectionTitle(it, node.titleIcon, gap = 6.dp + focusGrowth(LocalOwnTheme.current, node.tile)) }
+        if (entries.isEmpty()) {
+            Box(Modifier.padding(vertical = 6.dp)) { AllowWatchNextTile(node.tile, sizing, onAsked = { askedForAccess = true }) }
+            return@Column
+        }
+        ScrollSpecScope(node.scrollAlign, node.scrollMargin.dp + bleed, node.scrollMotion, minEdge = bleed) { restore ->
+            val state = rememberLazyListState(cacheWindow = LazyLayoutCacheWindow(aheadFraction = 1f, behindFraction = 0.5f))
+            LazyRow(
+                state = state,
+                modifier = Modifier.fillMaxWidth().bleed(bleed, bleed).focusRestorer(),
+                contentPadding = PaddingValues(horizontal = bleed, vertical = bleed),
+                horizontalArrangement = Arrangement.spacedBy(node.spacing.dp),
+            ) {
+                items(entries, key = { it.id }) { entry ->
+                    val first = if (entry == entries.first()) Modifier.focusRequester(firstTile) else Modifier
+                    restore { WatchNextTileView(entry, node.tile, node.showProgress, sizing, first) }
                 }
             }
         }

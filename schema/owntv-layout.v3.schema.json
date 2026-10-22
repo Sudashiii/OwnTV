@@ -53,6 +53,7 @@
               "app_tile",
               "app_row",
               "app_grid",
+              "watch_next_row",
               "folder",
               "shortcut",
               "hero",
@@ -446,6 +447,9 @@
         },
         {
           "$ref": "#/$defs/Node.app_grid"
+        },
+        {
+          "$ref": "#/$defs/Node.watch_next_row"
         },
         {
           "$ref": "#/$defs/Node.folder"
@@ -2130,6 +2134,230 @@
         "type",
         "id",
         "source"
+      ],
+      "additionalProperties": false
+    },
+    "Node.watch_next_row": {
+      "type": "object",
+      "description": "A horizontally scrolling row of what the TV's apps offer to continue watching (Android TV's Watch Next), like the \"Continue watching\" row of Google TV: poster, title and a progress bar. OK resumes the entry in its app. The TV asks once for permission to read the entries; a row with nothing to show is hidden. Default width fill.",
+      "properties": {
+        "type": {
+          "const": "watch_next_row"
+        },
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "description": "Title above the row.",
+          "type": "string"
+        },
+        "titleIcon": {
+          "description": "Icon before the title: a shortcut icon name such as tv or play, or an emoji.",
+          "type": "string"
+        },
+        "tile": {
+          "description": "Tile look. Default banner, medium, label on focus. The entry's title is the label; {focused} and {description} (app and time left) name the focused entry.",
+          "$ref": "#/$defs/TileStyle"
+        },
+        "spacing": {
+          "description": "Gap between tiles in dp. Default 16.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 200
+        },
+        "skip": {
+          "description": "Leave out the first N entries. Default 0.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 500
+        },
+        "limit": {
+          "description": "Maximum number of tiles.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 500
+        },
+        "exclude": {
+          "description": "Package names of apps whose entries are left out.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "showProgress": {
+          "description": "Draw a progress bar along the bottom of tiles that report how far they are watched. Default true.",
+          "type": "boolean"
+        },
+        "scrollAlign": {
+          "description": "Where the focused tile is scrolled to: nearest, start (focused tile stays at the left) or center. Default nearest.",
+          "type": "string",
+          "enum": [
+            "nearest",
+            "start",
+            "center"
+          ]
+        },
+        "scrollMargin": {
+          "description": "Distance in dp of the focused tile from the row's left edge when scrollAlign is start. Default 0 (in line with the title).",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 400
+        },
+        "scrollMotion": {
+          "description": "How the row scrolls to the focused tile. Default: the theme's scrollMotion.",
+          "$ref": "#/$defs/ScrollMotion"
+        },
+        "width": {
+          "description": "\"fill\" (all available width), \"wrap\" (fit content) or a number in dp. Default depends on the widget.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "fill",
+                "wrap"
+              ]
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 4000
+            }
+          ]
+        },
+        "height": {
+          "description": "\"fill\" (all available height), \"wrap\" (fit content) or a number in dp. Default depends on the widget.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "fill",
+                "wrap"
+              ]
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 4000
+            }
+          ]
+        },
+        "weight": {
+          "description": "Share of the remaining space inside a row or column, like CSS flex-grow.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "padding": {
+          "description": "Inner padding in dp: a number, [horizontal, vertical] or [start, top, end, bottom].",
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 400
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 400
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 400
+              },
+              "minItems": 4,
+              "maxItems": 4
+            }
+          ]
+        },
+        "background": {
+          "description": "Background behind this node: a color like \"#202020\" or \"@surface\", or a gradient or image object.",
+          "$ref": "#/$defs/Background"
+        },
+        "border": {
+          "description": "Outline around this node.",
+          "$ref": "#/$defs/BorderStyle"
+        },
+        "cornerRadius": {
+          "description": "Corner radius in dp of the background, border and shadow.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 200
+        },
+        "opacity": {
+          "description": "Opacity of the whole node, 0 to 1. Default 1.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "unfocusedOpacity": {
+          "description": "Opacity of the whole node while focus is not inside it, e.g. 0.5 dims every section except the focused one (Projectivy style). Default: no dimming.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "shadow": {
+          "description": "Drop shadow size in dp. Default none.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 48
+        },
+        "align": {
+          "description": "Position inside the parent. In a stack all 9 values apply; in a column only the horizontal part is used; in a row only the vertical part.",
+          "type": "string",
+          "enum": [
+            "top_start",
+            "top",
+            "top_end",
+            "start",
+            "center",
+            "end",
+            "bottom_start",
+            "bottom",
+            "bottom_end"
+          ]
+        },
+        "span": {
+          "description": "Number of grid columns this node covers. Only used inside a grid. Default 1.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 12
+        },
+        "style": {
+          "description": "Name of an entry in the document's styles. Its properties apply where this node does not set its own.",
+          "type": "string"
+        },
+        "focus": {
+          "description": "Where the D-pad goes from this node: ids of other nodes on the same page. On a container it applies when focus leaves the container in that direction.",
+          "$ref": "#/$defs/FocusLinks"
+        },
+        "revealOnFocus": {
+          "description": "When something inside this node gets focus, scroll so the whole node is visible (like the Apple TV top shelf). Default false.",
+          "type": "boolean"
+        },
+        "showWhenFocused": {
+          "description": "Id of a node on the same page: this node is only shown (and takes space) while focus is inside that node, e.g. the name and description of the focused tile under its section. Default: always shown.",
+          "type": "string"
+        },
+        "keepSpace": {
+          "description": "With showWhenFocused: keep the node's space while it is hidden and only fade it in and out, so nothing around it moves when focus changes. While the watched node has nothing to focus (an empty row) it takes no space. Default false (the node collapses).",
+          "type": "boolean"
+        },
+        "visible": {
+          "description": "Set to false to hide the node without deleting it. Default true.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type",
+        "id"
       ],
       "additionalProperties": false
     },

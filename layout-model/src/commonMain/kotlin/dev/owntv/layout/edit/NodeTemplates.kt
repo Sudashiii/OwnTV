@@ -25,6 +25,7 @@ import dev.owntv.layout.model.SpacerNode
 import dev.owntv.layout.model.StackNode
 import dev.owntv.layout.model.TextNode
 import dev.owntv.layout.model.UnknownNode
+import dev.owntv.layout.model.WatchNextRowNode
 
 /** Ready-to-use nodes for the editor's "Add" palette. Every template is valid as it is. */
 object NodeTemplates {
@@ -40,6 +41,7 @@ object NodeTemplates {
         "app_tile" -> AppTileNode(id, packageName = samplePackage ?: "com.google.android.youtube.tv")
         "app_row" -> AppRowNode(id, source = ListSource(id.toListName()), title = "Apps")
         "app_grid" -> AppGridNode(id, source = AllAppsSource(), title = "All apps")
+        "watch_next_row" -> WatchNextRowNode(id, title = "Continue watching", titleIcon = "play")
         "folder" -> FolderNode(id, label = "Folder", source = ListSource(id.toListName()))
         "shortcut" -> ShortcutNode(id, label = "Shortcut", icon = "star", action = OpenAppDrawerAction)
         "hero" -> HeroNode(
@@ -65,6 +67,7 @@ object NodeTemplates {
         is AppTileNode -> node.copy(id = id)
         is AppRowNode -> node.copy(id = id)
         is AppGridNode -> node.copy(id = id)
+        is WatchNextRowNode -> node.copy(id = id)
         is FolderNode -> node.copy(id = id)
         is ShortcutNode -> node.copy(id = id)
         is HeroNode -> node.copy(id = id)

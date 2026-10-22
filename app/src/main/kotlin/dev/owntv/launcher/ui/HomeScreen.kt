@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.Button
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
@@ -50,6 +51,7 @@ import dev.owntv.layout.model.TextStyleName
 import dev.owntv.layout.model.TileShape
 import dev.owntv.layout.model.TileSize
 import dev.owntv.layout.model.TileStyle
+import dev.owntv.layout.model.WatchNextEntry
 
 /** Handles widget clicks for the live launcher. */
 @Composable
@@ -74,6 +76,10 @@ private fun rememberActionHandler(container: AppContainer, nav: Navigator, onLon
             }
 
             override fun longPress(target: ContextTarget) = onLongPress(target)
+
+            override fun openWatchNext(entry: WatchNextEntry) = container.watchNext.open(entry)
+
+            override fun allowWatchNext() = container.watchNext.requestAccess()
 
             override fun editList(ref: ListRef, title: String?) {
                 if (ref is ListRef.Named) nav.push(Screen.ListEditor(ref.name, title))
@@ -109,7 +115,8 @@ fun HomeScreen(container: AppContainer, nav: Navigator, state: LayoutState, cata
             val resolved = rememberResolved(state.document)
             val page = resolved.pages.firstOrNull { it.id == nav.pageId } ?: resolved.pages.first()
             val pageCatalog = catalog.withOverrides(resolved.apps)
-            val hasFocusable = remember(page, pageCatalog) { page.root.rendersFocusable(pageCatalog) }
+            val watchNext by container.watchNext.state.collectAsStateWithLifecycle()
+            val hasFocusable = remember(page, pageCatalog, watchNext) { page.root.rendersFocusable(pageCatalog, watchNext) }
             if (catalog.loaded && !hasFocusable) {
                 FallbackButton(onClick = { nav.push(Screen.Settings) }, modifier = Modifier.align(Alignment.BottomCenter))
             }
