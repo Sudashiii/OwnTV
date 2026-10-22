@@ -28,6 +28,7 @@ import androidx.tv.material3.Button
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import dev.owntv.launcher.AppContainer
+import dev.owntv.launcher.actions.StandbyService
 import dev.owntv.launcher.ui.render.AppInfo
 import dev.owntv.launcher.data.layout.LayoutState
 import dev.owntv.launcher.ui.render.ActionHandler
@@ -50,6 +51,7 @@ import dev.owntv.layout.model.OpenAppDrawerAction
 import dev.owntv.layout.model.OpenLauncherSettingsAction
 import dev.owntv.layout.model.NodeCommon
 import dev.owntv.layout.model.Padding
+import dev.owntv.layout.model.StandbyAction
 import dev.owntv.layout.model.Page
 import dev.owntv.layout.model.TextNode
 import dev.owntv.layout.model.TextStyleName
@@ -66,14 +68,17 @@ private fun rememberActionHandler(
     container: AppContainer,
     nav: Navigator,
     goToPage: (String) -> Unit = nav::goToPage,
+    standby: () -> Unit = {},
     onLongPress: (ContextTarget) -> Unit,
 ): ActionHandler {
     val currentGoToPage by rememberUpdatedState(goToPage)
+    val currentStandby by rememberUpdatedState(standby)
     return remember(container, nav) {
         object : ActionHandler {
             override fun perform(action: Action) {
                 when (action) {
                     is GoToPageAction -> currentGoToPage(action.page)
+                    StandbyAction -> currentStandby()
                     OpenAppDrawerAction -> nav.push(Screen.AppDrawer)
                     OpenLauncherSettingsAction -> nav.push(Screen.Settings)
                     else -> container.actions.execute(action)
@@ -104,11 +109,18 @@ private fun rememberActionHandler(
 @Composable
 fun HomeScreen(container: AppContainer, nav: Navigator, state: LayoutState, catalog: AppCatalog, arranger: LauncherArranger, idle: IdleTracker) {
     var menuTarget by remember { mutableStateOf<ContextTarget?>(null) }
+    // The device sleeps through OwnTV's standby service; without it the screen goes black until a key is pressed.
+    fun standby(asked: Boolean) {
+        if (StandbyService.sleep()) return
+        idle.blackout()
+        if (asked) container.actions.toast("To switch the TV off, turn on \"OwnTV standby\" in Settings > Accessibility")
+    }
     // A go_to_page action to the screensaver page starts the screensaver.
     val handler = rememberActionHandler(
         container,
         nav,
         goToPage = { id -> if (id == state.document.screensaverPage?.id) idle.start() else nav.goToPage(id) },
+        standby = { standby(asked = true) },
     ) { menuTarget = it }
     val scope = rememberCoroutineScope()
     val builtInUpdate by container.layouts.builtInUpdate.collectAsStateWithLifecycle()
@@ -129,7 +141,7 @@ fun HomeScreen(container: AppContainer, nav: Navigator, state: LayoutState, cata
     ) {
         val screensaverAllowed = nav.current == Screen.Home && menuTarget == null && updatePrompt == null &&
             catalog.loaded && lifecycle.isAtLeast(Lifecycle.State.RESUMED)
-        ScreensaverHost(state.document, idle, screensaverAllowed) {
+        ScreensaverHost(state.document, idle, screensaverAllowed, onStandby = { standby(asked = false) }) {
             Box(Modifier.fillMaxSize()) {
                 LayoutView(
                     doc = state.document,

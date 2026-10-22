@@ -1,7 +1,10 @@
 package dev.owntv.layout
 
 import dev.owntv.layout.codec.LayoutCodec
+import dev.owntv.layout.edit.LayoutOps
 import dev.owntv.layout.model.BuiltInLayouts
+import dev.owntv.layout.model.ShortcutNode
+import dev.owntv.layout.model.StandbyAction
 import dev.owntv.layout.model.screensaverPage
 import dev.owntv.layout.model.tabPages
 import dev.owntv.layout.validation.LayoutValidator
@@ -183,6 +186,26 @@ class ValidatorTest {
 
         val withTile = LayoutCodec.decode(doc.replace(saverPage, """{ "id": "saver", "root": $TILE }""").replace("""{ "id": "more", "root": $TILE }, """, ""))
         assertEquals(listOf("$.pages[1].root"), withTile.paths(Severity.Warning))
+    }
+
+    @Test
+    fun `standby after the screensaver and the standby action decode`() {
+        val result = LayoutCodec.decode(
+            """
+            { "schemaVersion": 3, "screensaver": { "page": "saver", "standby": { "after": 1800 } },
+              "pages": [ { "id": "home", "root": { "type": "row", "id": "root", "children": [ $SETTINGS_LINK,
+                { "type": "shortcut", "id": "off", "label": "Off", "icon": "power", "action": { "type": "standby" } } ] } },
+                { "id": "saver", "root": { "type": "clock", "id": "saver_clock" } } ] }
+            """,
+        )
+        assertTrue(result.issues.isEmpty(), result.issues.joinToString())
+        val doc = result.requireDocument()
+        assertEquals(1800, doc.screensaver?.standby?.after)
+        val off = LayoutOps.node(doc, "off") as ShortcutNode
+        assertEquals(StandbyAction, off.action)
+
+        val tooSoon = LayoutCodec.decode(docWithRoot(TILE, extra = """"screensaver": { "page": "settings_page", "standby": { "after": 10 } },"""))
+        assertTrue("$.screensaver.standby.after" in tooSoon.issues.map { it.path }, tooSoon.issues.joinToString())
     }
 
     @Test

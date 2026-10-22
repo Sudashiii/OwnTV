@@ -23,6 +23,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import dev.owntv.launcher.AppContainer
+import dev.owntv.launcher.actions.StandbyService
 import dev.owntv.launcher.data.layout.BuiltInKind
 import dev.owntv.launcher.data.layout.BuiltInRef
 import dev.owntv.launcher.data.layout.HistoryEntry
@@ -46,6 +47,7 @@ fun SettingsScreen(container: AppContainer, nav: Navigator, state: LayoutState) 
     val update by container.updater.state.collectAsStateWithLifecycle()
     val metricsMode by container.perf.mode.collectAsStateWithLifecycle()
     val builtInUpdate by container.layouts.builtInUpdate.collectAsStateWithLifecycle()
+    val standbyOn by StandbyService.enabled.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { container.updater.checkIfStale() }
     val available = (update as? UpdateState.Available)?.update?.versionName
     val context = LocalContext.current
@@ -116,6 +118,16 @@ fun SettingsScreen(container: AppContainer, nav: Navigator, state: LayoutState) 
             }
             item {
                 SettingsItem("Make OwnTV your Home screen", "What to do on Google TV") { nav.push(Screen.Help) }
+            }
+            item {
+                SettingsItem(
+                    "Standby",
+                    if (standbyOn) {
+                        "On: the standby action and the screensaver's standby switch the TV off"
+                    } else {
+                        "Off: turn on \"OwnTV standby\" in Accessibility so layouts can switch the TV off"
+                    },
+                ) { container.actions.openAccessibilitySettings() }
             }
             item {
                 SettingsItem(

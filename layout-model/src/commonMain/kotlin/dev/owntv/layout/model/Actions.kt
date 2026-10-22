@@ -85,6 +85,11 @@ data class OpenSystemSettingsAction(
 data object NextWallpaperAction : Action
 
 @Serializable
+@SerialName("standby")
+@Doc("Puts the TV box into standby; with HDMI-CEC the TV switches off too. Needs OwnTV's standby service, turned on once in the Android accessibility settings. Without it the screen goes black until a key is pressed.")
+data object StandbyAction : Action
+
+@Serializable
 @SerialName("open_launcher_settings")
 @Doc("Opens OwnTV's own settings (import, templates, history, Android settings). Every layout needs at least one visible shortcut with this action, or it is rejected.")
 data object OpenLauncherSettingsAction : Action

@@ -96,7 +96,7 @@ Used by the document, pages, any node (`background`) and hero slides.
 ## Screensaver
 
 ```json
-"screensaver": { "page": "night", "after": 300, "drift": true },
+"screensaver": { "page": "night", "after": 300, "drift": true, "standby": { "after": 3600 } },
 "pages": [
   { "id": "home", "root": { … } },
   {
@@ -114,6 +114,8 @@ Used by the document, pages, any node (`background`) and hero slides.
 ```
 
 When nobody has pressed a key on the home screen for `after` seconds (30–7200, default 300), the page `page` fades in over it, full screen and without page tabs. Any key ends it, and that key does nothing else. Give the screensaver a page of its own: not the first page (the home page), and with nothing focusable on it (clocks, text, images and heroes that follow their slides fit; tiles and shortcuts cannot be selected there). Page tabs leave it out, and a `go_to_page` action to it starts the screensaver at once (e.g. a shortcut with the `wallpaper` icon). `drift` (default `true`) moves the page a few dp every minute, so a clock does not stay on the same pixels for hours. The home screen's videos pause while it is covered; the screensaver's own background (a `slideshow` or a `video` fits well) keeps running. It only runs while OwnTV is in front: the TV's own screen saver and sleep timer still apply and win when they are shorter.
+
+`standby` (optional) puts the TV into standby after the screensaver has run for `standby.after` seconds (60–86400, default 3600): the TV box goes to sleep and, with HDMI-CEC, the TV switches off. Android lets no normal app do that, so it needs OwnTV's standby service, which the user turns on once under Settings > Accessibility ("OwnTV standby"; OwnTV's settings have a Standby row that opens it). Without the service the screen goes black instead, until a key is pressed. The `standby` action does the same at once.
 
 ## Common node properties
 
@@ -171,7 +173,7 @@ Widgets:
 - **`watch_next_row`**: a row of what the TV's apps offer to continue watching (Android TV's Watch Next, the data behind Google TV's "Continue watching" row): a poster, a progress bar along the bottom for entries that report how far they are watched, and the entry's title as the tile label. OK resumes the entry in its app. Properties: `title`, `titleIcon`, `tile` (default `banner`; the TV banner is not used, the entry's own artwork is), `spacing` (16), `skip`, `limit`, `exclude` (package names of apps whose entries are left out), `showProgress` (default true), `scrollAlign`, `scrollMargin`, `scrollMotion` (as `app_row`). Entries come most recently watched first. For `{focused}` the entry's title is used, for `{description}` its app and the time left, e.g. `Nuvio · 1h 18min left`. The TV asks for the permission to read these entries (it is called "TV listings") the first time: until it is granted the row shows one "Allow access to continue watching" tile, afterwards a row with no entries is hidden and takes no space, so a `showWhenFocused` details column below it with `keepSpace` stays out of the way too. Previews (editor, looks, web) show sample entries. OwnTV only reads the entries: an app removes its own entries when you finish watching.
 - **`app_tile`**: one app. `package` (required), `label`, `tile`, `missing` (`placeholder` default, or `hide`).
 - **`folder`**: a tile with small app images (a 3 × 3 grid of mini banners, or six icons with an `icon` tile) that opens a panel with its apps. `label` and `source` (both required), `tile`, `itemTile` (tiles in the panel), `columns` (default 4), `color` (tile color; a translucent color such as `#33FFFFFF` looks like tvOS glass).
-- **`shortcut`**: a custom tile. `label` and `action` (both required), `icon`, `image` (URL or `asset:`), `color` (tile color), `iconColor` (icon and label on the tile, default `@text`), `focusColor` and `focusIconColor` (the same while focused, e.g. a light tile that turns dark), `tile` (default `card`), and `description` / `backdrop` for a hero or the `{description}` placeholder. Icons: `settings`, `home`, `search`, `star`, `info`, `info_outline`, `play`, `favorite`, `apps`, `add`, `add_circle`, `refresh`, `notifications`, `person`, `lock`, `menu`, `tv`, `live_tv`, `input`, `hdmi`, `smartphone`, `display`, `system`, `accessibility`, `android`, `wallpaper`, `wifi`, `wifi_off`, `ethernet`, or any emoji such as `"🎬"`. `card`/`banner` tiles show icon and label inside (`"showLabel": "never"` leaves only the icon); `icon` tiles show the label below.
+- **`shortcut`**: a custom tile. `label` and `action` (both required), `icon`, `image` (URL or `asset:`), `color` (tile color), `iconColor` (icon and label on the tile, default `@text`), `focusColor` and `focusIconColor` (the same while focused, e.g. a light tile that turns dark), `tile` (default `card`), and `description` / `backdrop` for a hero or the `{description}` placeholder. Icons: `settings`, `home`, `search`, `star`, `info`, `info_outline`, `play`, `favorite`, `apps`, `add`, `add_circle`, `refresh`, `notifications`, `person`, `lock`, `menu`, `tv`, `live_tv`, `input`, `hdmi`, `smartphone`, `display`, `system`, `accessibility`, `android`, `wallpaper`, `wifi`, `wifi_off`, `ethernet`, `power`, or any emoji such as `"🎬"`. `card`/`banner` tiles show icon and label inside (`"showLabel": "never"` leaves only the icon); `icon` tiles show the label below.
 
 ## Hero (Top Shelf / carousel)
 
@@ -245,6 +247,7 @@ On the TV, long-press an app tile for:
 - `{ "type": "open_input", "input": "hdmi1" }` — switches the TV to an input: `hdmi1` to `hdmi4` or `av`. Only TVs have inputs; other devices show a message.
 - `{ "type": "go_to_page", "page": "apps" }`
 - `{ "type": "open_app_drawer" }` — built-in list of all apps.
+- `{ "type": "standby" }` — puts the TV into standby at once (with HDMI-CEC the TV switches off), e.g. from a shortcut with the `power` icon. Needs OwnTV's standby service (see Screensaver); without it the screen goes black until a key is pressed and a hint says how to turn the service on.
 - `{ "type": "next_wallpaper" }` — shows the next wallpaper of the screen's `slideshow` background at once (the page's, else the layout's), e.g. from a shortcut with the `wallpaper` icon.
 - `{ "type": "open_system_settings", "screen": "main" | "network" | "bluetooth" | "display" | "sound" | "apps" | "date_time" | "accessibility" }`
 - `{ "type": "open_launcher_settings" }` — OwnTV's own settings: import, looks, templates, history, the layout editor and an entry that opens the Android settings. **Every layout needs at least one visible, focusable link to it** (a `shortcut` with this action, or a hero slide with it when `follow` is `slides`); see Validation.

@@ -469,6 +469,7 @@ private val namedIcons: Map<String, ImageVector> = mapOf(
     "wallpaper" to ExtraIcons.Wallpaper,
     "wifi" to ExtraIcons.Wifi,
     "wifi_off" to ExtraIcons.WifiOff,
+    "power" to ExtraIcons.Power,
     "ethernet" to ExtraIcons.Ethernet,
 )
 

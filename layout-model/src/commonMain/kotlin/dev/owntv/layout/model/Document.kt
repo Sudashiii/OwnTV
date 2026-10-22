@@ -74,6 +74,16 @@ data class Screensaver(
     val after: Int = 300,
     @Doc("Moves the page a few dp every minute, so clocks and text do not stay on the same pixels for hours. Default true.")
     val drift: Boolean = true,
+    @Doc("Puts the TV into standby after the screensaver has run for a while. Default: the screensaver runs until a key is pressed (or the TV's own sleep timer ends it).")
+    val standby: ScreensaverStandby? = null,
+)
+
+@Serializable
+@Doc("Standby after the screensaver: the TV box goes to sleep and, with HDMI-CEC, the TV switches off. Needs OwnTV's standby service, turned on once in the Android accessibility settings; without it the screen goes black instead.")
+data class ScreensaverStandby(
+    @Range(60.0, 86400.0)
+    @Doc("Seconds the screensaver runs before standby. Default 3600 (1 hour).")
+    val after: Int = 3600,
 )
 
 /** The page [LayoutDocument.screensaver] shows, or null when there is none or it does not exist. */
