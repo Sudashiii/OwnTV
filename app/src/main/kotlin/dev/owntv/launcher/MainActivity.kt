@@ -6,6 +6,8 @@ import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import dev.owntv.launcher.actions.KeyProbe
+import dev.owntv.launcher.actions.RemoteService
 import dev.owntv.launcher.data.apps.WatchNextRepository
 import dev.owntv.launcher.data.layout.WallpaperFolderRepository
 import dev.owntv.launcher.ui.IdleTracker
@@ -50,7 +52,13 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
     }
 
-    override fun dispatchKeyEvent(event: KeyEvent): Boolean =
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        // With the remote service on it has already reported the key.
+        if (!RemoteService.enabled.value) KeyProbe.report(event)
+        return dispatchToApp(event)
+    }
+
+    private fun dispatchToApp(event: KeyEvent): Boolean =
         idle.onKey(event) || container.perf.dispatchKey(event) { super.dispatchKeyEvent(event) }
 
     override fun onNewIntent(intent: Intent) {
