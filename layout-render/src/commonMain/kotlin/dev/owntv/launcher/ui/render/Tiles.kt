@@ -471,6 +471,12 @@ private val namedIcons: Map<String, ImageVector> = mapOf(
     "wifi_off" to ExtraIcons.WifiOff,
     "power" to ExtraIcons.Power,
     "ethernet" to ExtraIcons.Ethernet,
+    "brightness" to ExtraIcons.Brightness,
+    "volume" to ExtraIcons.Volume,
+    "volume_off" to ExtraIcons.VolumeOff,
+    "bedtime" to ExtraIcons.Bedtime,
+    "bluetooth" to ExtraIcons.Bluetooth,
+    "tune" to ExtraIcons.Tune,
 )
 
 /** The metrics of the TV's default body text, so emoji icons sit where they always did. */

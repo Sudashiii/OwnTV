@@ -22,6 +22,7 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.darkColorScheme
 import dev.owntv.launcher.AppContainer
 import dev.owntv.launcher.metrics.MetricsMode
+import dev.owntv.launcher.quick.DimLayer
 import dev.owntv.launcher.ui.editor.EditorScreen
 import dev.owntv.launcher.ui.render.AppCatalog
 import dev.owntv.launcher.ui.render.LocalAppArranger
@@ -100,6 +101,8 @@ fun OwnTvRoot(container: AppContainer, nav: Navigator, idle: IdleTracker) {
                     Screen.HiddenApps -> HiddenAppsScreen(container, catalog)
                     is Screen.Preview -> PreviewScreen(container, nav, screen.result, screen.source, screen.builtIn, catalog)
                 }
+                // Quick settings brightness while the remote service is off (with it on, the service dims every app).
+                DimLayer(container.dimmer)
                 if (metricsMode == MetricsMode.Live) {
                     PerformanceOverlay(container.perf, Modifier.align(Alignment.BottomEnd).padding(12.dp))
                 }

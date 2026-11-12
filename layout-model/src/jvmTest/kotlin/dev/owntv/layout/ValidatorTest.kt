@@ -4,6 +4,10 @@ import dev.owntv.layout.codec.LayoutCodec
 import dev.owntv.layout.edit.LayoutOps
 import dev.owntv.layout.model.BuiltInLayouts
 import dev.owntv.layout.model.KeyPress
+import dev.owntv.layout.model.OpenQuickSettingsAction
+import dev.owntv.layout.model.QuickSettingType
+import dev.owntv.layout.model.QuickSettings
+import dev.owntv.layout.model.quickSettingsOrDefault
 import dev.owntv.layout.model.RemoteKey
 import dev.owntv.layout.model.ShortcutNode
 import dev.owntv.layout.model.StandbyAction
@@ -278,6 +282,53 @@ class ValidatorTest {
             """,
         )
         assertEquals(listOf("$.pages"), result.paths(Severity.Error))
+    }
+
+    @Test
+    fun `quick settings decode with defaults and check their rows`() {
+        val none = LayoutCodec.decode(docWithRoot(TILE)).requireDocument()
+        assertNull(none.quickSettings)
+        assertEquals(QuickSettings.DEFAULT_ITEMS, none.quickSettingsOrDefault.items)
+
+        val ok = LayoutCodec.decode(
+            docWithRoot(
+                TILE,
+                extra = """
+                    "keyBindings": [ { "key": "blue", "action": { "type": "open_quick_settings" } } ],
+                    "quickSettings": { "title": "Settings", "items": [
+                      { "type": "brightness" },
+                      { "type": "sleep_timer", "label": "Sleep", "icon": "bedtime" },
+                      { "type": "action", "label": "Kids", "icon": "star", "action": { "type": "go_to_page", "page": "settings_page" } }
+                    ] },
+                """.trimIndent(),
+            ),
+        )
+        assertTrue(ok.issues.isEmpty(), ok.issues.joinToString())
+        val quick = ok.requireDocument().quickSettingsOrDefault
+        assertEquals("Settings", quick.title)
+        assertEquals(listOf(QuickSettingType.Brightness, QuickSettingType.SleepTimer, QuickSettingType.Action), quick.items.map { it.type })
+        assertEquals(OpenQuickSettingsAction, ok.requireDocument().keyBindings.single().action)
+
+        val bad = LayoutCodec.decode(
+            docWithRoot(
+                TILE,
+                extra = """
+                    "quickSettings": { "items": [
+                      { "type": "action", "label": "Nothing" },
+                      { "type": "action", "action": { "type": "go_to_page", "page": "nope" } },
+                      { "type": "volume", "icon": "no_such_icon", "action": { "type": "open_app_drawer" } }
+                    ] },
+                """.trimIndent(),
+            ),
+        )
+        assertEquals(setOf("$.quickSettings.items[0].action", "$.quickSettings.items[1].action.page"), bad.paths(Severity.Error).toSet())
+        assertEquals(
+            setOf("$.quickSettings.items[1].label", "$.quickSettings.items[2].icon", "$.quickSettings.items[2].action"),
+            bad.paths(Severity.Warning).toSet(),
+        )
+
+        val empty = LayoutCodec.decode(docWithRoot(TILE, extra = """"quickSettings": { "items": [] },"""))
+        assertEquals(listOf("$.quickSettings.items"), empty.paths(Severity.Warning))
     }
 
     @Test

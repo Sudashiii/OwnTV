@@ -2,17 +2,20 @@ package dev.owntv.launcher.actions
 
 import android.accessibilityservice.AccessibilityService
 import android.content.Intent
+import android.graphics.Color
+import android.graphics.PixelFormat
 import android.os.Handler
 import android.os.Looper
 import android.view.KeyEvent
+import android.view.View
+import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import android.view.inputmethod.InputMethodManager
-import dev.owntv.launcher.MainActivity
 import dev.owntv.launcher.AppContainer
 import dev.owntv.launcher.OwnTvApp
 import dev.owntv.launcher.data.apps.ForegroundFilter
+import dev.owntv.launcher.quick.BrightnessSteps
 import dev.owntv.layout.model.Action
-import dev.owntv.layout.model.StandbyAction
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -38,6 +41,8 @@ class RemoteService : AccessibilityService() {
     private var filter: ForegroundFilter? = null
     private var matcher = KeyBindingMatcher(emptyList())
     private var bindingsJob: Job? = null
+    private var dimJob: Job? = null
+    private var dimView: View? = null
     private val longPresses = mutableMapOf<Int, Runnable>()
 
     override fun onServiceConnected() {
@@ -52,6 +57,7 @@ class RemoteService : AccessibilityService() {
         bindingsJob = container.scope.launch {
             container.layouts.state.map { it.document.keyBindings }.distinctUntilChanged().collect { matcher = KeyBindingMatcher(it) }
         }
+        dimJob = container.scope.launch { container.dimmer.level.collect(::showDim) }
         running.value = true
     }
 
@@ -70,6 +76,8 @@ class RemoteService : AccessibilityService() {
             instance = null
             running.value = false
             bindingsJob?.cancel()
+            dimJob?.cancel()
+            removeDim()
             cancelLongPresses()
         }
     }
@@ -119,18 +127,39 @@ class RemoteService : AccessibilityService() {
         longPresses.clear()
     }
 
-    /** Runs a bound action: apps, URLs and intents directly, OwnTV's own actions through its home screen. */
-    private fun run(action: Action) {
-        if (!action.runsInOwnTv()) {
-            container.actions.execute(action)
+    /** Runs a bound action: apps, URLs, intents and quick settings directly, OwnTV's own actions through its home screen. */
+    private fun run(action: Action) = container.runAnywhere(action)
+
+    /**
+     * The quick settings brightness over every app: a black, untouchable, unfocusable accessibility overlay.
+     * At full brightness there is no window at all.
+     */
+    private fun showDim(level: Int) {
+        val alpha = BrightnessSteps.dimAlpha(level)
+        val windows = getSystemService(WindowManager::class.java) ?: return
+        if (alpha <= 0f) {
+            removeDim()
             return
         }
-        // Standby does not need OwnTV in front; without the standby service OwnTV shows its black cover instead.
-        if (action == StandbyAction && StandbyService.sleep()) return
-        container.remoteActions.trySend(action)
-        startActivity(
-            Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT),
-        )
+        val view = dimView ?: View(this).also { view ->
+            view.setBackgroundColor(Color.BLACK)
+            val params = WindowManager.LayoutParams(
+                WindowManager.LayoutParams.MATCH_PARENT,
+                WindowManager.LayoutParams.MATCH_PARENT,
+                WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                PixelFormat.TRANSLUCENT,
+            )
+            runCatching { windows.addView(view, params) }.onFailure { return }
+            dimView = view
+        }
+        view.alpha = alpha
+    }
+
+    private fun removeDim() {
+        dimView?.let { view -> runCatching { getSystemService(WindowManager::class.java)?.removeView(view) } }
+        dimView = null
     }
 
     override fun onInterrupt() = Unit

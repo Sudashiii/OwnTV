@@ -2,8 +2,11 @@ package dev.owntv.launcher
 
 import android.app.Application
 import android.content.Context
+import android.content.Intent
 import coil3.SingletonImageLoader
 import dev.owntv.launcher.actions.ActionExecutor
+import dev.owntv.launcher.actions.StandbyService
+import dev.owntv.launcher.actions.runsInOwnTv
 import dev.owntv.launcher.data.apps.AppImageLoader
 import dev.owntv.launcher.data.apps.AppListsRepository
 import dev.owntv.launcher.data.apps.InstalledAppsRepository
@@ -17,11 +20,14 @@ import dev.owntv.launcher.importexport.FileImporter
 import dev.owntv.launcher.importexport.PasteSession
 import dev.owntv.launcher.importexport.UrlImporter
 import dev.owntv.launcher.metrics.PerformanceMonitor
+import dev.owntv.launcher.quick.ScreenDimmer
+import dev.owntv.launcher.quick.SleepTimer
 import dev.owntv.launcher.update.Updater
 import dev.owntv.layout.ai.AiPromptBuilder
 import dev.owntv.layout.codec.DecodeResult
 import dev.owntv.layout.codec.LayoutCodec
 import dev.owntv.layout.model.Action
+import dev.owntv.layout.model.StandbyAction
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.channels.Channel
 
@@ -40,6 +46,7 @@ class OwnTvApp : Application(), SingletonImageLoader.Factory {
 
 /** Creates and holds the app's long-lived objects. */
 class AppContainer(context: Context) {
+    private val appContext: Context = context.applicationContext
     val scope = MainScope()
     val perf: PerformanceMonitor = PerformanceMonitor(context, scope, appImageCacheBytes = { images.cacheBytes() })
     val assets = BundledAssets(context)
@@ -57,6 +64,28 @@ class AppContainer(context: Context) {
      * next wallpaper), sent by the remote service. The home screen takes them; they wait here until it does.
      */
     val remoteActions = Channel<Action>(Channel.UNLIMITED)
+
+    /** Quick settings brightness (a dim layer) and sleep timer. */
+    val dimmer = ScreenDimmer(context)
+    val sleepTimer = SleepTimer(scope) { runAnywhere(StandbyAction) }
+
+    /**
+     * Runs [action] from outside OwnTV's home screen (a remote button, the quick settings panel): apps, URLs and
+     * intents directly, OwnTV's own actions through its home screen, which comes to the front.
+     */
+    fun runAnywhere(action: Action) {
+        if (!action.runsInOwnTv()) {
+            actions.execute(action)
+            return
+        }
+        // Standby does not need OwnTV in front; without the standby service OwnTV shows its black cover instead.
+        if (action == StandbyAction && StandbyService.sleep()) return
+        remoteActions.trySend(action)
+        appContext.startActivity(
+            Intent(appContext, MainActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT),
+        )
+    }
     val urlImporter = UrlImporter()
     val files = FileImporter(context)
     val updater = Updater(context, scope, BuildConfig.UPDATE_URL, BuildConfig.RELEASES_URL)

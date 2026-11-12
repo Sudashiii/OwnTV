@@ -22,6 +22,7 @@ import dev.owntv.layout.model.NextWallpaperAction
 import dev.owntv.layout.model.OpenAppDrawerAction
 import dev.owntv.layout.model.OpenInputAction
 import dev.owntv.layout.model.OpenLauncherSettingsAction
+import dev.owntv.layout.model.OpenQuickSettingsAction
 import dev.owntv.layout.model.OpenSystemSettingsAction
 import dev.owntv.layout.model.OpenUrlAction
 import dev.owntv.layout.model.StandbyAction
@@ -132,4 +133,5 @@ fun Action.describe(labels: Map<String, String> = emptyMap()): String = when (th
     NextWallpaperAction -> "Next wallpaper"
     StandbyAction -> "Put the TV into standby"
     OpenLauncherSettingsAction -> "Open OwnTV's settings"
+    OpenQuickSettingsAction -> "Open quick settings"
 }
