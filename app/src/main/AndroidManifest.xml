@@ -102,6 +102,21 @@
                 android:resource="@xml/standby_service" />
         </service>
 
+        <!-- Sees which app is in front, for the "recent" source (actions/RemoteService.kt). A second service so
+             the standby service keeps its promise to read nothing. Turned on once under Settings > Accessibility. -->
+        <service
+            android:name=".actions.RemoteService"
+            android:exported="true"
+            android:label="OwnTV remote"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/remote_service" />
+        </service>
+
         <!-- Gets the package installer's result for an update and brings OwnTV back once it is installed (update/Updater.kt). -->
         <receiver
             android:name=".update.UpdateInstallReceiver"

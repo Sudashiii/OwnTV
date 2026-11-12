@@ -15,6 +15,12 @@
   },
   "background": { "type": "gradient", "colors": ["#2A0E12", "#0B0D12", "#0B0D12"], "angle": 180 },
   "pageTabs": true,
+  "keyBindings": [
+    { "key": "red", "action": { "type": "go_to_page", "page": "watch" } },
+    { "key": "green", "action": { "type": "go_to_page", "page": "apps" } },
+    { "key": "yellow", "action": { "type": "open_input", "input": "hdmi1" } },
+    { "key": "menu", "press": "long", "action": { "type": "open_launcher_settings" } }
+  ],
   "pages": [
     {
       "id": "watch",

@@ -219,6 +219,15 @@ class EditTest {
     }
 
     @Test
+    fun `a new key binding from the editor decodes and offers its fields`() {
+        val descriptor = dev.owntv.layout.model.KeyBinding.serializer().descriptor
+        val binding = LayoutCodec.json.decodeFromJsonElement(dev.owntv.layout.model.KeyBinding.serializer(), Fields.newObject(descriptor))
+        assertEquals(dev.owntv.layout.model.KeyPress.Short, binding.press)
+        assertEquals(listOf("key", "press", "action"), Fields.forDescriptor(descriptor).map { it.name })
+        assertEquals(FieldKind.ObjectList, Fields.forDescriptor(LayoutDocument.serializer().descriptor).first { it.name == "keyBindings" }.kind)
+    }
+
+    @Test
     fun `json paths read and write nested values`() {
         val obj = JsonObject(mapOf("tile" to JsonObject(mapOf("size" to JsonPrimitive("small"))), "list" to JsonArray(listOf(JsonPrimitive("a")))))
         assertEquals(JsonPrimitive("small"), obj.at(listOf(PathStep.Key("tile"), PathStep.Key("size"))))

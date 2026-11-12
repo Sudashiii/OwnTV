@@ -60,6 +60,8 @@ import dev.owntv.layout.model.TileSize
 import dev.owntv.layout.model.TileStyle
 import dev.owntv.layout.model.WatchNextEntry
 import dev.owntv.layout.model.screensaverPage
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
 /** Handles widget clicks for the live launcher. */
@@ -123,6 +125,13 @@ fun HomeScreen(container: AppContainer, nav: Navigator, state: LayoutState, cata
         standby = { standby(asked = true) },
     ) { menuTarget = it }
     val scope = rememberCoroutineScope()
+    // Remote buttons bound in the layout (see RemoteService): OwnTV's own actions come back to the home screen first.
+    val remoteActions = remember(container, nav, idle) {
+        container.remoteActions.receiveAsFlow().onEach {
+            idle.reset()
+            nav.home()
+        }
+    }
     val builtInUpdate by container.layouts.builtInUpdate.collectAsStateWithLifecycle()
     // Home stays composed under other screens, so only ask while it is the one the user sees.
     val updatePrompt = builtInUpdate?.takeIf { !it.dismissed && nav.current == Screen.Home && menuTarget == null }
@@ -148,6 +157,7 @@ fun HomeScreen(container: AppContainer, nav: Navigator, state: LayoutState, cata
                     pageId = nav.pageId,
                     onSelectPage = { nav.pageId = it },
                     focusTrigger = nav.focusTrigger,
+                    externalActions = remoteActions,
                 )
 
                 // A layout must never lock the user out: if nothing on the page can take focus, offer settings.

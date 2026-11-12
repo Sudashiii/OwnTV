@@ -44,6 +44,7 @@ import dev.owntv.layout.model.referencedIds
 import dev.owntv.layout.model.screensaverPage
 import dev.owntv.layout.model.tabPages
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlin.random.Random
 
 /** The layout with styles and type defaults applied, ready to render. */
@@ -63,6 +64,8 @@ fun LayoutView(
     onSelectPage: (String) -> Unit,
     focusTrigger: Int,
     modifier: Modifier = Modifier,
+    /** Actions that arrive from outside the screen (a remote button) and are carried out as if a widget had run them. */
+    externalActions: Flow<Action>? = null,
 ) {
     val resolved = rememberResolved(doc)
     val fonts = LocalFontFamilies.current
@@ -79,6 +82,7 @@ fun LayoutView(
     val haze = rememberHazeState()
     val actions = LocalActionHandler.current
     val handler = remember(actions, slideshow) { if (slideshow == null) actions else SlideshowActions(actions, slideshow) }
+    if (externalActions != null) LaunchedEffect(externalActions, handler) { externalActions.collect(handler::perform) }
     CompositionLocalProvider(LocalOwnTheme provides theme, LocalApps provides catalog, LocalHazeState provides haze, LocalActionHandler provides handler) {
         Box(modifier.fillMaxSize()) {
             val backgroundModifier = Modifier.fillMaxSize().glassSource(0f)

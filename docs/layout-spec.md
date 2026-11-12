@@ -22,6 +22,7 @@ An OwnTV layout is one JSON document. The launcher renders it natively; nothing 
   "apps": { "com.netflix.ninja": { "description": "Movies and series", "backdrop": "https://example.com/netflix.jpg" } },
   "pageTabs": false,
   "screensaver": { "page": "night", "after": 300 },
+  "keyBindings": [ { "key": "red", "action": { "type": "launch_app", "package": "com.netflix.ninja" } } ],
   "pages": [ { "id": "home", "initialFocus": "favorites", "root": { "type": "column", "id": "root", "children": [] } } ]
 }
 ```
@@ -37,6 +38,7 @@ An OwnTV layout is one JSON document. The launcher renders it natively; nothing 
 | `apps` | | Per-app settings keyed by package name; see Apps. |
 | `pageTabs` | | `true` shows page titles as tabs at the top (only with 2+ pages). Default `false`. |
 | `screensaver` | | Shows one of the pages as a screensaver after the remote has been idle on Home; see Screensaver. Default: none. |
+| `keyBindings` | | Remote buttons that run an action, also while another app is open; see Key bindings. Default: none. |
 | `pages` | yes | List of pages. The first page is the home page; Back returns to it. |
 
 **Page**: `id` (required, unique), `title` (tab label and `{page}`), `initialFocus` (id of the node focused when the page opens; default: first focusable widget), `background` (overrides the layout background), `root` (required node; it fills the screen).
@@ -117,6 +119,19 @@ When nobody has pressed a key on the home screen for `after` seconds (30–7200,
 
 `standby` (optional) puts the TV into standby after the screensaver has run for `standby.after` seconds (60–86400, default 3600): the TV box goes to sleep and, with HDMI-CEC, the TV switches off. Android lets no normal app do that, so it needs OwnTV's standby service, which the user turns on once under Settings > Accessibility ("OwnTV standby"; OwnTV's settings have a Standby row that opens it). Without the service the screen goes black instead, until a key is pressed. The `standby` action does the same at once.
 
+## Key bindings
+
+```json
+"keyBindings": [
+  { "key": "red", "action": { "type": "launch_app", "package": "com.netflix.ninja" } },
+  { "key": "blue", "press": "long", "action": { "type": "go_to_page", "page": "night" } }
+],
+```
+
+Each binding makes one remote button run one action (any action from Actions). `key` is one of `menu`, `guide`, `info`, `settings`, `captions`, `bookmark`, `tv`, `tv_input`, `dvr`, `channel_up`, `channel_down`, `last_channel`, `red`, `green`, `yellow`, `blue`. `press` is `short` (default: runs when the button is released) or `long` (runs once the button has been held for about half a second, and the button then does nothing else). A key can have a short and a long binding; the same key and press twice is a warning and only the first runs. D-pad, OK, Back, Home and Power cannot be remapped, and only bound buttons are taken over: every other button works as before.
+
+Bindings work while another app is in front, which needs OwnTV's remote service: the user turns it on once under Settings > Accessibility ("OwnTV remote"); OwnTV's settings have a Remote buttons screen that shows its state and which buttons the remote sends. Without the service the bindings do nothing. Remotes differ, and some buttons (voice, brand buttons) never reach apps, so do not promise a specific button. Actions that belong to OwnTV itself (`go_to_page`, `open_app_drawer`, `open_launcher_settings`, `standby`, `next_wallpaper`) bring OwnTV to the front first. The web preview ignores `keyBindings`. A key binding does not count as the visible link to OwnTV's settings that every layout needs.
+
 ## Common node properties
 
 Every node has `type` and `id` (both required) and may use:
@@ -164,7 +179,7 @@ The page `root` fills the screen. Other containers wrap their content unless you
 - `{ "type": "list", "list": "favorites" }` — a named app list (see "App lists" below). The layout only names the list; the TV stores its apps.
 - `{ "type": "all", "sort": "custom" | "alphabetical" | "recently_installed", "exclude": ["…"], "includeNonTvApps": false }` — every TV app. `custom` (default) is the order arranged on the TV; apps never moved follow alphabetically.
 - `{ "type": "category", "category": "games" | "apps" | "mobile", "sort": "alphabetical", "exclude": [] }` — games, everything that is not a game, or `mobile`: phone apps sideloaded onto the TV (no TV launcher entry).
-- `{ "type": "recent", "exclude": [] }` — most recently used first. Starts empty and fills as apps are opened.
+- `{ "type": "recent", "exclude": [] }` — most recently used first. Starts empty and fills as apps are opened from OwnTV. With OwnTV's remote service turned on (Settings > Recent apps) or usage access granted, apps opened any other way count too.
 
 Widgets:
 
@@ -239,7 +254,7 @@ On the TV, long-press an app tile for:
 - **Remove from …**: take it out of the list it was pressed in.
 - **Hide**: leave the app out of every row, grid and folder. Hidden apps stay in the app drawer and under Settings > Hidden apps.
 
-## Actions (for `shortcut.action` and slides)
+## Actions (for `shortcut.action`, slides and key bindings)
 
 - `{ "type": "launch_app", "package": "com.netflix.ninja" }`
 - `{ "type": "open_url", "url": "https://example.com" }` (also deep links)

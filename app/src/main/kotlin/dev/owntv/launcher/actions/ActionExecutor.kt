@@ -59,10 +59,13 @@ class ActionExecutor(
         start(Intent(Settings.ACTION_SETTINGS), "Could not open settings")
     }
 
-    /** Opens the Android accessibility settings, where the user turns on OwnTV's standby service. */
+    /** Opens the Android accessibility settings, where the user turns on OwnTV's services. */
     fun openAccessibilitySettings() {
         if (!start(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS), null)) openSystemSettings()
     }
+
+    /** Opens the usage access list. False when this device has no such screen (some Google TV builds). */
+    fun openUsageAccessSettings(): Boolean = start(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS), null)
 
     /** Switches to a TV input through the system's TV app, like the remote's input button. */
     private fun openInput(input: TvInput): Boolean {

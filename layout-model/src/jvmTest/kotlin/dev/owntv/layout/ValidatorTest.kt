@@ -3,6 +3,8 @@ package dev.owntv.layout
 import dev.owntv.layout.codec.LayoutCodec
 import dev.owntv.layout.edit.LayoutOps
 import dev.owntv.layout.model.BuiltInLayouts
+import dev.owntv.layout.model.KeyPress
+import dev.owntv.layout.model.RemoteKey
 import dev.owntv.layout.model.ShortcutNode
 import dev.owntv.layout.model.StandbyAction
 import dev.owntv.layout.model.screensaverPage
@@ -219,6 +221,63 @@ class ValidatorTest {
 
         val tooSoon = LayoutCodec.decode(docWithRoot(TILE, extra = """"screensaver": { "page": "settings_page", "after": 5 },"""))
         assertTrue("$.screensaver.after" in tooSoon.issues.map { it.path }, tooSoon.issues.joinToString())
+    }
+
+    @Test
+    fun `key bindings decode and their actions are checked like other actions`() {
+        val ok = LayoutCodec.decode(
+            docWithRoot(
+                TILE,
+                extra = """
+                    "keyBindings": [
+                      { "key": "red", "action": { "type": "launch_app", "package": "com.example.app" } },
+                      { "key": "blue", "press": "long", "action": { "type": "go_to_page", "page": "settings_page" } },
+                      { "key": "menu", "press": "long", "action": { "type": "open_launcher_settings" } },
+                      { "key": "menu", "action": { "type": "open_app_drawer" } }
+                    ],
+                """.trimIndent(),
+            ),
+        )
+        assertTrue(ok.issues.isEmpty(), ok.issues.joinToString())
+        val bindings = ok.requireDocument().keyBindings
+        assertEquals(listOf(RemoteKey.Red, RemoteKey.Blue, RemoteKey.Menu, RemoteKey.Menu), bindings.map { it.key })
+        assertEquals(listOf(KeyPress.Short, KeyPress.Long, KeyPress.Long, KeyPress.Short), bindings.map { it.press })
+
+        val badPage = LayoutCodec.decode(
+            docWithRoot(TILE, extra = """"keyBindings": [ { "key": "red", "action": { "type": "go_to_page", "page": "nope" } } ],"""),
+        )
+        assertEquals(listOf("$.keyBindings[0].action.page"), badPage.paths(Severity.Error))
+
+        val unknownKey = LayoutCodec.decode(
+            docWithRoot(TILE, extra = """"keyBindings": [ { "key": "dpad_up", "action": { "type": "open_app_drawer" } } ],"""),
+        )
+        assertTrue(unknownKey.issues.any { it.path.startsWith("$.keyBindings[0]") }, unknownKey.issues.joinToString())
+    }
+
+    @Test
+    fun `binding the same press of a key twice is a warning`() {
+        val result = LayoutCodec.decode(
+            docWithRoot(
+                TILE,
+                extra = """"keyBindings": [
+                  { "key": "guide", "action": { "type": "open_app_drawer" } },
+                  { "key": "guide", "action": { "type": "open_launcher_settings" } },
+                  { "key": "guide", "press": "long", "action": { "type": "open_launcher_settings" } } ],""",
+            ),
+        )
+        assertEquals(listOf("$.keyBindings[1]"), result.paths(Severity.Warning))
+        assertTrue(result.ok)
+    }
+
+    @Test
+    fun `a key binding is not a link to OwnTV's settings`() {
+        val result = LayoutCodec.decode(
+            """
+            { "schemaVersion": 3, "keyBindings": [ { "key": "menu", "action": { "type": "open_launcher_settings" } } ],
+              "pages": [ { "id": "home", "root": $TILE } ] }
+            """,
+        )
+        assertEquals(listOf("$.pages"), result.paths(Severity.Error))
     }
 
     @Test

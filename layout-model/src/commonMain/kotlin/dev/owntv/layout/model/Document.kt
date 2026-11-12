@@ -45,6 +45,8 @@ data class LayoutDocument(
     val pageTabs: Boolean = false,
     @Doc("Shows one of the pages as a screensaver when nobody has pressed a key on the home screen for a while. Default: no screensaver.")
     val screensaver: Screensaver? = null,
+    @Doc("Remote buttons that run an action, also while another app is open (needs OwnTV's remote service). Default: none.")
+    val keyBindings: List<KeyBinding> = emptyList(),
     @Doc("Pages of the launcher. The first page is the home page.")
     val pages: List<Page>,
 )

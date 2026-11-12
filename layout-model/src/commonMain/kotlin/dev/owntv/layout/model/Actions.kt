@@ -132,7 +132,7 @@ data class AllAppsSource(
 
 @Serializable
 @SerialName("recent")
-@Doc("Recently used apps, most recent first. Launches from OwnTV always count; with usage access granted, launches from anywhere count.")
+@Doc("Recently used apps, most recent first. Launches from OwnTV always count; with OwnTV's remote service turned on in the Android accessibility settings, or usage access granted, launches from anywhere count.")
 data class RecentSource(
     @Doc("Package names to leave out.")
     val exclude: List<String> = emptyList(),

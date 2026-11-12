@@ -21,7 +21,9 @@ import dev.owntv.launcher.update.Updater
 import dev.owntv.layout.ai.AiPromptBuilder
 import dev.owntv.layout.codec.DecodeResult
 import dev.owntv.layout.codec.LayoutCodec
+import dev.owntv.layout.model.Action
 import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.channels.Channel
 
 class OwnTvApp : Application(), SingletonImageLoader.Factory {
     lateinit var container: AppContainer
@@ -49,6 +51,12 @@ class AppContainer(context: Context) {
     val appLists = AppListsRepository(context, scope, assets)
     val layouts = LayoutRepository(context, scope, assets, keepLists = appLists::seed, onLoaded = perf::layoutDecoded)
     val actions = ActionExecutor(context, onLaunch = recent::recordLaunch)
+
+    /**
+     * Actions a remote button asked OwnTV's own screen to carry out (pages, drawer, settings, standby,
+     * next wallpaper), sent by the remote service. The home screen takes them; they wait here until it does.
+     */
+    val remoteActions = Channel<Action>(Channel.UNLIMITED)
     val urlImporter = UrlImporter()
     val files = FileImporter(context)
     val updater = Updater(context, scope, BuildConfig.UPDATE_URL, BuildConfig.RELEASES_URL)
