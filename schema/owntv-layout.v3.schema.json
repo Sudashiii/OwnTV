@@ -87,6 +87,10 @@
             "$ref": "#/$defs/KeyBinding"
           }
         },
+        "quickSettings": {
+          "description": "What OwnTV's quick settings panel (the open_quick_settings action) shows. Default: brightness, volume, sleep timer, network, Bluetooth, Android settings and OwnTV settings.",
+          "$ref": "#/$defs/QuickSettings"
+        },
         "pages": {
           "description": "Pages of the launcher. The first page is the home page.",
           "type": "array",
@@ -746,6 +750,9 @@
           "$ref": "#/$defs/Action.open_launcher_settings"
         },
         {
+          "$ref": "#/$defs/Action.open_quick_settings"
+        },
+        {
           "$ref": "#/$defs/Action.open_system_settings"
         },
         {
@@ -899,6 +906,19 @@
       ],
       "additionalProperties": false
     },
+    "Action.open_quick_settings": {
+      "type": "object",
+      "description": "Opens OwnTV's quick settings: a panel that slides in from the right over whatever is on screen, with brightness, volume, a sleep timer and other shortcuts (see quickSettings). Bound to a remote button it works inside other apps too; pressing the button again closes it.",
+      "properties": {
+        "type": {
+          "const": "open_quick_settings"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    },
     "Action.open_system_settings": {
       "type": "object",
       "description": "Opens Android TV system settings.",
@@ -950,6 +970,61 @@
       "properties": {
         "type": {
           "const": "standby"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "QuickSettings": {
+      "type": "object",
+      "description": "OwnTV's quick settings panel, opened with the open_quick_settings action (usually from a remote button). It slides in from the right over whatever is on screen and uses the layout's theme colors.",
+      "properties": {
+        "title": {
+          "description": "Title at the top of the panel. Default \"Quick settings\".",
+          "type": "string"
+        },
+        "items": {
+          "description": "The rows of the panel, top to bottom. Default: brightness, volume, sleep_timer, network, bluetooth, android_settings, owntv_settings.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/QuickSetting"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "QuickSetting": {
+      "type": "object",
+      "description": "One row of the quick settings panel.",
+      "properties": {
+        "type": {
+          "description": "What the row does. brightness: dims the picture (left/right). volume: media volume (left/right, OK mutes). sleep_timer: standby after 15 to 120 minutes (left/right). network: connection state, OK opens network settings. bluetooth: OK opens Bluetooth settings. standby: OK puts the TV into standby. android_settings and owntv_settings: OK opens them. action: OK runs \"action\".",
+          "type": "string",
+          "enum": [
+            "brightness",
+            "volume",
+            "sleep_timer",
+            "network",
+            "bluetooth",
+            "standby",
+            "android_settings",
+            "owntv_settings",
+            "action"
+          ]
+        },
+        "label": {
+          "description": "Text of the row. Default: a name that fits the type; needed for type action.",
+          "type": "string"
+        },
+        "icon": {
+          "description": "Icon name (see shortcut icons) or an emoji. Default: an icon that fits the type.",
+          "type": "string"
+        },
+        "action": {
+          "description": "Only for type action: what OK runs. Any action works; the panel closes afterwards.",
+          "$ref": "#/$defs/Action"
         }
       },
       "required": [

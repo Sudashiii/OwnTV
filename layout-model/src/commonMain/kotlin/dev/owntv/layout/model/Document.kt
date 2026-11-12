@@ -47,6 +47,8 @@ data class LayoutDocument(
     val screensaver: Screensaver? = null,
     @Doc("Remote buttons that run an action, also while another app is open (needs OwnTV's remote service). Default: none.")
     val keyBindings: List<KeyBinding> = emptyList(),
+    @Doc("What OwnTV's quick settings panel (the open_quick_settings action) shows. Default: brightness, volume, sleep timer, network, Bluetooth, Android settings and OwnTV settings.")
+    val quickSettings: QuickSettings? = null,
     @Doc("Pages of the launcher. The first page is the home page.")
     val pages: List<Page>,
 )

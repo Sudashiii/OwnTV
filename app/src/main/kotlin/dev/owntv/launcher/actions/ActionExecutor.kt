@@ -13,13 +13,15 @@ import android.widget.Toast
 import dev.owntv.layout.model.Action
 import dev.owntv.layout.model.IntentAction
 import dev.owntv.layout.model.LaunchAppAction
+import dev.owntv.launcher.quick.QuickSettingsActivity
 import dev.owntv.layout.model.OpenInputAction
+import dev.owntv.layout.model.OpenQuickSettingsAction
 import dev.owntv.layout.model.OpenSystemSettingsAction
 import dev.owntv.layout.model.OpenUrlAction
 import dev.owntv.layout.model.SettingsScreen
 import dev.owntv.layout.model.TvInput
 
-/** Runs the actions that leave the launcher (apps, URLs, intents, system settings). */
+/** Runs the actions that leave the launcher (apps, URLs, intents, system settings) and opens quick settings. */
 class ActionExecutor(
     private val context: Context,
     private val onLaunch: (packageName: String) -> Unit = {},
@@ -31,6 +33,10 @@ class ActionExecutor(
         is OpenUrlAction -> start(Intent(Intent.ACTION_VIEW, Uri.parse(action.url)), "Nothing on this TV can open ${action.url}")
         is IntentAction -> start(buildIntent(action), "Could not start the intent")
         is OpenInputAction -> openInput(action.input)
+        OpenQuickSettingsAction -> {
+            QuickSettingsActivity.toggle(context)
+            true
+        }
         is OpenSystemSettingsAction -> start(Intent(settingsAction(action.screen)), null) ||
             start(Intent(Settings.ACTION_SETTINGS), "Could not open settings")
         else -> false

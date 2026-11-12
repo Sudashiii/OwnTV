@@ -228,6 +228,18 @@ class EditTest {
     }
 
     @Test
+    fun `quick settings from the editor decode and offer their fields`() {
+        val descriptor = dev.owntv.layout.model.QuickSetting.serializer().descriptor
+        val row = LayoutCodec.json.decodeFromJsonElement(dev.owntv.layout.model.QuickSetting.serializer(), Fields.newObject(descriptor))
+        assertNull(row.action)
+        assertEquals(listOf("type", "label", "icon", "action"), Fields.forDescriptor(descriptor).map { it.name })
+        val panel = Fields.forDescriptor(LayoutDocument.serializer().descriptor).first { it.name == "quickSettings" }
+        assertEquals(FieldKind.Object, panel.kind)
+        val quick = LayoutCodec.json.decodeFromJsonElement(dev.owntv.layout.model.QuickSettings.serializer(), Fields.newObject(panel.descriptor))
+        assertEquals(dev.owntv.layout.model.QuickSettings.DEFAULT_ITEMS, quick.items)
+    }
+
+    @Test
     fun `json paths read and write nested values`() {
         val obj = JsonObject(mapOf("tile" to JsonObject(mapOf("size" to JsonPrimitive("small"))), "list" to JsonArray(listOf(JsonPrimitive("a")))))
         assertEquals(JsonPrimitive("small"), obj.at(listOf(PathStep.Key("tile"), PathStep.Key("size"))))

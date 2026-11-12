@@ -73,6 +73,18 @@
             </intent-filter>
         </activity>
 
+        <!-- Quick settings (quick/QuickSettingsActivity.kt): a see-through panel in a task of its own, so it opens over
+             the app in front without bringing the home screen along. -->
+        <activity
+            android:name=".quick.QuickSettingsActivity"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenLayout|screenSize|smallestScreenSize|uiMode|density|fontScale|locale|layoutDirection"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:launchMode="singleInstance"
+            android:noHistory="true"
+            android:taskAffinity="dev.owntv.launcher.quick"
+            android:theme="@style/Theme.OwnTV.Panel" />
+
         <!-- A settings shortcut in app lists, backed by the existing launcher activity. -->
         <activity-alias
             android:name=".SettingsShortcut"

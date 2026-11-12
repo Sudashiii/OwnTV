@@ -37,6 +37,7 @@ import dev.owntv.layout.model.OpenUrlAction
 import dev.owntv.layout.model.RemoteKey
 import dev.owntv.layout.model.Page
 import dev.owntv.layout.model.Placeholders
+import dev.owntv.layout.model.QuickSettingType
 import dev.owntv.layout.model.RecentSource
 import dev.owntv.layout.model.RowNode
 import dev.owntv.layout.model.ShortcutNode
@@ -157,6 +158,7 @@ object LayoutValidator {
             }
 
             checkKeyBindings()
+            checkQuickSettings()
 
             val seenIds = mutableMapOf<String, String>()
             doc.walkNodes { _, node, path, depth ->
@@ -182,6 +184,24 @@ object LayoutValidator {
                     out.warning(path, "The ${binding.press.name.lowercase()} press of $name is already bound at $.keyBindings[$first]; only the first binding runs.")
                 }
                 checkAction(binding.action, "$path.action")
+            }
+        }
+
+        fun checkQuickSettings() {
+            val quick = doc.quickSettings ?: return
+            if (quick.items.isEmpty()) out.warning("$.quickSettings.items", "The quick settings panel has no rows. Leave out quickSettings for the default rows.")
+            quick.items.forEachIndexed { i, item ->
+                val path = "$.quickSettings.items[$i]"
+                item.icon?.let { checkIcon(it, "$path.icon") }
+                when {
+                    item.type == QuickSettingType.Action && item.action == null ->
+                        out.error("$path.action", "A quick setting of type action needs an \"action\" to run.")
+                    item.type == QuickSettingType.Action && item.label.isNullOrBlank() ->
+                        out.warning("$path.label", "Give the action row a label, e.g. \"Open YouTube\".")
+                    item.type != QuickSettingType.Action && item.action != null ->
+                        out.warning("$path.action", "Only rows of type action run an action; this one ignores it.")
+                }
+                item.action?.let { checkAction(it, "$path.action") }
             }
         }
 

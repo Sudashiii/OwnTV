@@ -6,5 +6,6 @@ object IconNames {
         "settings", "home", "search", "star", "info", "info_outline", "play", "favorite", "apps", "add", "add_circle",
         "refresh", "notifications", "person", "lock", "menu", "tv", "live_tv", "input", "hdmi", "smartphone",
         "display", "system", "accessibility", "android", "wallpaper", "wifi", "wifi_off", "ethernet", "power",
+        "brightness", "volume", "volume_off", "bedtime", "bluetooth", "tune",
     )
 }
