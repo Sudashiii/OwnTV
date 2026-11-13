@@ -28,6 +28,7 @@ import androidx.tv.material3.Text
 import dev.owntv.launcher.AppContainer
 import dev.owntv.launcher.actions.RemoteService
 import dev.owntv.launcher.actions.StandbyService
+import dev.owntv.launcher.adb.AdbCommands
 import dev.owntv.launcher.data.layout.BuiltInKind
 import dev.owntv.launcher.data.layout.BuiltInRef
 import dev.owntv.launcher.data.layout.HistoryEntry
@@ -267,6 +268,15 @@ private fun DeveloperSettings(container: AppContainer, nav: Navigator) {
     SettingsCard {
         row { SettingsRow("adb", "ADB on this TV", selfAdbSummary(adbStatus), SettingsIcons.Code, SettingsColors.Graphite) { nav.push(Screen.SelfAdb) } }
         row {
+            SettingsRow(
+                "adb-commands",
+                "ADB commands",
+                "Every adb command OwnTV uses and what it does",
+                SettingsIcons.Terminal,
+                SettingsColors.Indigo,
+            ) { nav.push(Screen.AdbCommands) }
+        }
+        row {
             SettingsRow("performance", "Performance metrics", metricsSummary(metricsMode), SettingsIcons.Speed, SettingsColors.Red) {
                 nav.push(Screen.Performance)
             }
@@ -325,7 +335,6 @@ fun HistoryScreen(container: AppContainer, nav: Navigator) {
 
 @Composable
 fun HelpScreen(container: AppContainer) {
-    val pkg = "dev.owntv.launcher"
     SettingsScaffold("Make OwnTV your Home screen") {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
             HelpText(
@@ -333,19 +342,19 @@ fun HelpScreen(container: AppContainer) {
                     "(Settings > System > Developer options > USB or network debugging). Press OK on a command to run it on this TV " +
                     "(see Settings > Developer > ADB on this TV), or type it on a computer:",
             )
-            Code("adb shell cmd package set-home-activity $pkg/.MainActivity", rememberInitialFocus())
+            Code(AdbCommands.SetHome.line, rememberInitialFocus())
             HelpText("If Home still opens the Google TV launcher, disable it (you can undo this any time):")
-            Code("adb shell pm disable-user --user 0 com.google.android.apps.tv.launcherx")
+            Code(AdbCommands.DisableGoogleTvLauncher.line)
             HelpText("To undo:")
-            Code("adb shell pm enable com.google.android.apps.tv.launcherx")
+            Code(AdbCommands.EnableGoogleTvLauncher.line)
             HelpText("Layout files can also be copied straight to the TV and opened from Import > Files:")
-            Code("adb push my-layout.json ${container.files.adbPath}/")
+            Code(AdbCommands.pushLayout(container.files.adbPath).line)
             HelpText(
                 "Rows with a \"recent\" source always include apps opened from OwnTV. To include apps opened any other way " +
                     "(voice search, notifications), turn on \"OwnTV remote\" under Accessibility in Android settings (Settings > Apps > Recent apps). " +
                     "It sees which app is open and nothing else. Or grant usage access instead:",
             )
-            Code("adb shell appops set $pkg GET_USAGE_STATS allow")
+            Code(AdbCommands.UsageAccess.line)
             HelpText("Long-press OK on any tile to open this launcher's settings from any layout.")
         }
     }

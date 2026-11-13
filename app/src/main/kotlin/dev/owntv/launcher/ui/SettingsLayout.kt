@@ -67,6 +67,12 @@ import dev.owntv.launcher.R
 
 /** The groups in the Settings sidebar. Each one fills the pane on the right with its rows. */
 enum class SettingsGroup(val title: String, val description: String, val icon: ImageVector, val tint: Color) {
+    General(
+        "General",
+        "Updates, storage, making OwnTV your Home screen and the TV's own settings.",
+        Icons.Filled.Settings,
+        SettingsColors.Gray,
+    ),
     Layout(
         "Layout",
         "Edit your home screen, switch to another look or template, import layouts and go back to earlier ones.",
@@ -80,19 +86,14 @@ enum class SettingsGroup(val title: String, val description: String, val icon: I
         SettingsIcons.Remote,
         SettingsColors.Purple,
     ),
-    General(
-        "General",
-        "Updates, storage, making OwnTV your Home screen and the TV's own settings.",
-        Icons.Filled.Settings,
-        SettingsColors.Gray,
-    ),
-    Developer("Developer", "Run adb commands on this TV and measure how smoothly OwnTV runs.", SettingsIcons.Code, SettingsColors.Orange),
+    Developer("Developer", "Run adb commands on this TV, see every command OwnTV uses and measure how smoothly OwnTV runs.", SettingsIcons.Code, SettingsColors.Orange),
 }
 
 /** Sidebar blocks, separated by a gap like the sections of a Mac's System Settings. */
 private val SidebarBlocks = listOf(
+    listOf(SettingsGroup.General),
     listOf(SettingsGroup.Layout, SettingsGroup.Apps, SettingsGroup.Remote),
-    listOf(SettingsGroup.General, SettingsGroup.Developer),
+    listOf(SettingsGroup.Developer),
 )
 
 object SettingsColors {

@@ -23,6 +23,7 @@ sealed interface Screen {
     data object Performance : Screen
     data object RemoteButtons : Screen
     data object SelfAdb : Screen
+    data object AdbCommands : Screen
     data class ListEditor(val name: String, val title: String?) : Screen
     data object HiddenApps : Screen
     /** [builtIn] is set for a look or template, so applying it is remembered (see `LayoutRepository.apply`). */
@@ -42,7 +43,7 @@ class Navigator {
         private set
 
     /** Settings group shown in the sidebar; kept while Settings is closed, like a Mac's System Settings. */
-    var settingsGroup by mutableStateOf(SettingsGroup.Layout)
+    var settingsGroup by mutableStateOf(SettingsGroup.General)
 
     /** Row of [settingsGroup] that opened the screen on top of Settings, so Back puts focus on it again. */
     var settingsRow by mutableStateOf<String?>(null)

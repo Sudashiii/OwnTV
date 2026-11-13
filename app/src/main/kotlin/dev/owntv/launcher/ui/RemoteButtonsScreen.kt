@@ -45,6 +45,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import dev.owntv.launcher.AppContainer
+import dev.owntv.launcher.adb.AdbCommands
 import dev.owntv.launcher.actions.KeyProbe
 import dev.owntv.launcher.actions.PressedKey
 import dev.owntv.launcher.actions.RemoteService
@@ -477,14 +478,14 @@ private fun SetupTab(container: AppContainer, on: Boolean) {
             }
             item {
                 HelpText("If your TV has no such menu, adb can allow it once (OK runs it on this TV, see Settings > Developer > ADB on this TV):")
-                Code("adb shell appops set $PACKAGE ACCESS_RESTRICTED_SETTINGS allow")
+                Code(AdbCommands.AllowRestrictedSettings.line)
             }
             item {
                 HelpText(
                     "If your TV has no Accessibility screen at all, adb can turn on OwnTV's remote and standby services directly " +
                         "(this replaces other accessibility services you turned on):",
                 )
-                Code("adb shell settings put secure enabled_accessibility_services $PACKAGE/.actions.RemoteService:$PACKAGE/.actions.StandbyService")
+                Code(AdbCommands.EnableRemoteServices.line)
             }
         }
         item {
