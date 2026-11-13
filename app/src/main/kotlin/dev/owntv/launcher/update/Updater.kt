@@ -60,7 +60,7 @@ sealed interface UpdateState {
     ) : UpdateState
 }
 
-/** The version list in Settings > Updates, from GitHub's releases. */
+/** The version list in Settings > General > Updates, from GitHub's releases. */
 sealed interface ReleasesState {
     data object Idle : ReleasesState
     data object Loading : ReleasesState

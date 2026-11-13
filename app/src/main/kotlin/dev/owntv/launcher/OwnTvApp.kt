@@ -60,7 +60,7 @@ class AppContainer(context: Context) {
     val layouts = LayoutRepository(context, scope, assets, keepLists = appLists::seed, onLoaded = perf::layoutDecoded)
     val actions = ActionExecutor(context, onLaunch = recent::recordLaunch)
 
-    /** Runs the `adb shell` commands OwnTV shows on this TV itself (Settings > ADB on this TV). */
+    /** Runs the `adb shell` commands OwnTV shows on this TV itself (Settings > Developer > ADB on this TV). */
     val adb = SelfAdb(context)
 
     /**

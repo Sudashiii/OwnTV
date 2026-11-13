@@ -48,6 +48,7 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.OutlinedButton
 import androidx.tv.material3.Text
 import dev.owntv.launcher.AppContainer
+import dev.owntv.launcher.adb.AdbCommands
 import dev.owntv.launcher.data.layout.BuiltInRef
 import dev.owntv.launcher.importexport.QrCode
 import dev.owntv.launcher.ui.render.AppCatalog
@@ -121,7 +122,7 @@ fun ImportScreen(container: AppContainer, nav: Navigator) {
                 Text("From a file", style = MaterialTheme.typography.titleLarge, color = Color.White)
                 if (files.isEmpty()) {
                     Text("No .json files yet. Copy one with:", color = Muted, modifier = Modifier.padding(top = 6.dp))
-                    Code("adb push my-layout.json ${container.files.adbPath}/")
+                    Code(AdbCommands.pushLayout(container.files.adbPath).line)
                 }
                 files.forEach { file ->
                     SettingsItem(file.name, "Modified ${java.text.DateFormat.getDateTimeInstance().format(java.util.Date(file.lastModified()))}") {
