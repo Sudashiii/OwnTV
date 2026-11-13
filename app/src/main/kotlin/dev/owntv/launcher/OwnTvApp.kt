@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import android.content.Intent
 import coil3.SingletonImageLoader
+import dev.owntv.launcher.actions.AccessibilitySettings
 import dev.owntv.launcher.actions.ActionExecutor
 import dev.owntv.launcher.adb.SelfAdb
 import dev.owntv.launcher.actions.StandbyService
@@ -59,6 +60,9 @@ class AppContainer(context: Context) {
     val appLists = AppListsRepository(context, scope, assets)
     val layouts = LayoutRepository(context, scope, assets, keepLists = appLists::seed, onLoaded = perf::layoutDecoded)
     val actions = ActionExecutor(context, onLaunch = recent::recordLaunch)
+
+    /** The TV's accessibility services; OwnTV switches its own once adb granted it (Remote buttons > Setup). */
+    val accessibility = AccessibilitySettings(context)
 
     /** Runs the `adb shell` commands OwnTV shows on this TV itself (Settings > ADB on this TV). */
     val adb = SelfAdb(context)

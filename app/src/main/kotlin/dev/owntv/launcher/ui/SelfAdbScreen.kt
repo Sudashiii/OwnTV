@@ -96,7 +96,7 @@ private fun RunnableCode(text: String, command: String, adb: SelfAdb, modifier: 
             "Running…"
         }
         is RunState.Done -> when {
-            current.result.exitCode == 0 -> "Done" + current.result.output.firstLine()?.let { ": $it" }.orEmpty()
+            current.result.exitCode == 0 -> "✓ Applied" + current.result.output.firstLine()?.let { ": $it" }.orEmpty()
             else -> "Failed" + current.result.exitCode?.let { " (exit $it)" }.orEmpty() + current.result.output.firstLine()?.let { ": $it" }.orEmpty()
         }
         is RunState.Failed -> (current.error as? SelfAdb.AdbException)?.problem?.help() ?: "Failed: ${current.error.message}"
