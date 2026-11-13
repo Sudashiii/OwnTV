@@ -43,10 +43,15 @@ object AdbCommands {
         "Android 13 and newer grey out the Accessibility switches of apps that were not installed from a store. This lifts that for OwnTV.",
         "adb shell appops set $PACKAGE ACCESS_RESTRICTED_SETTINGS allow",
     )
-    val EnableRemoteServices = AdbCommand(
-        "Turn on OwnTV remote and standby",
-        "Turns on both of OwnTV's accessibility services without the Accessibility screen. Other accessibility services that were on are turned off.",
-        "adb shell settings put secure enabled_accessibility_services $PACKAGE/.actions.RemoteService:$PACKAGE/.actions.StandbyService",
+    val GrantSecureSettings = AdbCommand(
+        "Let OwnTV switch its services",
+        "OwnTV can then turn its remote and standby services on and off in Remote buttons > Setup, without the Accessibility screen, and turn off a service that reads aloud. Other accessibility services stay as they are.",
+        "adb shell pm grant $PACKAGE android.permission.WRITE_SECURE_SETTINGS",
+    )
+    val ScreenReaderModeOff = AdbCommand(
+        "Leave screen reader mode",
+        "For a TV that reads things such as the volume aloud although no screen reader is on.",
+        "adb shell settings put secure touch_exploration_enabled 0",
     )
     val UsageAccess = AdbCommand(
         "Count every app as recent",
@@ -75,7 +80,7 @@ object AdbCommands {
     /** All commands, grouped as Settings > Developer > ADB commands lists them. */
     fun groups(layoutFolder: String): List<AdbCommandGroup> = listOf(
         AdbCommandGroup("Home screen", listOf(SetHome, DisableGoogleTvLauncher, EnableGoogleTvLauncher)),
-        AdbCommandGroup("Remote & standby", listOf(AllowRestrictedSettings, EnableRemoteServices)),
+        AdbCommandGroup("Remote & standby", listOf(AllowRestrictedSettings, GrantSecureSettings, ScreenReaderModeOff)),
         AdbCommandGroup("Apps", listOf(UsageAccess)),
         AdbCommandGroup("From a computer", listOf(OpenAdbPort, pushLayout(layoutFolder), ReadPerformanceReport)),
     )

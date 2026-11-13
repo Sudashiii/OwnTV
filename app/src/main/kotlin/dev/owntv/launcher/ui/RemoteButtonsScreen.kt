@@ -1,5 +1,6 @@
 package dev.owntv.launcher.ui
 
+import android.os.Build
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -49,7 +50,7 @@ import dev.owntv.launcher.adb.AdbCommands
 import dev.owntv.launcher.actions.KeyProbe
 import dev.owntv.launcher.actions.PressedKey
 import dev.owntv.launcher.actions.RemoteService
-import dev.owntv.launcher.actions.StandbyService
+import dev.owntv.launcher.actions.AccessibilitySettings
 import dev.owntv.launcher.actions.keyCode
 import dev.owntv.launcher.data.layout.LayoutState
 import dev.owntv.launcher.ui.render.ShortcutIcon
@@ -69,6 +70,7 @@ import dev.owntv.layout.model.OpenUrlAction
 import dev.owntv.layout.model.RemoteKey
 import dev.owntv.layout.model.StandbyAction
 import dev.owntv.layout.model.TvInput
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 private const val PACKAGE = "dev.owntv.launcher"
@@ -450,42 +452,103 @@ private fun lastPressed(pressed: PressedKey?): String = when {
 
 // ---------------------------------------------------------------- Setup tab
 
+/**
+ * OwnTV's two services, every other accessibility service that is on (marked when it speaks, so a TV that
+ * suddenly reads things aloud can be fixed here), and the adb commands for TVs without a usable
+ * Accessibility screen. Once shown, the help stays for this visit: running a command must not pull the
+ * screen away under the remote.
+ */
 @Composable
 private fun SetupTab(container: AppContainer, on: Boolean) {
-    val standbyOn by StandbyService.enabled.collectAsStateWithLifecycle()
+    val accessibility = container.accessibility
+    var state by remember { mutableStateOf(accessibility.read()) }
+    // Every other service seen during this visit keeps its row after it is turned off, so the row under the
+    // remote never disappears (focus would jump to the tabs) and it can be turned on again.
+    var others by remember { mutableStateOf(state.services.filterNot { it.ownTv }) }
+    fun refresh() {
+        state = accessibility.read()
+        others = (others + state.services.filterNot { it.ownTv }).distinctBy { it.component }
+    }
+    // Settings change outside OwnTV (Accessibility screen, adb), so read them again while the tab is open.
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(1_500)
+            refresh()
+        }
+    }
+    var showHelp by remember { mutableStateOf(false) }
+    if (!on || !state.canChange) showHelp = true
+
+    fun toggle(component: String) {
+        if (state.canChange) {
+            accessibility.setEnabled(component, !state.isOn(component))
+            refresh()
+        } else {
+            container.actions.openAccessibilitySettings()
+        }
+    }
+    val change = if (state.canChange) "OK turns it" else "turn it"
+
     LazyColumn(Modifier.fillMaxWidth()) {
         item {
+            val remoteOn = state.isOn(AccessibilitySettings.REMOTE)
             SettingsItem(
                 "OwnTV remote",
-                if (on) "On · OwnTV sees the buttons you press and acts only on the ones the layout binds" else "Off · open Accessibility and turn on \"OwnTV remote\"",
-            ) { container.actions.openAccessibilitySettings() }
+                if (remoteOn) "On · acts only on the buttons the layout binds · $change off" else "Off · needed for remote buttons in other apps · ${if (state.canChange) "OK turns it on" else "open Accessibility to turn it on"}",
+            ) { toggle(AccessibilitySettings.REMOTE) }
         }
         item {
+            val standbyOn = state.isOn(AccessibilitySettings.STANDBY)
             SettingsItem(
                 "OwnTV standby",
-                if (standbyOn) "On · standby, the sleep timer and the screensaver can switch the TV off" else "Off · needed for buttons and timers that switch the TV off",
-            ) { container.actions.openAccessibilitySettings() }
+                if (standbyOn) "On · standby, the sleep timer and the screensaver can switch the TV off · $change off" else "Off · needed to switch the TV off · ${if (state.canChange) "OK turns it on" else "open Accessibility to turn it on"}",
+            ) { toggle(AccessibilitySettings.STANDBY) }
         }
-        if (!on) {
+        item { SectionLabel("Other accessibility services on this TV") }
+        if (others.isEmpty()) {
+            item { HelpText("None. Only OwnTV's services are on.") }
+        }
+        others.forEach { service ->
+            item(key = service.component) {
+                val isOn = state.isOn(service.component)
+                val speaks = if (service.speaks) " · reads things aloud" else ""
+                SettingsItem(
+                    service.label,
+                    when {
+                        isOn -> "On$speaks · " + if (state.canChange) "OK turns it off" else "turn it off in Accessibility"
+                        else -> "Off$speaks" + if (state.canChange) " · OK turns it on again" else ""
+                    },
+                ) { toggle(service.component) }
+            }
+        }
+        if (state.screenReaderMode && state.services.none { it.speaks }) {
+            item {
+                HelpText("The TV is in screen reader mode although no screen reader is listed, which can make it read things such as the volume aloud. This switches that mode off:")
+                Code(AdbCommands.ScreenReaderModeOff.line)
+            }
+        }
+        if (showHelp) {
+            item { SectionLabel("Without the Accessibility screen") }
             item {
                 HelpText(
-                    "Android 13 and newer blocks accessibility services for apps that were not installed from a store, so the switch can be greyed out. " +
-                        "Then open OwnTV's app info, choose the menu (the three dots) > Allow restricted settings, and go back to Accessibility.",
+                    "Let OwnTV switch its own services on and off right here, without touching any other accessibility service " +
+                        "(OK runs it on this TV, see Settings > Developer > ADB on this TV; or type it on a computer):",
                 )
+                Code(AdbCommands.GrantSecureSettings.line)
             }
-            item {
-                SettingsItem("Open OwnTV app info", "Menu (⋮) > Allow restricted settings") { container.actions.openAppInfo(PACKAGE) }
-            }
-            item {
-                HelpText("If your TV has no such menu, adb can allow it once (OK runs it on this TV, see Settings > Developer > ADB on this TV):")
-                Code(AdbCommands.AllowRestrictedSettings.line)
-            }
-            item {
-                HelpText(
-                    "If your TV has no Accessibility screen at all, adb can turn on OwnTV's remote and standby services directly " +
-                        "(this replaces other accessibility services you turned on):",
-                )
-                Code(AdbCommands.EnableRemoteServices.line)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                item {
+                    HelpText(
+                        "Android 13 and newer greys out the switch in Accessibility for apps that were not installed from a store. " +
+                            "Allow it in OwnTV's app info: menu (the three dots) > Allow restricted settings. Or with adb:",
+                    )
+                }
+                item {
+                    SettingsItem("Open OwnTV app info", "Menu (⋮) > Allow restricted settings") { container.actions.openAppInfo(PACKAGE) }
+                }
+                item {
+                    Code(AdbCommands.AllowRestrictedSettings.line)
+                }
             }
         }
         item {

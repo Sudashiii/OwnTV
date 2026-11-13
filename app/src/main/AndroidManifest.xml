@@ -13,6 +13,12 @@
         android:name="android.permission.PACKAGE_USAGE_STATS"
         tools:ignore="ProtectedPermissions" />
 
+    <!-- Optional, granted with adb (Remote buttons > Setup): OwnTV switches its own accessibility services on and off
+         without the Accessibility screen, and can turn off one that reads aloud. -->
+    <uses-permission
+        android:name="android.permission.WRITE_SECURE_SETTINGS"
+        tools:ignore="ProtectedPermissions" />
+
     <!-- Lets watch_next_row read the "continue watching" entries other apps publish; a runtime permission OwnTV asks for from the row. -->
     <uses-permission
         android:name="android.permission.READ_TV_LISTINGS"

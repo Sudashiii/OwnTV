@@ -21,7 +21,7 @@ class AdbCommandsTest {
     @Test
     fun `shell commands run on the TV unless they only help on a computer`() {
         assertEquals("cmd package set-home-activity dev.owntv.launcher/.MainActivity", AdbCommands.SetHome.shellCommand)
-        assertNotNull(AdbCommands.EnableRemoteServices.shellCommand)
+        assertNotNull(AdbCommands.GrantSecureSettings.shellCommand)
         assertNull(AdbCommands.ReadPerformanceReport.shellCommand)
         assertNull(AdbCommands.OpenAdbPort.shellCommand)
         assertNull(AdbCommands.pushLayout("/x").shellCommand)
@@ -34,7 +34,8 @@ class AdbCommandsTest {
             AdbCommands.DisableGoogleTvLauncher,
             AdbCommands.EnableGoogleTvLauncher,
             AdbCommands.AllowRestrictedSettings,
-            AdbCommands.EnableRemoteServices,
+            AdbCommands.GrantSecureSettings,
+            AdbCommands.ScreenReaderModeOff,
             AdbCommands.UsageAccess,
             AdbCommands.OpenAdbPort,
             AdbCommands.ReadPerformanceReport,
