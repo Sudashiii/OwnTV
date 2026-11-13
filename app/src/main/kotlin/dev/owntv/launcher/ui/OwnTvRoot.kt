@@ -73,6 +73,7 @@ fun OwnTvRoot(container: AppContainer, nav: Navigator, idle: IdleTracker) {
             LocalRenderMetrics provides container.perf.takeIf { metricsMode != MetricsMode.Off },
             LocalVideoPlayers provides ExoVideoPlayers,
             LocalWallpaperFolders provides container.wallpaperFolders,
+            LocalSelfAdb provides container.adb,
         ) {
             Box(Modifier.fillMaxSize().background(Color.Black)) {
                 // Home stays composed under the other screens, so going back does not build the whole layout
@@ -97,6 +98,7 @@ fun OwnTvRoot(container: AppContainer, nav: Navigator, idle: IdleTracker) {
                     Screen.Updates -> UpdatesScreen(container)
                     Screen.Performance -> PerformanceScreen(container)
                     Screen.RemoteButtons -> RemoteButtonsScreen(container, layoutState)
+                    Screen.SelfAdb -> SelfAdbScreen(container)
                     is Screen.ListEditor -> ListEditorScreen(container, screen.name, screen.title, catalog)
                     Screen.HiddenApps -> HiddenAppsScreen(container, catalog)
                     is Screen.Preview -> PreviewScreen(container, nav, screen.result, screen.source, screen.builtIn, catalog)

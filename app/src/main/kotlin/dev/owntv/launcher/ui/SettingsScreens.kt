@@ -135,6 +135,10 @@ fun SettingsScreen(container: AppContainer, nav: Navigator, state: LayoutState) 
                 SettingsItem("Remote buttons", remoteButtonsSummary(remoteOn, state.document.keyBindings.size)) { nav.push(Screen.RemoteButtons) }
             }
             item {
+                val adbStatus by container.adb.status.collectAsStateWithLifecycle()
+                SettingsItem("ADB on this TV", selfAdbSummary(adbStatus)) { nav.push(Screen.SelfAdb) }
+            }
+            item {
                 // Read each time Settings opens: usage access is granted outside the app.
                 val usageAccess = remember { container.recent.hasUsageAccess() }
                 SettingsItem("Recent apps", recentSummary(remoteOn, usageAccess)) {
@@ -230,12 +234,13 @@ fun HistoryScreen(container: AppContainer, nav: Navigator) {
 fun HelpScreen(container: AppContainer) {
     val pkg = "dev.owntv.launcher"
     SettingsScaffold("Make OwnTV your Home screen") {
-        Column(Modifier.fillMaxWidth().then(rememberInitialFocus()).focusable().verticalScroll(rememberScrollState())) {
+        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
             HelpText(
-                "Google TV sends the Home button to its own launcher. To use OwnTV instead, connect a computer with adb " +
-                    "(Settings > System > Developer options > USB or network debugging) and run:",
+                "Google TV sends the Home button to its own launcher. To use OwnTV instead, run this with adb " +
+                    "(Settings > System > Developer options > USB or network debugging). Press OK on a command to run it on this TV " +
+                    "(see Settings > ADB on this TV), or type it on a computer:",
             )
-            Code("adb shell cmd package set-home-activity $pkg/.MainActivity")
+            Code("adb shell cmd package set-home-activity $pkg/.MainActivity", rememberInitialFocus())
             HelpText("If Home still opens the Google TV launcher, disable it (you can undo this any time):")
             Code("adb shell pm disable-user --user 0 com.google.android.apps.tv.launcherx")
             HelpText("To undo:")
@@ -258,12 +263,3 @@ fun HelpText(text: String) {
     Text(text, style = MaterialTheme.typography.bodyLarge, color = Color(0xFFDADDE3), modifier = Modifier.padding(top = 12.dp))
 }
 
-@Composable
-fun Code(text: String) {
-    Text(
-        text,
-        style = MaterialTheme.typography.bodyMedium.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace),
-        color = Color(0xFF9ECBFF),
-        modifier = Modifier.padding(top = 6.dp, start = 12.dp),
-    )
-}

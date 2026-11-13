@@ -63,6 +63,9 @@
             <action android:name="android.settings.USAGE_ACCESS_SETTINGS" />
         </intent>
         <intent>
+            <action android:name="android.settings.APPLICATION_DEVELOPMENT_SETTINGS" />
+        </intent>
+        <intent>
             <action android:name="android.settings.APPLICATION_DETAILS_SETTINGS" />
             <data android:scheme="package" />
         </intent>

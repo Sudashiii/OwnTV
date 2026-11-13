@@ -80,6 +80,13 @@ class ActionExecutor(
         toast("Open System > Accessibility, then turn on the OwnTV service")
     }
 
+    /** Opens Developer options, where USB and network debugging are; else the main settings with the way there. */
+    fun openDeveloperSettings() {
+        if (start(Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS), null)) return
+        openSystemSettings()
+        toast("Open System > Developer options. Not there? System > About, press OK on \"Android TV OS build\" seven times")
+    }
+
     /** Opens the usage access list. False when this device has no such screen (some Google TV builds). */
     fun openUsageAccessSettings(): Boolean = start(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS), null)
 

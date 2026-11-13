@@ -78,7 +78,7 @@ fun RemoteButtonsScreen(container: AppContainer, state: LayoutState) {
                     SettingsItem("Open Accessibility settings", "Turn on \"OwnTV remote\"") { container.actions.openAccessibilitySettings() }
                 }
                 item {
-                    HelpText("If your TV has no such menu, a computer with adb can allow it once:")
+                    HelpText("If your TV has no such menu, adb can allow it once (OK runs it on this TV, see Settings > ADB on this TV):")
                     Code("adb shell appops set $PACKAGE ACCESS_RESTRICTED_SETTINGS allow")
                 }
                 item {
