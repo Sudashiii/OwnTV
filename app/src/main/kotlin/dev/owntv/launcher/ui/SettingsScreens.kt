@@ -183,11 +183,17 @@ private fun AppsSettings(container: AppContainer, nav: Navigator) {
     val remoteOn by RemoteService.enabled.collectAsStateWithLifecycle()
     // Read each time the group shows: usage access is granted outside the app.
     val usageAccess = remember { container.recent.hasUsageAccess() }
+    val cleanupRecord by container.cleanup.record.collectAsStateWithLifecycle()
     SettingsCard {
         row { SettingsRow("all-apps", "All apps", "Every installed app", SettingsIcons.Apps, SettingsColors.Green) { nav.push(Screen.AppDrawer) } }
         row {
             SettingsRow("hidden-apps", "Hidden apps", "Apps left out of your rows and grids", SettingsIcons.HiddenApps, SettingsColors.Graphite) {
                 nav.push(Screen.HiddenApps)
+            }
+        }
+        row {
+            SettingsRow("cleanup", "Clean up this TV", cleanupSummary(cleanupRecord.packages.size), SettingsIcons.Cleanup, SettingsColors.Teal) {
+                nav.push(Screen.Cleanup)
             }
         }
     }

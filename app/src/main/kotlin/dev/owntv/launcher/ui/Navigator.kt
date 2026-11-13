@@ -26,6 +26,7 @@ sealed interface Screen {
     data object AdbCommands : Screen
     data class ListEditor(val name: String, val title: String?) : Screen
     data object HiddenApps : Screen
+    data object Cleanup : Screen
     /** [builtIn] is set for a look or template, so applying it is remembered (see `LayoutRepository.apply`). */
     data class Preview(val result: DecodeResult, val source: String, val builtIn: BuiltInRef? = null) : Screen
 }
@@ -34,7 +35,7 @@ sealed interface Screen {
 val Screen.opensInSettingsPane: Boolean
     get() = when (this) {
         Screen.Import, Screen.Templates, Screen.Looks, Screen.History, Screen.Help, Screen.Updates, Screen.Performance,
-        Screen.RemoteButtons, Screen.SelfAdb, Screen.AdbCommands, Screen.HiddenApps,
+        Screen.RemoteButtons, Screen.SelfAdb, Screen.AdbCommands, Screen.HiddenApps, Screen.Cleanup,
         -> true
         else -> false
     }

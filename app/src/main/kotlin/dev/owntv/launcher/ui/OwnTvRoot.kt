@@ -102,6 +102,7 @@ fun OwnTvRoot(container: AppContainer, nav: Navigator, idle: IdleTracker) {
                         Screen.AdbCommands -> AdbCommandsScreen(container)
                         is Screen.ListEditor -> ListEditorScreen(container, screen.name, screen.title, catalog)
                         Screen.HiddenApps -> HiddenAppsScreen(container, catalog)
+                        Screen.Cleanup -> CleanupScreen(container, nav, catalog)
                         is Screen.Preview -> PreviewScreen(container, nav, screen.result, screen.source, screen.builtIn, catalog)
                     }
                 }

@@ -2,7 +2,7 @@ package dev.owntv.launcher.data.layout
 
 import android.content.Context
 
-/** Files packed into the APK: layout templates, built-in looks, AI docs, the phone paste page and the first app lists. */
+/** Files packed into the APK: layout templates, built-in looks, AI docs, the phone paste page, the first app lists and the cleanup catalog. */
 class BundledAssets(private val context: Context) {
     fun templateFiles(): List<String> = context.assets.list(TEMPLATES)?.filter { it.endsWith(".json") }?.sorted().orEmpty()
 
@@ -20,6 +20,9 @@ class BundledAssets(private val context: Context) {
 
     /** The app lists a new TV starts with. */
     fun defaultAppLists(): String = read("app-lists.json")
+
+    /** cleanyourtv's tested debloat lists, for Settings > Apps > Clean up this TV. */
+    fun cleanupCatalog(): String = read("cleanup/catalog.json")
 
     private fun read(path: String): String = context.assets.open(path).bufferedReader().use { it.readText() }
 

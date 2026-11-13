@@ -81,7 +81,7 @@ enum class SettingsGroup(val title: String, val description: String, val icon: I
         SettingsIcons.Dashboard,
         SettingsColors.Blue,
     ),
-    Apps("Apps", "Every installed app, the apps you hid and how recent apps are counted.", SettingsIcons.Apps, SettingsColors.Green),
+    Apps("Apps", "Every installed app, the apps you hid, how recent apps are counted and cleaning up the TV.", SettingsIcons.Apps, SettingsColors.Green),
     Remote(
         "Remote & standby",
         "Give your remote's buttons a job of their own and let layouts switch the TV off.",
@@ -432,6 +432,7 @@ fun SettingsRow(
     tint: Color = SettingsColors.Gray,
     end: RowEnd = RowEnd.Chevron,
     enabled: Boolean = true,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
     val host = LocalSettingsRowHost.current
@@ -439,7 +440,7 @@ fun SettingsRow(
     val content = if (enabled) SettingsColors.Text else SettingsColors.Text.copy(alpha = 0.45f)
     val shape = RoundedCornerShape(10.dp)
     Row(
-        Modifier
+        modifier
             .then(if (host?.restoreKey == key) rememberInitialFocus() else Modifier)
             .fillMaxWidth()
             .heightIn(min = 52.dp)
