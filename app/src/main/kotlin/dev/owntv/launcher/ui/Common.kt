@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -159,13 +161,16 @@ fun ContextMenu(
                 .padding(16.dp),
         ) {
             Text(title, style = MaterialTheme.typography.titleLarge, color = Color.White, modifier = Modifier.padding(8.dp))
-            items.forEachIndexed { index, (label, action) ->
-                ListItem(
-                    selected = false,
-                    onClick = { action(); onDismiss() },
-                    modifier = if (index == 0) rememberInitialFocus() else Modifier,
-                    headlineContent = { Text(label) },
-                )
+            // Long lists (apps) scroll; the focused item is brought into view.
+            Column(Modifier.heightIn(max = 400.dp).verticalScroll(rememberScrollState())) {
+                items.forEachIndexed { index, (label, action) ->
+                    ListItem(
+                        selected = false,
+                        onClick = { action(); onDismiss() },
+                        modifier = if (index == 0) rememberInitialFocus() else Modifier,
+                        headlineContent = { Text(label) },
+                    )
+                }
             }
         }
     }
