@@ -59,6 +59,18 @@ If Home still opens the stock launcher, disable it (undo with `pm enable`):
 adb shell pm disable-user --user 0 com.google.android.apps.tv.launcherx
 ```
 
+## Cleaning up the TV
+
+**Settings → Apps → Clean up this TV** turns off preinstalled apps, ad services and trackers on the TV itself, through **Developer → ADB on this TV** (no computer needed once debugging is allowed). It works like [cleanyourtv](https://github.com/Gathin23/cleanyourtv), whose tested per-TV lists it ships: it picks the list made on this TV model (or one you choose), selects the packages that cost nothing, and shows the rest with how many tested TVs turned each off and what you lose (Assistant, Cast, the phone remote). Packages are turned off with `pm disable-user --user 0`, never uninstalled, and can be turned back on from the same screen ("Turn everything back on" undoes all of it).
+
+It never offers core Android parts, Play services or OwnTV, and keeps on what the TV needs: the Home app until OwnTV is Home, the app that owns the saved Wi-Fi network, the Settings app, TV inputs and the keyboard. Turn packages back on before uninstalling OwnTV; the TV's own Settings → Apps can do it too.
+
+The package catalog (`app/src/main/assets/cleanup/catalog.json`, with cleanyourtv's MIT licence next to it) is generated from a pinned cleanyourtv commit. To update it, change `REF` in the script and run:
+
+```bash
+python3 -I scripts/cleanyourtv_catalog.py
+```
+
 ## Performance metrics
 
 **Launcher settings → Performance metrics** measures the launcher to find what makes it slow. **Background** measures quietly while OwnTV is in front; **Live overlay** also shows a small see-through panel (frames per second, frame times, the last slow frame, remote response, memory) that never takes focus. Off measures nothing.
