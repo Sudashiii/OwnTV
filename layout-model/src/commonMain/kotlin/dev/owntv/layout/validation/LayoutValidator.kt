@@ -176,12 +176,27 @@ object LayoutValidator {
         }
 
         fun checkKeyBindings() {
-            val seen = mutableMapOf<Pair<RemoteKey, KeyPress>, Int>()
+            val seen = mutableMapOf<Pair<Int, KeyPress>, Int>()
             doc.keyBindings.forEachIndexed { i, binding ->
                 val path = "$.keyBindings[$i]"
-                seen.put(binding.key to binding.press, i)?.let { first ->
-                    val name = binding.key.name.replace(Regex("([a-z])([A-Z])"), "$1 $2").lowercase()
-                    out.warning(path, "The ${binding.press.name.lowercase()} press of $name is already bound at $.keyBindings[$first]; only the first binding runs.")
+                if (binding.key == RemoteKey.Custom && binding.keyCode == null) {
+                    out.error("$path.keyCode", "A custom button needs its Android key code.")
+                } else if (binding.key != RemoteKey.Custom && binding.keyCode != null) {
+                    out.error("$path.keyCode", "Use keyCode only with a custom button.")
+                }
+                val code = binding.androidKeyCode
+                if (code != null && !dev.owntv.layout.model.isRemappableRemoteKeyCode(code)) {
+                    out.error("$path.keyCode", "This key code is reserved or unknown and cannot be remapped.")
+                }
+                code?.let {
+                    val id = it to binding.press
+                    val first = seen[id]
+                    if (first == null) {
+                        seen[id] = i
+                    } else {
+                        val name = if (binding.key == RemoteKey.Custom) "key code $it" else binding.key.name.replace(Regex("([a-z])([A-Z])"), "$1 $2").lowercase()
+                        out.warning(path, "The ${binding.press.name.lowercase()} press of $name is already bound at $.keyBindings[$first]; only the first binding runs.")
+                    }
                 }
                 checkAction(binding.action, "$path.action")
             }

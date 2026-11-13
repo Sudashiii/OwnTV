@@ -159,13 +159,17 @@ object LayoutOps {
      * Makes [press] of [key] run [action], or unbinds it with null. The first binding for that key and press is
      * replaced in place and any later duplicates go; a new binding goes to the end. Null when nothing changes.
      */
-    fun setKeyBinding(doc: LayoutDocument, key: RemoteKey, press: KeyPress, action: Action?): LayoutDocument? {
-        val first = doc.keyBindings.indexOfFirst { it.key == key && it.press == press }
-        val kept = doc.keyBindings.filterIndexed { i, b -> i == first || b.key != key || b.press != press }
+    fun setKeyBinding(doc: LayoutDocument, key: RemoteKey, press: KeyPress, action: Action?, keyCode: Int? = null): LayoutDocument? {
+        val code = if (key == RemoteKey.Custom) keyCode else key.androidKeyCode
+        if (code == null || !dev.owntv.layout.model.isRemappableRemoteKeyCode(code)) return null
+        val matches = { b: KeyBinding -> b.androidKeyCode == code && b.press == press }
+        val first = doc.keyBindings.indexOfFirst(matches)
+        val kept = doc.keyBindings.filterIndexed { i, b -> i == first || !matches(b) }
+        val binding = action?.let { KeyBinding(key, press, it, if (key == RemoteKey.Custom) code else null) }
         val bindings = when {
-            action == null -> kept.filterNot { it.key == key && it.press == press }
-            first < 0 -> kept + KeyBinding(key, press, action)
-            else -> kept.map { if (it.key == key && it.press == press) KeyBinding(key, press, action) else it }
+            binding == null -> kept.filterNot(matches)
+            first < 0 -> kept + binding
+            else -> kept.map { if (matches(it)) binding else it }
         }
         return if (bindings == doc.keyBindings) null else doc.copy(keyBindings = bindings)
     }

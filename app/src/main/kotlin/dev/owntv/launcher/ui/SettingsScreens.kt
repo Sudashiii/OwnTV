@@ -234,7 +234,7 @@ private fun RemoteSettings(container: AppContainer, nav: Navigator, state: Layou
                 SettingsIcons.Power,
                 SettingsColors.Indigo,
                 RowEnd.Value(if (standbyOn) "On" else "Off"),
-            ) { container.actions.openAccessibilitySettings() }
+            ) { container.actions.openAccessibilitySettings(StandbyService::class.java) }
         }
     }
 }

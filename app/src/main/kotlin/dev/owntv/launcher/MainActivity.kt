@@ -7,7 +7,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import dev.owntv.launcher.actions.KeyProbe
-import dev.owntv.launcher.actions.RemoteService
 import dev.owntv.launcher.data.apps.WatchNextRepository
 import dev.owntv.launcher.data.layout.WallpaperFolderRepository
 import dev.owntv.launcher.ui.IdleTracker
@@ -53,8 +52,8 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        // With the remote service on it has already reported the key.
-        if (!RemoteService.enabled.value) KeyProbe.report(event)
+        // Some injected or device-specific keys reach the activity without first reaching the service.
+        if (KeyProbe.handle(event)) return true
         return dispatchToApp(event)
     }
 

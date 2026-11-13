@@ -1,5 +1,7 @@
 package dev.owntv.launcher.ui
 
+import android.content.ComponentName
+import android.content.Context
 import android.os.Build
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -31,6 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -38,20 +41,25 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.currentStateAsState
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import dev.owntv.launcher.AppContainer
 import dev.owntv.launcher.adb.AdbCommands
 import dev.owntv.launcher.actions.KeyProbe
-import dev.owntv.launcher.actions.PressedKey
 import dev.owntv.launcher.actions.RemoteService
 import dev.owntv.launcher.actions.AccessibilitySettings
 import dev.owntv.launcher.actions.keyCode
+import dev.owntv.launcher.actions.keyName
+import dev.owntv.launcher.actions.namedRemoteKey
 import dev.owntv.launcher.data.layout.LayoutState
 import dev.owntv.launcher.ui.render.ShortcutIcon
 import dev.owntv.layout.edit.LayoutOps
@@ -70,6 +78,7 @@ import dev.owntv.layout.model.OpenUrlAction
 import dev.owntv.layout.model.RemoteKey
 import dev.owntv.layout.model.StandbyAction
 import dev.owntv.layout.model.TvInput
+import dev.owntv.layout.model.isRemappableRemoteKeyCode
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -92,10 +101,11 @@ private enum class RemoteTab(val title: String) { Buttons("Buttons"), Setup("Set
 fun RemoteButtonsScreen(container: AppContainer, state: LayoutState) {
     val on by RemoteService.enabled.collectAsStateWithLifecycle()
     var tab by rememberSaveable { mutableStateOf(if (on) RemoteTab.Buttons else RemoteTab.Setup) }
-    // While this screen is open the remote service lets every key through, so pressed buttons land here.
-    DisposableEffect(Unit) {
+    val lifecycle by LocalLifecycleOwner.current.lifecycle.currentStateAsState()
+    // Stop capturing as soon as OwnTV is backgrounded, even if this screen remains in the back stack.
+    DisposableEffect(lifecycle) {
         KeyProbe.clear()
-        KeyProbe.listening = true
+        KeyProbe.listening = lifecycle.isAtLeast(Lifecycle.State.RESUMED)
         onDispose {
             KeyProbe.listening = false
             KeyProbe.clear()
@@ -150,72 +160,111 @@ private fun TabChips(selected: RemoteTab, onSelect: (RemoteTab) -> Unit, initial
 
 // ---------------------------------------------------------------- Buttons tab
 
-private val ColorKeys = listOf(RemoteKey.Red, RemoteKey.Green, RemoteKey.Yellow, RemoteKey.Blue)
-private val OtherKeys = RemoteKey.entries - ColorKeys.toSet()
+private data class RemoteButton(val key: RemoteKey, val code: Int) {
+    constructor(key: RemoteKey) : this(key, key.keyCode())
+    val customCode: Int? get() = code.takeIf { key == RemoteKey.Custom }
+}
+
+private fun remoteButton(code: Int) = RemoteButton(namedRemoteKey(code) ?: RemoteKey.Custom, code)
+
+private val ColorKeys = listOf(RemoteKey.Red, RemoteKey.Green, RemoteKey.Yellow, RemoteKey.Blue).map(::RemoteButton)
+private val OtherKeys = RemoteKey.entries.filter { it != RemoteKey.Custom }.map(::RemoteButton) - ColorKeys.toSet()
 
 /** The steps of choosing what a button does, one dialog each. */
 private sealed interface Picker {
-    data class Key(val key: RemoteKey) : Picker
-    data class Choose(val key: RemoteKey, val press: KeyPress) : Picker
-    data class Apps(val key: RemoteKey, val press: KeyPress) : Picker
-    data class Pages(val key: RemoteKey, val press: KeyPress) : Picker
-    data class Inputs(val key: RemoteKey, val press: KeyPress) : Picker
+    data class Key(val key: RemoteButton) : Picker
+    data class Choose(val key: RemoteButton, val press: KeyPress) : Picker
+    data class Apps(val key: RemoteButton, val press: KeyPress) : Picker
+    data class Pages(val key: RemoteButton, val press: KeyPress) : Picker
+    data class Inputs(val key: RemoteButton, val press: KeyPress) : Picker
 }
 
 @Composable
 private fun ButtonsTab(container: AppContainer, state: LayoutState, on: Boolean, openSetup: () -> Unit) {
     val pressed by KeyProbe.last.collectAsStateWithLifecycle()
+    val seen by KeyProbe.seen.collectAsStateWithLifecycle()
     val apps by container.apps.apps.collectAsStateWithLifecycle()
     val labels = remember(apps) { apps.associate { it.packageName to it.label } }
     val doc = state.document
     val scope = rememberCoroutineScope()
-    val requesters = remember { RemoteKey.entries.associateWith { FocusRequester() } }
-    var seen by remember { mutableStateOf(emptySet<RemoteKey>()) }
+    val context = LocalContext.current
+    val prefs = remember(context) { context.getSharedPreferences("remote_buttons", Context.MODE_PRIVATE) }
+    var detected by remember(prefs) {
+        mutableStateOf(prefs.getStringSet("detected_key_codes", emptySet()).orEmpty().mapNotNull(String::toIntOrNull).toSet())
+    }
+    val customButtons = (detected + doc.keyBindings.mapNotNull { it.androidKeyCode })
+        .filter { isRemappableRemoteKeyCode(it) && namedRemoteKey(it) == null }.sorted().map(::remoteButton)
+    val requesters = remember { mutableMapOf<Int, FocusRequester>() }
     var picker by remember { mutableStateOf<Picker?>(null) }
 
-    // A button pressed on the remote: remember that it arrives and jump to its card.
+    // Accumulate every detected button, including presses that arrive faster than the UI can recompose.
+    LaunchedEffect(seen) {
+        val fresh = seen.filter { namedRemoteKey(it) == null }.toSet() - detected
+        if (fresh.isNotEmpty()) {
+            detected = detected + fresh
+            prefs.edit().putStringSet("detected_key_codes", detected.map(Int::toString).toSet()).apply()
+        }
+    }
+    // Focus the most recently pressed button once its card has been composed.
     LaunchedEffect(pressed) {
-        val key = pressed?.let { p -> RemoteKey.entries.firstOrNull { it.keyCode() == p.keyCode } } ?: return@LaunchedEffect
-        seen = seen + key
-        if (picker == null) runCatching { requesters.getValue(key).requestFocus() }
+        val event = pressed ?: return@LaunchedEffect
+        val key = remoteButton(event.keyCode)
+        if (picker == null) {
+            withFrameNanos { }
+            runCatching { requesters.getOrPut(key.code) { FocusRequester() }.requestFocus() }
+        }
     }
 
-    fun bound(key: RemoteKey, press: KeyPress): Action? = doc.keyBindings.firstOrNull { it.key == key && it.press == press }?.action
+    fun bound(key: RemoteButton, press: KeyPress): Action? = doc.keyBindings.firstOrNull { it.androidKeyCode == key.code && it.press == press }?.action
 
-    fun save(key: RemoteKey, press: KeyPress, action: Action?) {
+    fun save(key: RemoteButton, press: KeyPress, action: Action?) {
         scope.launch {
             val current = container.layouts.state.value.document
-            LayoutOps.setKeyBinding(current, key, press, action)?.let { container.layouts.apply(it) }
+            LayoutOps.setKeyBinding(current, key.key, press, action, key.customCode)?.let { container.layouts.apply(it) }
         }
     }
 
     Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
         if (!on) {
-            SettingsItem("The remote service is off", "Buttons only do their job once \"OwnTV remote\" is on · open Setup", onClick = openSetup)
+            SettingsItem("The remote service is off", "Turn on \"OwnTV remote\" to capture buttons and use their assigned actions · open Setup", onClick = openSetup)
             Spacer(Modifier.height(8.dp))
         }
         Text(
-            "Press a button on your remote to jump to it, then OK to choose what it does. " + lastPressed(pressed),
+            "Press a button on your remote to jump to it, then OK to choose what it does.",
             style = MaterialTheme.typography.bodyMedium,
             color = Color(0xFFA9AFBA),
         )
+        pressed?.let {
+            Text("Last: ${it.name} (code ${it.keyCode}).", style = MaterialTheme.typography.bodyMedium, color = Color(0xFFA9AFBA))
+        }
+        if (customButtons.isNotEmpty()) {
+            SectionLabel("Detected buttons")
+            customButtons.chunked(4).forEach { row ->
+                KeyRow(row) { key, modifier ->
+                    KeyCard(key, bound(key, KeyPress.Short), bound(key, KeyPress.Long), key.code in seen, labels, modifier.focusRequester(requesters.getOrPut(key.code) { FocusRequester() })) {
+                        picker = Picker.Key(key)
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+            }
+        }
         SectionLabel("Color buttons")
         KeyRow(ColorKeys) { key, modifier ->
-            KeyCard(key, bound(key, KeyPress.Short), bound(key, KeyPress.Long), key in seen, labels, modifier.focusRequester(requesters.getValue(key))) {
+            KeyCard(key, bound(key, KeyPress.Short), bound(key, KeyPress.Long), key.code in seen, labels, modifier.focusRequester(requesters.getOrPut(key.code) { FocusRequester() })) {
                 picker = Picker.Key(key)
             }
         }
         SectionLabel("More buttons")
         OtherKeys.chunked(4).forEach { row ->
             KeyRow(row) { key, modifier ->
-                KeyCard(key, bound(key, KeyPress.Short), bound(key, KeyPress.Long), key in seen, labels, modifier.focusRequester(requesters.getValue(key))) {
+                KeyCard(key, bound(key, KeyPress.Short), bound(key, KeyPress.Long), key.code in seen, labels, modifier.focusRequester(requesters.getOrPut(key.code) { FocusRequester() })) {
                     picker = Picker.Key(key)
                 }
             }
             Spacer(Modifier.height(12.dp))
         }
         HelpText(
-            "Remotes differ: most have only some of these buttons, and voice and brand buttons never reach apps. " +
+            "Remotes differ: buttons that reach OwnTV can be detected here, including number and app buttons. " +
                 "D-pad, OK, Back, Home and Power cannot be changed. Other actions (web links, intents) can be set in the layout's \"keyBindings\".",
         )
     }
@@ -235,8 +284,8 @@ private fun ButtonsTab(container: AppContainer, state: LayoutState, on: Boolean,
                             add("Clear both" to {
                                 scope.launch {
                                     val before = container.layouts.state.value.document
-                                    val noPress = LayoutOps.setKeyBinding(before, current.key, KeyPress.Short, null) ?: before
-                                    val cleared = LayoutOps.setKeyBinding(noPress, current.key, KeyPress.Long, null) ?: noPress
+                                    val noPress = LayoutOps.setKeyBinding(before, current.key.key, KeyPress.Short, null, current.key.customCode) ?: before
+                                    val cleared = LayoutOps.setKeyBinding(noPress, current.key.key, KeyPress.Long, null, current.key.customCode) ?: noPress
                                     if (cleared !== before) container.layouts.apply(cleared)
                                 }
                             })
@@ -305,7 +354,7 @@ private fun SectionLabel(text: String) {
 
 /** Up to four cards side by side, each a quarter of the width. */
 @Composable
-private fun KeyRow(keys: List<RemoteKey>, card: @Composable (RemoteKey, Modifier) -> Unit) {
+private fun KeyRow(keys: List<RemoteButton>, card: @Composable (RemoteButton, Modifier) -> Unit) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         keys.forEach { card(it, Modifier.weight(1f)) }
         repeat(4 - keys.size) { Spacer(Modifier.weight(1f)) }
@@ -315,7 +364,7 @@ private fun KeyRow(keys: List<RemoteKey>, card: @Composable (RemoteKey, Modifier
 /** One button: its symbol and name, what a press and a hold do, and whether it arrived from this remote. */
 @Composable
 private fun KeyCard(
-    key: RemoteKey,
+    key: RemoteButton,
     short: Action?,
     long: Action?,
     seen: Boolean,
@@ -382,7 +431,7 @@ private fun BindingLine(what: String, action: Action?, labels: Map<String, Strin
 
 /** A colored dot for the color buttons, an icon or short mark for the others. */
 @Composable
-private fun KeySymbol(key: RemoteKey, content: Color) {
+private fun KeySymbol(key: RemoteButton, content: Color) {
     // A fixed box, so every card's title row has the same height.
     Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) {
         if (key in ColorKeys) {
@@ -401,7 +450,7 @@ private sealed interface KeyMark {
     data class Text(val text: String) : KeyMark
 }
 
-private fun RemoteKey.symbol(): KeyMark = when (this) {
+private fun RemoteButton.symbol(): KeyMark = when (key) {
     RemoteKey.Menu -> KeyMark.Icon("menu")
     RemoteKey.Guide -> KeyMark.Icon("live_tv")
     RemoteKey.Info -> KeyMark.Icon("info_outline")
@@ -415,9 +464,10 @@ private fun RemoteKey.symbol(): KeyMark = when (this) {
     RemoteKey.ChannelDown -> KeyMark.Text("CH−")
     RemoteKey.LastChannel -> KeyMark.Text("↺")
     RemoteKey.Red, RemoteKey.Green, RemoteKey.Yellow, RemoteKey.Blue -> KeyMark.Text("")
+    RemoteKey.Custom -> KeyMark.Text(keyName(code).takeIf { it.length == 1 && it[0].isDigit() } ?: "#")
 }
 
-private fun RemoteKey.tint(): Color = when (this) {
+private fun RemoteButton.tint(): Color = when (key) {
     RemoteKey.Red -> Color(0xFFE53935)
     RemoteKey.Green -> Color(0xFF43A047)
     RemoteKey.Yellow -> Color(0xFFFDD835)
@@ -425,7 +475,7 @@ private fun RemoteKey.tint(): Color = when (this) {
     else -> Color(0xFF7AA2F7)
 }
 
-private fun RemoteKey.label(): String = when (this) {
+private fun RemoteButton.label(): String = when (key) {
     RemoteKey.Menu -> "Menu"
     RemoteKey.Guide -> "Guide"
     RemoteKey.Info -> "Info"
@@ -442,12 +492,13 @@ private fun RemoteKey.label(): String = when (this) {
     RemoteKey.Green -> "Green"
     RemoteKey.Yellow -> "Yellow"
     RemoteKey.Blue -> "Blue"
-}
-
-private fun lastPressed(pressed: PressedKey?): String = when {
-    pressed == null -> ""
-    pressed.remappable -> "Last: ${pressed.name}."
-    else -> "Last: ${pressed.name}, which cannot be changed."
+    RemoteKey.Custom -> keyName(code).let { name ->
+        when {
+            name == code.toString() -> "Button $code"
+            name.length == 1 && name[0].isDigit() -> "Number $name"
+            else -> name.replace('_', ' ').replaceFirstChar { it.uppercase() }
+        }
+    }
 }
 
 // ---------------------------------------------------------------- Setup tab
@@ -484,7 +535,7 @@ private fun SetupTab(container: AppContainer, on: Boolean) {
             accessibility.setEnabled(component, !state.isOn(component))
             refresh()
         } else {
-            container.actions.openAccessibilitySettings()
+            container.actions.openAccessibilitySettings(ComponentName.unflattenFromString(component))
         }
     }
     val change = if (state.canChange) "OK turns it" else "turn it"
@@ -494,7 +545,7 @@ private fun SetupTab(container: AppContainer, on: Boolean) {
             val remoteOn = state.isOn(AccessibilitySettings.REMOTE)
             SettingsItem(
                 "OwnTV remote",
-                if (remoteOn) "On · acts only on the buttons the layout binds · $change off" else "Off · needed for remote buttons in other apps · ${if (state.canChange) "OK turns it on" else "open Accessibility to turn it on"}",
+                if (remoteOn) "On · uses your button assignments · $change off" else "Off · needed for remote buttons in other apps · ${if (state.canChange) "OK turns it on" else "open Accessibility to turn it on"}",
             ) { toggle(AccessibilitySettings.REMOTE) }
         }
         item {
@@ -553,8 +604,8 @@ private fun SetupTab(container: AppContainer, on: Boolean) {
         }
         item {
             HelpText(
-                "The remote service only acts on buttons the layout binds; every other button works as before. " +
-                    "Nothing it sees is stored or sent, apart from when an app was last used.",
+                "The remote service acts on bound buttons and captures buttons while this screen is open. " +
+                    "Detected button codes and app last-use times are saved on this TV; key presses are not recorded or sent.",
             )
         }
     }

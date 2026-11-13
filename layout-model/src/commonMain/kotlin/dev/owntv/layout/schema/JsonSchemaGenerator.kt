@@ -3,12 +3,14 @@ package dev.owntv.layout.schema
 import dev.owntv.layout.model.BackgroundSerializer
 import dev.owntv.layout.model.ColorValue
 import dev.owntv.layout.model.Doc
+import dev.owntv.layout.model.KeyBinding
 import dev.owntv.layout.model.LayoutDocument
 import dev.owntv.layout.model.NodeRegistry
 import dev.owntv.layout.model.NodeSerializer
 import dev.owntv.layout.model.PaddingSerializer
 import dev.owntv.layout.model.Range
 import dev.owntv.layout.model.SizeSerializer
+import dev.owntv.layout.model.reservedRemoteKeyCodes
 import kotlinx.serialization.descriptors.PolymorphicKind
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.SerialDescriptor
@@ -163,6 +165,21 @@ object JsonSchemaGenerator {
                 classDoc(descriptors.first())?.let { put("description", it) }
                 put("properties", properties)
                 if (required.isNotEmpty()) put("required", buildJsonArray { required.forEach { add(it) } })
+                if (descriptors.size == 1 && descriptors.first().serialName == KeyBinding.serializer().descriptor.serialName) {
+                    putJsonObject("if") {
+                        putJsonObject("properties") { putJsonObject("key") { put("const", "custom") } }
+                        putJsonArray("required") { add("key") }
+                    }
+                    putJsonObject("then") {
+                        putJsonArray("required") { add("keyCode") }
+                        putJsonObject("properties") {
+                            putJsonObject("keyCode") {
+                                putJsonObject("not") { put("enum", JsonArray(reservedRemoteKeyCodes.sorted().map(::JsonPrimitive))) }
+                            }
+                        }
+                    }
+                    putJsonObject("else") { putJsonObject("not") { putJsonArray("required") { add("keyCode") } } }
+                }
                 put("additionalProperties", false)
             }
         }

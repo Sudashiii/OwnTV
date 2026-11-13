@@ -1,5 +1,6 @@
 package dev.owntv.launcher.actions
 
+import android.accessibilityservice.AccessibilityService
 import android.content.ActivityNotFoundException
 import android.content.ComponentName
 import android.content.Context
@@ -10,6 +11,7 @@ import android.media.tv.TvInputInfo
 import android.media.tv.TvInputManager
 import android.net.Uri
 import android.provider.Settings
+import android.view.accessibility.AccessibilityManager
 import android.widget.Toast
 import dev.owntv.layout.model.Action
 import dev.owntv.layout.model.IntentAction
@@ -67,15 +69,41 @@ class ActionExecutor(
     }
 
     /**
-     * Opens the Android accessibility settings, where the user turns on OwnTV's services. Google TV builds
-     * differ: some answer the standard intent only with a placeholder, so this also tries TV Settings' own
-     * entry points, and else opens the main settings with the way there.
+     * Opens settings for the requested accessibility service. On Google TV the general accessibility screen starts
+     * on TalkBack, so first use TV Settings' service-specific entry point. Other devices may support the
+     * Android service-details intent instead; fall back to the general screen if neither exists.
      */
-    fun openAccessibilitySettings() {
+    fun openAccessibilitySettings(service: Class<out AccessibilityService>) =
+        openAccessibilitySettings(ComponentName(context, service))
+
+    fun openAccessibilitySettings(component: ComponentName?) {
+        val serviceInfo = component?.let { target ->
+            runCatching {
+                context.getSystemService(AccessibilityManager::class.java)?.installedAccessibilityServiceList?.firstOrNull {
+                    val info = it.resolveInfo?.serviceInfo
+                    info?.packageName == target.packageName && info.name == target.className
+                }
+            }.getOrNull()
+        }
+        if (serviceInfo != null) {
+            val tvDetails = Intent(ACTION_ACCESSIBILITY_SERVICE_TV_OEM_LINK)
+                .setPackage(TV_SETTINGS)
+                .putExtra(ACCESSIBILITY_SERVICE_INFO_EXTRA, serviceInfo)
+            if (start(tvDetails, null)) return
+        }
+        if (component != null) {
+            val details = Intent(ACTION_ACCESSIBILITY_DETAILS_SETTINGS)
+                .putExtra(Intent.EXTRA_COMPONENT_NAME, component.flattenToString())
+            if (start(details, null)) return
+        }
+
         val opened = start(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS), null) ||
             start(Intent(ACTION_ACCESSIBILITY_TV_OEM_LINK), null) ||
             start(Intent().setComponent(ComponentName(TV_SETTINGS, "$TV_SETTINGS.oemlink.AccessibilitySettingsActivity")), null)
-        if (opened) return
+        if (opened) {
+            toast("Select the service in Accessibility")
+            return
+        }
         openSystemSettings()
         toast("Open System > Accessibility, then turn on the OwnTV service")
     }
@@ -179,3 +207,8 @@ private const val TV_SETTINGS = "com.android.tv.settings"
 
 /** TV Settings' own action for its accessibility screen, which OEM builds keep when the standard one is stubbed. */
 private const val ACTION_ACCESSIBILITY_TV_OEM_LINK = "android.settings.ACCESSIBILITY_TV_OEM_LINK"
+
+/** TV Settings' exported entry point accepts the installed service's AccessibilityServiceInfo as a parcel. */
+private const val ACTION_ACCESSIBILITY_SERVICE_TV_OEM_LINK = "android.settings.ACCESSIBILITY_SHORTCUT_SERVICES_TV_OEM_LINK"
+private const val ACCESSIBILITY_SERVICE_INFO_EXTRA = "accessibilityServiceInfo"
+private const val ACTION_ACCESSIBILITY_DETAILS_SETTINGS = "android.settings.ACCESSIBILITY_DETAILS_SETTINGS"

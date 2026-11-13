@@ -685,7 +685,7 @@
       "description": "Makes a remote button run an action, also while another app is open. Needs OwnTV's remote service, turned on once in the Android accessibility settings (Settings > Remote buttons); without it nothing happens. Only the TV has it: the web preview ignores key bindings.",
       "properties": {
         "key": {
-          "description": "The remote button. D-pad, OK, Back, Home and Power cannot be remapped.",
+          "description": "The remote button. Use custom with keyCode for another Android button. D-pad, OK, Back, Home and Power cannot be remapped.",
           "type": "string",
           "enum": [
             "menu",
@@ -703,7 +703,8 @@
             "red",
             "green",
             "yellow",
-            "blue"
+            "blue",
+            "custom"
           ]
         },
         "press": {
@@ -717,12 +718,62 @@
         "action": {
           "description": "What the button does. Same actions as a shortcut. Pages and OwnTV's own screens open in OwnTV, which comes to the front.",
           "$ref": "#/$defs/Action"
+        },
+        "keyCode": {
+          "description": "Android key code for a custom button, shown when it is pressed in Settings > Remote buttons. Use only with key: custom.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
         }
       },
       "required": [
         "key",
         "action"
       ],
+      "if": {
+        "properties": {
+          "key": {
+            "const": "custom"
+          }
+        },
+        "required": [
+          "key"
+        ]
+      },
+      "then": {
+        "required": [
+          "keyCode"
+        ],
+        "properties": {
+          "keyCode": {
+            "not": {
+              "enum": [
+                3,
+                4,
+                19,
+                20,
+                21,
+                22,
+                23,
+                26,
+                66,
+                160,
+                268,
+                269,
+                270,
+                271
+              ]
+            }
+          }
+        }
+      },
+      "else": {
+        "not": {
+          "required": [
+            "keyCode"
+          ]
+        }
+      },
       "additionalProperties": false
     },
     "Action": {

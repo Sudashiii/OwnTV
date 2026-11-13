@@ -28,9 +28,8 @@ import kotlinx.coroutines.launch
  * OwnTV's remote service, a second accessibility service next to [StandbyService]. It sees
  *  - which app is in front, so the `recent` source fills for apps opened any way, and
  *  - the remote buttons, so a layout's `keyBindings` also work while another app is open.
- * Only buttons a layout binds are taken over (see [KeyBindingMatcher]); every other key passes through.
- * Nothing it sees is stored or sent, apart from the time an app came to the front. The user turns it on
- * once under Settings > Accessibility.
+ * Only buttons a layout binds are taken over (see [KeyBindingMatcher]); every other key passes through,
+ * except while the Remote buttons screen is detecting buttons. The user turns it on once in Accessibility.
  *
  * It is separate from the standby service on purpose: that one promises to read nothing, and enabling a
  * service that observes more asks the user for more.
@@ -89,9 +88,8 @@ class RemoteService : AccessibilityService() {
     }
 
     override fun onKeyEvent(event: KeyEvent): Boolean {
-        KeyProbe.report(event)
-        // The Remote buttons screen shows what each button sends, so the bindings stay out of its way.
-        if (KeyProbe.listening) return false
+        // The test screen consumes remappable buttons before Android can launch their original action.
+        if (KeyProbe.listening) return KeyProbe.handle(event)
         val down = event.action == KeyEvent.ACTION_DOWN
         return when (val result = matcher.onKey(event.keyCode, down, event.repeatCount, event.eventTime)) {
             KeyBindingMatcher.Result.PassThrough -> false
@@ -112,7 +110,7 @@ class RemoteService : AccessibilityService() {
         val delay = matcher.longPressDelayMs(keyCode) ?: return
         val timeout = Runnable {
             longPresses.remove(keyCode)
-            matcher.onLongPressTimeout(keyCode)?.let { run(it.action) }
+            if (!KeyProbe.listening) matcher.onLongPressTimeout(keyCode)?.let { run(it.action) }
         }
         longPresses[keyCode] = timeout
         handler.postDelayed(timeout, delay)

@@ -29,14 +29,65 @@ class KeyBindingMatcherTest {
 
     @Test
     fun `every remote key has its own key code`() {
-        val codes = RemoteKey.entries.map { it.keyCode() }
-        assertEquals(RemoteKey.entries.size, codes.toSet().size, "two keys share a code")
+        val codes = RemoteKey.entries.mapNotNull { it.androidKeyCode }
+        assertEquals(RemoteKey.entries.size - 1, codes.toSet().size, "two keys share a code")
         assertTrue(codes.none { it == KeyEvent.KEYCODE_UNKNOWN })
         val reserved = setOf(
             KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT,
             KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_BACK, KeyEvent.KEYCODE_HOME, KeyEvent.KEYCODE_POWER,
         )
         assertTrue(codes.none { it in reserved }, "D-pad, OK, Back, Home and Power cannot be remapped")
+        val expected = mapOf(
+            RemoteKey.Menu to KeyEvent.KEYCODE_MENU,
+            RemoteKey.Guide to KeyEvent.KEYCODE_GUIDE,
+            RemoteKey.Info to KeyEvent.KEYCODE_INFO,
+            RemoteKey.Settings to KeyEvent.KEYCODE_SETTINGS,
+            RemoteKey.Captions to KeyEvent.KEYCODE_CAPTIONS,
+            RemoteKey.Bookmark to KeyEvent.KEYCODE_BOOKMARK,
+            RemoteKey.Tv to KeyEvent.KEYCODE_TV,
+            RemoteKey.TvInput to KeyEvent.KEYCODE_TV_INPUT,
+            RemoteKey.Dvr to KeyEvent.KEYCODE_DVR,
+            RemoteKey.ChannelUp to KeyEvent.KEYCODE_CHANNEL_UP,
+            RemoteKey.ChannelDown to KeyEvent.KEYCODE_CHANNEL_DOWN,
+            RemoteKey.LastChannel to KeyEvent.KEYCODE_LAST_CHANNEL,
+            RemoteKey.Red to KeyEvent.KEYCODE_PROG_RED,
+            RemoteKey.Green to KeyEvent.KEYCODE_PROG_GREEN,
+            RemoteKey.Yellow to KeyEvent.KEYCODE_PROG_YELLOW,
+            RemoteKey.Blue to KeyEvent.KEYCODE_PROG_BLUE,
+        )
+        assertEquals(expected, RemoteKey.entries.filter { it != RemoteKey.Custom }.associateWith { it.keyCode() })
+        assertEquals(KeyEvent.KEYCODE_8, 15)
+        assertEquals(KeyEvent.KEYCODE_VIDEO_APP_1, 289)
+    }
+
+    @Test
+    fun `number and app buttons can be bound and their events are consumed`() {
+        val eight = KeyEvent.KEYCODE_8
+        val app = KeyEvent.KEYCODE_VIDEO_APP_1
+        val m = matcher(
+            KeyBinding(RemoteKey.Custom, KeyPress.Short, launch, eight),
+            KeyBinding(RemoteKey.Custom, KeyPress.Long, StandbyAction, app),
+        )
+        assertTrue(isRemappable(eight))
+        assertTrue(isRemappable(app))
+        assertFalse(isRemappable(KeyEvent.KEYCODE_BACK))
+        assertFalse(isRemappable(KeyEvent.KEYCODE_UNKNOWN))
+        assertEquals(KeyBindingMatcher.Result.Consume, m.down(eight))
+        assertEquals(fire(launch), m.up(eight))
+        assertEquals(KeyBindingMatcher.Result.Consume, m.down(app))
+        assertEquals(fire(StandbyAction), m.onLongPressTimeout(app))
+        assertEquals(KeyBindingMatcher.Result.Consume, m.up(app))
+    }
+
+    @Test
+    fun `named and custom bindings of the same key share one matcher entry`() {
+        val m = matcher(
+            KeyBinding(RemoteKey.Custom, KeyPress.Short, launch, red),
+            KeyBinding(RemoteKey.Red, KeyPress.Short, StandbyAction),
+        )
+        m.down(red)
+        assertEquals(fire(launch), m.up(red))
+        assertEquals(setOf(red), m.boundKeyCodes)
     }
 
     @Test
