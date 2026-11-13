@@ -1,11 +1,15 @@
 package dev.owntv.layout.edit
 
+import dev.owntv.layout.model.Action
 import dev.owntv.layout.model.ColumnNode
 import dev.owntv.layout.model.ContainerNode
 import dev.owntv.layout.model.GridNode
 import dev.owntv.layout.model.HeroNode
+import dev.owntv.layout.model.KeyBinding
+import dev.owntv.layout.model.KeyPress
 import dev.owntv.layout.model.LayoutDocument
 import dev.owntv.layout.model.Node
+import dev.owntv.layout.model.RemoteKey
 import dev.owntv.layout.model.RowNode
 import dev.owntv.layout.model.StackNode
 import dev.owntv.layout.model.children
@@ -149,6 +153,21 @@ object LayoutOps {
                 )
             },
         )
+    }
+
+    /**
+     * Makes [press] of [key] run [action], or unbinds it with null. The first binding for that key and press is
+     * replaced in place and any later duplicates go; a new binding goes to the end. Null when nothing changes.
+     */
+    fun setKeyBinding(doc: LayoutDocument, key: RemoteKey, press: KeyPress, action: Action?): LayoutDocument? {
+        val first = doc.keyBindings.indexOfFirst { it.key == key && it.press == press }
+        val kept = doc.keyBindings.filterIndexed { i, b -> i == first || b.key != key || b.press != press }
+        val bindings = when {
+            action == null -> kept.filterNot { it.key == key && it.press == press }
+            first < 0 -> kept + KeyBinding(key, press, action)
+            else -> kept.map { if (it.key == key && it.press == press) KeyBinding(key, press, action) else it }
+        }
+        return if (bindings == doc.keyBindings) null else doc.copy(keyBindings = bindings)
     }
 
     // ---------------------------------------------------------------- tree plumbing

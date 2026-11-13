@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import coil3.SingletonImageLoader
 import dev.owntv.launcher.actions.ActionExecutor
+import dev.owntv.launcher.adb.SelfAdb
 import dev.owntv.launcher.actions.StandbyService
 import dev.owntv.launcher.actions.runsInOwnTv
 import dev.owntv.launcher.data.apps.AppImageLoader
@@ -58,6 +59,9 @@ class AppContainer(context: Context) {
     val appLists = AppListsRepository(context, scope, assets)
     val layouts = LayoutRepository(context, scope, assets, keepLists = appLists::seed, onLoaded = perf::layoutDecoded)
     val actions = ActionExecutor(context, onLaunch = recent::recordLaunch)
+
+    /** Runs the `adb shell` commands OwnTV shows on this TV itself (Settings > ADB on this TV). */
+    val adb = SelfAdb(context)
 
     /**
      * Actions a remote button asked OwnTV's own screen to carry out (pages, drawer, settings, standby,

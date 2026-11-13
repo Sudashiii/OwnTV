@@ -228,6 +228,35 @@ class EditTest {
     }
 
     @Test
+    fun `key bindings are set, replaced and removed per key and press`() {
+        val red = dev.owntv.layout.model.RemoteKey.Red
+        val short = dev.owntv.layout.model.KeyPress.Short
+        val long = dev.owntv.layout.model.KeyPress.Long
+        val quick = dev.owntv.layout.model.OpenQuickSettingsAction
+        val drawer = dev.owntv.layout.model.OpenAppDrawerAction
+        val base = LayoutCodec.decode(
+            """{ "schemaVersion": 3, "keyBindings": [
+                 { "key": "blue", "action": { "type": "open_app_drawer" } },
+                 { "key": "red", "action": { "type": "open_app_drawer" } },
+                 { "key": "red", "action": { "type": "standby" } } ],
+               "pages": [ { "id": "home", "root": { "type": "shortcut", "id": "s", "label": "S", "action": { "type": "open_launcher_settings" } } } ] }""",
+        ).requireDocument()
+
+        val replaced = LayoutOps.setKeyBinding(base, red, short, quick)!!
+        assertEquals(listOf("blue" to drawer, "red" to quick), replaced.keyBindings.map { it.key.name.lowercase() to it.action })
+
+        val added = LayoutOps.setKeyBinding(replaced, red, long, drawer)!!
+        assertEquals(3, added.keyBindings.size)
+        assertEquals(dev.owntv.layout.model.KeyBinding(red, long, drawer), added.keyBindings.last())
+
+        val removed = LayoutOps.setKeyBinding(added, red, short, null)!!
+        assertEquals(listOf(short to drawer, long to drawer), removed.keyBindings.map { it.press to it.action })
+
+        assertNull(LayoutOps.setKeyBinding(removed, red, long, drawer))
+        assertNull(LayoutOps.setKeyBinding(removed, red, short, null))
+    }
+
+    @Test
     fun `quick settings from the editor decode and offer their fields`() {
         val descriptor = dev.owntv.layout.model.QuickSetting.serializer().descriptor
         val row = LayoutCodec.json.decodeFromJsonElement(dev.owntv.layout.model.QuickSetting.serializer(), Fields.newObject(descriptor))

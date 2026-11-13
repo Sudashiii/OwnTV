@@ -28,8 +28,47 @@
     <uses-feature android:name="android.software.leanback" android:required="true" />
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
 
-    <!-- Needed on Android 11+ to see the apps the launcher shows. -->
+    <!-- Needed on Android 11+ to see the apps the launcher shows, and the settings screens it opens, so it can
+         tell Google TV's "no app can do this" placeholders from real screens (actions/IntentHandlers.kt). -->
     <queries>
+        <package android:name="com.android.tv.settings" />
+        <intent>
+            <action android:name="android.settings.ACCESSIBILITY_SETTINGS" />
+        </intent>
+        <intent>
+            <action android:name="android.settings.ACCESSIBILITY_TV_OEM_LINK" />
+        </intent>
+        <intent>
+            <action android:name="android.settings.SETTINGS" />
+        </intent>
+        <intent>
+            <action android:name="android.settings.WIFI_SETTINGS" />
+        </intent>
+        <intent>
+            <action android:name="android.settings.BLUETOOTH_SETTINGS" />
+        </intent>
+        <intent>
+            <action android:name="android.settings.DISPLAY_SETTINGS" />
+        </intent>
+        <intent>
+            <action android:name="android.settings.SOUND_SETTINGS" />
+        </intent>
+        <intent>
+            <action android:name="android.settings.APPLICATION_SETTINGS" />
+        </intent>
+        <intent>
+            <action android:name="android.settings.DATE_SETTINGS" />
+        </intent>
+        <intent>
+            <action android:name="android.settings.USAGE_ACCESS_SETTINGS" />
+        </intent>
+        <intent>
+            <action android:name="android.settings.APPLICATION_DEVELOPMENT_SETTINGS" />
+        </intent>
+        <intent>
+            <action android:name="android.settings.APPLICATION_DETAILS_SETTINGS" />
+            <data android:scheme="package" />
+        </intent>
         <provider android:authorities="android.media.tv" />
         <intent>
             <action android:name="android.intent.action.MAIN" />

@@ -4,6 +4,7 @@ import android.content.ActivityNotFoundException
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.media.tv.TvContract
 import android.media.tv.TvInputInfo
 import android.media.tv.TvInputManager
@@ -65,9 +66,25 @@ class ActionExecutor(
         start(Intent(Settings.ACTION_SETTINGS), "Could not open settings")
     }
 
-    /** Opens the Android accessibility settings, where the user turns on OwnTV's services. */
+    /**
+     * Opens the Android accessibility settings, where the user turns on OwnTV's services. Google TV builds
+     * differ: some answer the standard intent only with a placeholder, so this also tries TV Settings' own
+     * entry points, and else opens the main settings with the way there.
+     */
     fun openAccessibilitySettings() {
-        if (!start(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS), null)) openSystemSettings()
+        val opened = start(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS), null) ||
+            start(Intent(ACTION_ACCESSIBILITY_TV_OEM_LINK), null) ||
+            start(Intent().setComponent(ComponentName(TV_SETTINGS, "$TV_SETTINGS.oemlink.AccessibilitySettingsActivity")), null)
+        if (opened) return
+        openSystemSettings()
+        toast("Open System > Accessibility, then turn on the OwnTV service")
+    }
+
+    /** Opens Developer options, where USB and network debugging are; else the main settings with the way there. */
+    fun openDeveloperSettings() {
+        if (start(Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS), null)) return
+        openSystemSettings()
+        toast("Open System > Developer options. Not there? System > About, press OK on \"Android TV OS build\" seven times")
     }
 
     /** Opens the usage access list. False when this device has no such screen (some Google TV builds). */
@@ -120,8 +137,13 @@ class ActionExecutor(
     }
 
     private fun start(intent: Intent, failureMessage: String?): Boolean = try {
-        context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-        true
+        if (avoidStubs(intent)) {
+            context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            true
+        } else {
+            failureMessage?.let(::toast)
+            false
+        }
     } catch (e: ActivityNotFoundException) {
         failureMessage?.let(::toast)
         false
@@ -130,7 +152,30 @@ class ActionExecutor(
         false
     }
 
+    /**
+     * Points [intent] past Google TV's placeholder activities (see [IntentHandlers]). False when only a
+     * placeholder answers it, so callers fall back or say so instead of the placeholder's "no app" message.
+     */
+    private fun avoidStubs(intent: Intent): Boolean {
+        if (intent.component != null) return true
+        val handlers = runCatching { context.packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY) }.getOrNull() ?: return true
+        return when (val choice = IntentHandlers.choose(handlers.map { it.activityInfo.packageName })) {
+            IntentHandlers.Choice.System -> true
+            IntentHandlers.Choice.Unsupported -> false
+            is IntentHandlers.Choice.Use -> {
+                val info = handlers[choice.index].activityInfo
+                intent.setComponent(ComponentName(info.packageName, info.name))
+                true
+            }
+        }
+    }
+
     fun toast(message: String) {
         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
     }
 }
+
+private const val TV_SETTINGS = "com.android.tv.settings"
+
+/** TV Settings' own action for its accessibility screen, which OEM builds keep when the standard one is stubbed. */
+private const val ACTION_ACCESSIBILITY_TV_OEM_LINK = "android.settings.ACCESSIBILITY_TV_OEM_LINK"

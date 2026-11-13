@@ -22,6 +22,7 @@ sealed interface Screen {
     data object Updates : Screen
     data object Performance : Screen
     data object RemoteButtons : Screen
+    data object SelfAdb : Screen
     data class ListEditor(val name: String, val title: String?) : Screen
     data object HiddenApps : Screen
     /** [builtIn] is set for a look or template, so applying it is remembered (see `LayoutRepository.apply`). */
