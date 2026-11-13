@@ -81,7 +81,7 @@ fun remoteButtonsSummary(on: Boolean, bindings: Int): String = when {
 private enum class RemoteTab(val title: String) { Buttons("Buttons"), Setup("Setup") }
 
 /**
- * Settings > Remote buttons, in two tabs: Buttons shows every button a layout can bind as a card with what a
+ * Settings > Remote & standby > Remote buttons, in two tabs: Buttons shows every button a layout can bind as a card with what a
  * press and a hold do, jumps to the card of any button pressed on the remote, and changes it with OK (saved to
  * the layout through [LayoutOps.setKeyBinding]). Setup turns on OwnTV's remote service.
  */
@@ -476,7 +476,7 @@ private fun SetupTab(container: AppContainer, on: Boolean) {
                 SettingsItem("Open OwnTV app info", "Menu (⋮) > Allow restricted settings") { container.actions.openAppInfo(PACKAGE) }
             }
             item {
-                HelpText("If your TV has no such menu, adb can allow it once (OK runs it on this TV, see Settings > ADB on this TV):")
+                HelpText("If your TV has no such menu, adb can allow it once (OK runs it on this TV, see Settings > Developer > ADB on this TV):")
                 Code("adb shell appops set $PACKAGE ACCESS_RESTRICTED_SETTINGS allow")
             }
             item {

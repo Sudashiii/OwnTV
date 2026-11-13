@@ -41,7 +41,15 @@ class Navigator {
     var focusTrigger by mutableIntStateOf(0)
         private set
 
+    /** Settings group shown in the sidebar; kept while Settings is closed, like a Mac's System Settings. */
+    var settingsGroup by mutableStateOf(SettingsGroup.Layout)
+
+    /** Row of [settingsGroup] that opened the screen on top of Settings, so Back puts focus on it again. */
+    var settingsRow by mutableStateOf<String?>(null)
+
     fun push(screen: Screen) {
+        // Opened afresh (not returning to it), Settings starts in the sidebar.
+        if (screen == Screen.Settings) settingsRow = null
         stack.add(screen)
     }
 

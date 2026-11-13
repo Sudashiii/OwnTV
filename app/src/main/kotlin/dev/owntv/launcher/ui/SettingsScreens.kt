@@ -3,9 +3,13 @@ package dev.owntv.launcher.ui
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -17,7 +21,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.foundation.focusable
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
@@ -42,140 +45,230 @@ import java.util.Date
 
 @Composable
 fun SettingsScreen(container: AppContainer, nav: Navigator, state: LayoutState) {
+    val update by container.updater.state.collectAsStateWithLifecycle()
+    val builtInUpdate by container.layouts.builtInUpdate.collectAsStateWithLifecycle()
+    LaunchedEffect(Unit) { container.updater.checkIfStale() }
+    val badges = buildSet {
+        if (builtInUpdate != null) add(SettingsGroup.Layout)
+        if (update is UpdateState.Available) add(SettingsGroup.General)
+    }
+    SettingsSplitView(nav, "OwnTV", "Layout: ${state.document.name}", badges) { group ->
+        when (group) {
+            SettingsGroup.Layout -> LayoutSettings(container, nav, state)
+            SettingsGroup.Apps -> AppsSettings(container, nav)
+            SettingsGroup.Remote -> RemoteSettings(container, nav, state)
+            SettingsGroup.General -> GeneralSettings(container, nav, update)
+            SettingsGroup.Developer -> DeveloperSettings(container, nav)
+        }
+    }
+}
+
+@Composable
+private fun LayoutSettings(container: AppContainer, nav: Navigator, state: LayoutState) {
     val scope = rememberCoroutineScope()
     val hasHistory by container.layouts.hasHistory.collectAsStateWithLifecycle()
-    val problems = state.issues.count { it.severity != Severity.Info }
-    val update by container.updater.state.collectAsStateWithLifecycle()
-    val metricsMode by container.perf.mode.collectAsStateWithLifecycle()
     val builtInUpdate by container.layouts.builtInUpdate.collectAsStateWithLifecycle()
-    val standbyOn by StandbyService.enabled.collectAsStateWithLifecycle()
-    val remoteOn by RemoteService.enabled.collectAsStateWithLifecycle()
-    LaunchedEffect(Unit) { container.updater.checkIfStale() }
-    val available = (update as? UpdateState.Available)?.update?.versionName
-    val context = LocalContext.current
-    var cacheCleared by remember { mutableIntStateOf(0) }
-    val cacheBytes by produceState<Long?>(null, cacheCleared) { value = withContext(Dispatchers.IO) { LayoutImageLoader.cacheSize(context) } }
-    // Out here, not in the row: a lazy row that scrolls back into view would take focus again.
-    val initialFocus = rememberInitialFocus()
-
-    SettingsScaffold(
-        "OwnTV settings",
-        "Layout: ${state.document.name}" + if (available != null) " · OwnTV $available is available in Updates" else "",
-    ) {
-        // Lazy: only the rows on screen are built when Settings opens; each TV list item is costly to create.
-        LazyColumn(Modifier.fillMaxWidth()) {
-            item {
-                SettingsItem("Edit layout", "Add, move and customize items with your remote", modifier = initialFocus) { nav.push(Screen.Editor()) }
+    val problems = state.issues.count { it.severity != Severity.Info }
+    SettingsCard {
+        row {
+            SettingsRow("edit", "Edit layout", "Add, move and customize items with your remote", Icons.Filled.Edit, SettingsColors.Blue) {
+                nav.push(Screen.Editor())
             }
-            builtInUpdate?.let { update ->
-                item {
-                    SettingsItem("Update \"${update.name}\"", update.description()) {
-                        scope.launch {
-                            if (container.layouts.applyBuiltInUpdate()) {
-                                container.actions.toast("Updated to the new \"${update.name}\" ${update.ref.kind.label}")
-                                nav.home()
-                            }
-                        }
-                    }
-                }
-            }
-            item {
-                SettingsItem(
-                    "Import layout",
-                    "Paste JSON from your phone, load a URL or a file",
-                ) { nav.push(Screen.Import) }
-            }
-            item {
-                SettingsItem("Looks", "Google TV, Apple TV, Fire TV, Roku and more; use a whole look or only its style") { nav.push(Screen.Looks) }
-            }
-            item {
-                SettingsItem("Templates", "Start from a built-in layout") { nav.push(Screen.Templates) }
-            }
-            item {
-                SettingsItem(
-                    "Current layout",
-                    if (problems == 0) "Preview \"${state.document.name}\"" else "Preview \"${state.document.name}\" ($problems warning(s))",
-                ) {
-                    nav.showPreview(container.decode(container.layouts.currentJson()), "Current layout")
-                }
-            }
-            item {
-                SettingsItem("Revert to previous layout", "Undo the last change", enabled = hasHistory) {
+        }
+        builtInUpdate?.let { update ->
+            row {
+                SettingsRow("built-in-update", "Update \"${update.name}\"", update.description(), Icons.Filled.Refresh, SettingsColors.Green, RowEnd.New) {
                     scope.launch {
-                        if (container.layouts.revert()) {
-                            container.actions.toast("Restored the previous layout")
+                        if (container.layouts.applyBuiltInUpdate()) {
+                            container.actions.toast("Updated to the new \"${update.name}\" ${update.ref.kind.label}")
                             nav.home()
                         }
                     }
                 }
             }
-            item {
-                SettingsItem("Layout history", "Restore one of the last 10 layouts", enabled = hasHistory) { nav.push(Screen.History) }
+        }
+        row {
+            SettingsRow(
+                "current",
+                "Current layout",
+                if (problems == 0) "Preview \"${state.document.name}\"" else "Preview \"${state.document.name}\" ($problems warning(s))",
+                SettingsIcons.Tv,
+                SettingsColors.Teal,
+            ) {
+                nav.showPreview(container.decode(container.layouts.currentJson()), "Current layout")
             }
-            item {
-                SettingsItem("All apps", "Every installed app") { nav.push(Screen.AppDrawer) }
+        }
+    }
+    SettingsCard("Start from something new") {
+        row {
+            SettingsRow("looks", "Looks", "Google TV, Apple TV, Fire TV, Roku and more; use a whole look or only its style", SettingsIcons.Palette, SettingsColors.Pink) {
+                nav.push(Screen.Looks)
             }
-            item {
-                SettingsItem("Hidden apps", "Apps left out of your rows and grids") { nav.push(Screen.HiddenApps) }
+        }
+        row {
+            SettingsRow("templates", "Templates", "Start from a built-in layout", SettingsIcons.Dashboard, SettingsColors.Indigo) { nav.push(Screen.Templates) }
+        }
+        row {
+            SettingsRow("import", "Import layout", "Paste JSON from your phone, load a URL or a file", SettingsIcons.Download, SettingsColors.Blue) {
+                nav.push(Screen.Import)
             }
-            item {
-                SettingsItem("Make OwnTV your Home screen", "What to do on Google TV") { nav.push(Screen.Help) }
-            }
-            item {
-                SettingsItem(
-                    "Standby",
-                    if (standbyOn) {
-                        "On: the standby action and the screensaver's standby switch the TV off"
-                    } else {
-                        "Off: turn on \"OwnTV standby\" in Accessibility so layouts can switch the TV off"
-                    },
-                ) { container.actions.openAccessibilitySettings() }
-            }
-            item {
-                SettingsItem("Remote buttons", remoteButtonsSummary(remoteOn, state.document.keyBindings.size)) { nav.push(Screen.RemoteButtons) }
-            }
-            item {
-                val adbStatus by container.adb.status.collectAsStateWithLifecycle()
-                SettingsItem("ADB on this TV", selfAdbSummary(adbStatus)) { nav.push(Screen.SelfAdb) }
-            }
-            item {
-                // Read each time Settings opens: usage access is granted outside the app.
-                val usageAccess = remember { container.recent.hasUsageAccess() }
-                SettingsItem("Recent apps", recentSummary(remoteOn, usageAccess)) {
-                    when {
-                        !remoteOn -> nav.push(Screen.RemoteButtons)
-                        !usageAccess && container.actions.openUsageAccessSettings() -> {}
-                        else -> nav.push(Screen.Help)
+        }
+    }
+    SettingsCard("Earlier layouts") {
+        row {
+            SettingsRow(
+                "revert",
+                "Revert to previous layout",
+                "Undo the last change",
+                SettingsIcons.Undo,
+                SettingsColors.Orange,
+                RowEnd.None,
+                enabled = hasHistory,
+            ) {
+                scope.launch {
+                    if (container.layouts.revert()) {
+                        container.actions.toast("Restored the previous layout")
+                        nav.home()
                     }
                 }
             }
-            item {
-                SettingsItem(
-                    "Clear image cache",
-                    when (val bytes = cacheBytes) {
-                        null -> "Delete the images downloaded for your layouts"
-                        0L -> "No downloaded layout images"
-                        else -> "Delete ${Formatter.formatShortFileSize(context, bytes)} of downloaded layout images; they download again when shown"
-                    },
-                ) {
-                    scope.launch {
-                        withContext(Dispatchers.IO) { LayoutImageLoader.clearCache(context) }
-                        cacheCleared++
-                        container.actions.toast("Deleted the downloaded layout images")
-                    }
+        }
+        row {
+            SettingsRow("history", "Layout history", "Restore one of the last 10 layouts", SettingsIcons.History, SettingsColors.Graphite, enabled = hasHistory) {
+                nav.push(Screen.History)
+            }
+        }
+    }
+}
+
+@Composable
+private fun AppsSettings(container: AppContainer, nav: Navigator) {
+    val remoteOn by RemoteService.enabled.collectAsStateWithLifecycle()
+    // Read each time the group shows: usage access is granted outside the app.
+    val usageAccess = remember { container.recent.hasUsageAccess() }
+    SettingsCard {
+        row { SettingsRow("all-apps", "All apps", "Every installed app", SettingsIcons.Apps, SettingsColors.Green) { nav.push(Screen.AppDrawer) } }
+        row {
+            SettingsRow("hidden-apps", "Hidden apps", "Apps left out of your rows and grids", SettingsIcons.HiddenApps, SettingsColors.Graphite) {
+                nav.push(Screen.HiddenApps)
+            }
+        }
+    }
+    SettingsCard {
+        row {
+            SettingsRow("recent", "Recent apps", recentSummary(remoteOn, usageAccess), SettingsIcons.History, SettingsColors.Blue) {
+                when {
+                    !remoteOn -> nav.push(Screen.RemoteButtons)
+                    !usageAccess && container.actions.openUsageAccessSettings() -> {}
+                    else -> nav.push(Screen.Help)
                 }
             }
-            item {
-                SettingsItem("Android settings", "Open the TV's system settings") { container.actions.openSystemSettings() }
+        }
+    }
+}
+
+@Composable
+private fun RemoteSettings(container: AppContainer, nav: Navigator, state: LayoutState) {
+    val standbyOn by StandbyService.enabled.collectAsStateWithLifecycle()
+    val remoteOn by RemoteService.enabled.collectAsStateWithLifecycle()
+    SettingsCard {
+        row {
+            SettingsRow("remote-buttons", "Remote buttons", remoteButtonsSummary(remoteOn, state.document.keyBindings.size), SettingsIcons.Remote, SettingsColors.Purple) {
+                nav.push(Screen.RemoteButtons)
             }
-            item {
-                SettingsItem("Updates", updateSummary(update, container.updater)) { nav.push(Screen.Updates) }
+        }
+    }
+    SettingsCard {
+        row {
+            SettingsRow(
+                "standby",
+                "Standby",
+                if (standbyOn) {
+                    "The standby action and the screensaver's standby switch the TV off"
+                } else {
+                    "Turn on \"OwnTV standby\" in Accessibility so layouts can switch the TV off"
+                },
+                SettingsIcons.Power,
+                SettingsColors.Indigo,
+                RowEnd.Value(if (standbyOn) "On" else "Off"),
+            ) { container.actions.openAccessibilitySettings() }
+        }
+    }
+}
+
+@Composable
+private fun GeneralSettings(container: AppContainer, nav: Navigator, update: UpdateState) {
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    var cacheCleared by remember { mutableIntStateOf(0) }
+    val cacheBytes by produceState<Long?>(null, cacheCleared) { value = withContext(Dispatchers.IO) { LayoutImageLoader.cacheSize(context) } }
+    SettingsCard {
+        row {
+            SettingsRow(
+                "about",
+                "About",
+                "Layout format v$CURRENT_SCHEMA_VERSION",
+                Icons.Filled.Info,
+                SettingsColors.Gray,
+                RowEnd.Value("OwnTV ${container.updater.installedVersionName}"),
+            ) {}
+        }
+        row {
+            SettingsRow(
+                "updates",
+                "Updates",
+                updateSummary(update, container.updater),
+                SettingsIcons.Download,
+                SettingsColors.Gray,
+                if (update is UpdateState.Available) RowEnd.New else RowEnd.Chevron,
+            ) { nav.push(Screen.Updates) }
+        }
+    }
+    SettingsCard {
+        row {
+            SettingsRow("home-screen", "Make OwnTV your Home screen", "What to do on Google TV", Icons.Filled.Home, SettingsColors.Blue) {
+                nav.push(Screen.Help)
             }
-            item {
-                SettingsItem("Performance metrics", metricsSummary(metricsMode)) { nav.push(Screen.Performance) }
+        }
+        row {
+            SettingsRow("android-settings", "Android settings", "Open the TV's system settings", SettingsIcons.Android, SettingsColors.Green, RowEnd.None) {
+                container.actions.openSystemSettings()
             }
-            item {
-                SettingsItem("About", "OwnTV ${container.updater.installedVersionName}, layout format v$CURRENT_SCHEMA_VERSION") {}
+        }
+    }
+    SettingsCard("Storage") {
+        row {
+            SettingsRow(
+                "image-cache",
+                "Clear image cache",
+                when (val bytes = cacheBytes) {
+                    null -> "Delete the images downloaded for your layouts"
+                    0L -> "No downloaded layout images"
+                    else -> "Downloaded layout images download again when shown"
+                },
+                SettingsIcons.Image,
+                SettingsColors.Teal,
+                RowEnd.Value(cacheBytes?.takeIf { it > 0 }?.let { Formatter.formatShortFileSize(context, it) } ?: ""),
+            ) {
+                scope.launch {
+                    withContext(Dispatchers.IO) { LayoutImageLoader.clearCache(context) }
+                    cacheCleared++
+                    container.actions.toast("Deleted the downloaded layout images")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DeveloperSettings(container: AppContainer, nav: Navigator) {
+    val metricsMode by container.perf.mode.collectAsStateWithLifecycle()
+    val adbStatus by container.adb.status.collectAsStateWithLifecycle()
+    SettingsCard {
+        row { SettingsRow("adb", "ADB on this TV", selfAdbSummary(adbStatus), SettingsIcons.Code, SettingsColors.Graphite) { nav.push(Screen.SelfAdb) } }
+        row {
+            SettingsRow("performance", "Performance metrics", metricsSummary(metricsMode), SettingsIcons.Speed, SettingsColors.Red) {
+                nav.push(Screen.Performance)
             }
         }
     }
@@ -238,7 +331,7 @@ fun HelpScreen(container: AppContainer) {
             HelpText(
                 "Google TV sends the Home button to its own launcher. To use OwnTV instead, run this with adb " +
                     "(Settings > System > Developer options > USB or network debugging). Press OK on a command to run it on this TV " +
-                    "(see Settings > ADB on this TV), or type it on a computer:",
+                    "(see Settings > Developer > ADB on this TV), or type it on a computer:",
             )
             Code("adb shell cmd package set-home-activity $pkg/.MainActivity", rememberInitialFocus())
             HelpText("If Home still opens the Google TV launcher, disable it (you can undo this any time):")
@@ -249,7 +342,7 @@ fun HelpScreen(container: AppContainer) {
             Code("adb push my-layout.json ${container.files.adbPath}/")
             HelpText(
                 "Rows with a \"recent\" source always include apps opened from OwnTV. To include apps opened any other way " +
-                    "(voice search, notifications), turn on \"OwnTV remote\" under Accessibility in Android settings (Settings > Recent apps). " +
+                    "(voice search, notifications), turn on \"OwnTV remote\" under Accessibility in Android settings (Settings > Apps > Recent apps). " +
                     "It sees which app is open and nothing else. Or grant usage access instead:",
             )
             Code("adb shell appops set $pkg GET_USAGE_STATS allow")

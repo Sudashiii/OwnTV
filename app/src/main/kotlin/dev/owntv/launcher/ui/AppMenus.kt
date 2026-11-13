@@ -139,7 +139,7 @@ fun TileMenu(
             } else {
                 add("Hide" to {
                     container.appLists.update { AppListOps.hide(it, pkg) }
-                    container.actions.toast("Hidden. Settings > Hidden apps brings it back.")
+                    container.actions.toast("Hidden. Settings > Apps > Hidden apps brings it back.")
                 })
             }
             add("App info" to { container.actions.openAppInfo(pkg) })

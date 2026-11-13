@@ -209,7 +209,7 @@ The page `root` fills the screen. Other containers wrap their content unless you
 - `{ "type": "list", "list": "favorites" }` — a named app list (see "App lists" below). The layout only names the list; the TV stores its apps.
 - `{ "type": "all", "sort": "custom" | "alphabetical" | "recently_installed", "exclude": ["…"], "includeNonTvApps": false }` — every TV app. `custom` (default) is the order arranged on the TV; apps never moved follow alphabetically.
 - `{ "type": "category", "category": "games" | "apps" | "mobile", "sort": "alphabetical", "exclude": [] }` — games, everything that is not a game, or `mobile`: phone apps sideloaded onto the TV (no TV launcher entry).
-- `{ "type": "recent", "exclude": [] }` — most recently used first. Starts empty and fills as apps are opened from OwnTV. With OwnTV's remote service turned on (Settings > Recent apps) or usage access granted, apps opened any other way count too.
+- `{ "type": "recent", "exclude": [] }` — most recently used first. Starts empty and fills as apps are opened from OwnTV. With OwnTV's remote service turned on (Settings > Apps > Recent apps) or usage access granted, apps opened any other way count too.
 
 Widgets:
 
@@ -282,7 +282,7 @@ On the TV, long-press an app tile for:
 - **Move**: Left/Right (and Up/Down in grids) slide the tile, OK keeps the new place, Back cancels. Works in lists, folders and `all` sources sorted `custom`.
 - **Add to…**: put the app into any list the layout uses, including folders.
 - **Remove from …**: take it out of the list it was pressed in.
-- **Hide**: leave the app out of every row, grid and folder. Hidden apps stay in the app drawer and under Settings > Hidden apps.
+- **Hide**: leave the app out of every row, grid and folder. Hidden apps stay in the app drawer and under Settings > Apps > Hidden apps.
 
 ## Actions (for `shortcut.action`, slides and key bindings)
 

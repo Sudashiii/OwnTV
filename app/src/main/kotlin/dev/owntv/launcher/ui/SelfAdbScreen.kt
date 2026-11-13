@@ -44,7 +44,7 @@ fun selfAdbSummary(status: SelfAdb.Status): String = when (status) {
 
 fun SelfAdb.Problem.help(): String = when (this) {
     SelfAdb.Problem.NotListening ->
-        "This TV does not accept debugging yet: turn on USB debugging (on some TVs Network debugging) in Developer options. See Settings > ADB on this TV."
+        "This TV does not accept debugging yet: turn on USB debugging (on some TVs Network debugging) in Developer options. See Settings > Developer > ADB on this TV."
     SelfAdb.Problem.NotApproved ->
         "The TV did not allow it. Try again and choose Allow on \"Allow USB debugging?\", with \"Always allow\" ticked."
     SelfAdb.Problem.NeedsPairing ->
@@ -127,7 +127,7 @@ private fun RunnableCode(text: String, command: String, adb: SelfAdb, modifier: 
 
 private fun String.firstLine(): String? = lineSequence().map { it.trim() }.firstOrNull { it.isNotEmpty() }?.take(160)
 
-/** Settings > ADB on this TV: how to let OwnTV run its adb commands itself, and a connection test. */
+/** Settings > Developer > ADB on this TV: how to let OwnTV run its adb commands itself, and a connection test. */
 @Composable
 fun SelfAdbScreen(container: AppContainer) {
     val status by container.adb.status.collectAsStateWithLifecycle()

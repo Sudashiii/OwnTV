@@ -37,7 +37,7 @@ import java.io.File
 import java.text.DateFormat
 import java.util.Date
 
-/** Settings > Performance metrics. */
+/** Settings > Developer > Performance metrics. */
 enum class MetricsMode {
     /** Nothing is measured. */
     Off,
