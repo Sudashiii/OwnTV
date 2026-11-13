@@ -81,6 +81,13 @@ fun RemoteButtonsScreen(container: AppContainer, state: LayoutState) {
                     HelpText("If your TV has no such menu, a computer with adb can allow it once:")
                     Code("adb shell appops set $PACKAGE ACCESS_RESTRICTED_SETTINGS allow")
                 }
+                item {
+                    HelpText(
+                        "If your TV has no Accessibility screen at all, adb can turn on OwnTV's remote and standby services directly " +
+                            "(this replaces other accessibility services you turned on):",
+                    )
+                    Code("adb shell settings put secure enabled_accessibility_services $PACKAGE/.actions.RemoteService:$PACKAGE/.actions.StandbyService")
+                }
             }
             item {
                 SettingsItem("Press a button on your remote", pressedSummary(pressed, on)) {}
