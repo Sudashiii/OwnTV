@@ -84,25 +84,33 @@ fun OwnTvRoot(container: AppContainer, nav: Navigator, idle: IdleTracker) {
                         HomeScreen(container, nav, layoutState, catalog, arranger, idle)
                     }
                 }
-                when (val screen = nav.current) {
-                    Screen.Home -> {}
-                    Screen.AppDrawer -> AppDrawerScreen(container, nav, layoutState, catalog, arranger)
-                    Screen.Settings -> SettingsScreen(container, nav, layoutState)
-                    is Screen.Editor -> EditorScreen(container, nav, layoutState, catalog, screen.selectId)
-                    Screen.Import -> ImportScreen(container, nav)
-                    Screen.Templates -> TemplatesScreen(container, nav)
-                    Screen.Looks -> LooksScreen(container, nav)
-                    is Screen.LookPreview -> LookPreviewScreen(container, nav, screen.fileName, layoutState, catalog)
-                    Screen.History -> HistoryScreen(container, nav)
-                    Screen.Help -> HelpScreen(container)
-                    Screen.Updates -> UpdatesScreen(container)
-                    Screen.Performance -> PerformanceScreen(container)
-                    Screen.RemoteButtons -> RemoteButtonsScreen(container, layoutState)
-                    Screen.SelfAdb -> SelfAdbScreen(container)
-                    Screen.AdbCommands -> AdbCommandsScreen(container)
-                    is Screen.ListEditor -> ListEditorScreen(container, screen.name, screen.title, catalog)
-                    Screen.HiddenApps -> HiddenAppsScreen(container, catalog)
-                    is Screen.Preview -> PreviewScreen(container, nav, screen.result, screen.source, screen.builtIn, catalog)
+                val screenContent: @Composable (Screen) -> Unit = { screen ->
+                    when (screen) {
+                        Screen.Home, Screen.Settings -> {}
+                        Screen.AppDrawer -> AppDrawerScreen(container, nav, layoutState, catalog, arranger)
+                        is Screen.Editor -> EditorScreen(container, nav, layoutState, catalog, screen.selectId)
+                        Screen.Import -> ImportScreen(container, nav)
+                        Screen.Templates -> TemplatesScreen(container, nav)
+                        Screen.Looks -> LooksScreen(container, nav)
+                        is Screen.LookPreview -> LookPreviewScreen(container, nav, screen.fileName, layoutState, catalog)
+                        Screen.History -> HistoryScreen(container, nav)
+                        Screen.Help -> HelpScreen(container)
+                        Screen.Updates -> UpdatesScreen(container)
+                        Screen.Performance -> PerformanceScreen(container)
+                        Screen.RemoteButtons -> RemoteButtonsScreen(container, layoutState)
+                        Screen.SelfAdb -> SelfAdbScreen(container)
+                        Screen.AdbCommands -> AdbCommandsScreen(container)
+                        is Screen.ListEditor -> ListEditorScreen(container, screen.name, screen.title, catalog)
+                        Screen.HiddenApps -> HiddenAppsScreen(container, catalog)
+                        is Screen.Preview -> PreviewScreen(container, nav, screen.result, screen.source, screen.builtIn, catalog)
+                    }
+                }
+                // One call for Settings and the screens opened in its pane, so the sidebar stays as it is.
+                val settingsDetail = nav.settingsDetail()
+                if (nav.current == Screen.Settings || settingsDetail != null) {
+                    SettingsScreen(container, nav, layoutState, idle, settingsDetail) { screenContent(it) }
+                } else {
+                    screenContent(nav.current)
                 }
                 // Quick settings brightness while the remote service is off (with it on, the service dims every app).
                 DimLayer(container.dimmer)

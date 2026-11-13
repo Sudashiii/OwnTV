@@ -36,6 +36,7 @@ import dev.owntv.launcher.data.layout.LayoutImageLoader
 import dev.owntv.launcher.data.layout.LayoutState
 import dev.owntv.launcher.update.UpdateState
 import dev.owntv.layout.model.CURRENT_SCHEMA_VERSION
+import dev.owntv.layout.model.screensaverPage
 import dev.owntv.layout.validation.Severity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -45,7 +46,14 @@ import java.text.DateFormat
 import java.util.Date
 
 @Composable
-fun SettingsScreen(container: AppContainer, nav: Navigator, state: LayoutState) {
+fun SettingsScreen(
+    container: AppContainer,
+    nav: Navigator,
+    state: LayoutState,
+    idle: IdleTracker,
+    detail: Screen?,
+    detailContent: @Composable (Screen) -> Unit,
+) {
     val update by container.updater.state.collectAsStateWithLifecycle()
     val builtInUpdate by container.layouts.builtInUpdate.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { container.updater.checkIfStale() }
@@ -53,9 +61,16 @@ fun SettingsScreen(container: AppContainer, nav: Navigator, state: LayoutState) 
         if (builtInUpdate != null) add(SettingsGroup.Layout)
         if (update is UpdateState.Available) add(SettingsGroup.General)
     }
-    SettingsSplitView(nav, "OwnTV", "Layout: ${state.document.name}", badges) { group ->
+    SettingsSplitView(
+        nav,
+        "OwnTV",
+        "Layout: ${state.document.name}",
+        badges,
+        detailKey = detail,
+        detail = { detail?.let { detailContent(it) } },
+    ) { group ->
         when (group) {
-            SettingsGroup.Layout -> LayoutSettings(container, nav, state)
+            SettingsGroup.Layout -> LayoutSettings(container, nav, state, idle)
             SettingsGroup.Apps -> AppsSettings(container, nav)
             SettingsGroup.Remote -> RemoteSettings(container, nav, state)
             SettingsGroup.General -> GeneralSettings(container, nav, update)
@@ -65,7 +80,7 @@ fun SettingsScreen(container: AppContainer, nav: Navigator, state: LayoutState) 
 }
 
 @Composable
-private fun LayoutSettings(container: AppContainer, nav: Navigator, state: LayoutState) {
+private fun LayoutSettings(container: AppContainer, nav: Navigator, state: LayoutState, idle: IdleTracker) {
     val scope = rememberCoroutineScope()
     val hasHistory by container.layouts.hasHistory.collectAsStateWithLifecycle()
     val builtInUpdate by container.layouts.builtInUpdate.collectAsStateWithLifecycle()
@@ -97,6 +112,27 @@ private fun LayoutSettings(container: AppContainer, nav: Navigator, state: Layou
                 SettingsColors.Teal,
             ) {
                 nav.showPreview(container.decode(container.layouts.currentJson()), "Current layout")
+            }
+        }
+    }
+    val saver = state.document.screensaver?.takeIf { state.document.screensaverPage != null }
+    SettingsCard {
+        row {
+            SettingsRow(
+                "screensaver",
+                "Start screen saver",
+                if (saver != null) {
+                    "Show this layout's screen saver now. It also starts after ${duration(saver.after)} without a button press."
+                } else {
+                    "This layout has no screen saver"
+                },
+                SettingsIcons.Bedtime,
+                SettingsColors.Indigo,
+                RowEnd.None,
+                enabled = saver != null,
+            ) {
+                nav.home()
+                idle.start()
             }
         }
     }
@@ -281,6 +317,19 @@ private fun DeveloperSettings(container: AppContainer, nav: Navigator) {
                 nav.push(Screen.Performance)
             }
         }
+    }
+}
+
+/** "45 seconds", "5 minutes", "1 hour", "1 hour 30 minutes". */
+internal fun duration(seconds: Int): String {
+    fun unit(n: Int, name: String) = "$n $name" + if (n == 1) "" else "s"
+    val h = seconds / 3600
+    val m = seconds % 3600 / 60
+    val s = seconds % 60
+    return when {
+        h > 0 -> unit(h, "hour") + if (m > 0) " " + unit(m, "minute") else ""
+        m > 0 -> unit(m, "minute") + if (s > 0) " " + unit(s, "second") else ""
+        else -> unit(s, "second")
     }
 }
 
