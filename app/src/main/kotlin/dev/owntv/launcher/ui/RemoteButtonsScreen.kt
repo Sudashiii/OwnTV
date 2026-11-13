@@ -46,6 +46,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import dev.owntv.launcher.AppContainer
+import dev.owntv.launcher.adb.AdbCommands
 import dev.owntv.launcher.actions.KeyProbe
 import dev.owntv.launcher.actions.PressedKey
 import dev.owntv.launcher.actions.RemoteService
@@ -83,7 +84,7 @@ fun remoteButtonsSummary(on: Boolean, bindings: Int): String = when {
 private enum class RemoteTab(val title: String) { Buttons("Buttons"), Setup("Setup") }
 
 /**
- * Settings > Remote buttons, in two tabs: Buttons shows every button a layout can bind as a card with what a
+ * Settings > Remote & standby > Remote buttons, in two tabs: Buttons shows every button a layout can bind as a card with what a
  * press and a hold do, jumps to the card of any button pressed on the remote, and changes it with OK (saved to
  * the layout through [LayoutOps.setKeyBinding]). Setup turns on OwnTV's remote service.
  */
@@ -523,7 +524,7 @@ private fun SetupTab(container: AppContainer, on: Boolean) {
         if (state.screenReaderMode && state.services.none { it.speaks }) {
             item {
                 HelpText("The TV is in screen reader mode although no screen reader is listed, which can make it read things such as the volume aloud. This switches that mode off:")
-                Code("adb shell settings put secure touch_exploration_enabled 0")
+                Code(AdbCommands.ScreenReaderModeOff.line)
             }
         }
         if (showHelp) {
@@ -531,9 +532,9 @@ private fun SetupTab(container: AppContainer, on: Boolean) {
             item {
                 HelpText(
                     "Let OwnTV switch its own services on and off right here, without touching any other accessibility service " +
-                        "(OK runs it on this TV, see Settings > ADB on this TV; or type it on a computer):",
+                        "(OK runs it on this TV, see Settings > Developer > ADB on this TV; or type it on a computer):",
                 )
-                Code("adb shell pm grant $PACKAGE android.permission.WRITE_SECURE_SETTINGS")
+                Code(AdbCommands.GrantSecureSettings.line)
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 item {
@@ -546,7 +547,7 @@ private fun SetupTab(container: AppContainer, on: Boolean) {
                     SettingsItem("Open OwnTV app info", "Menu (⋮) > Allow restricted settings") { container.actions.openAppInfo(PACKAGE) }
                 }
                 item {
-                    Code("adb shell appops set $PACKAGE ACCESS_RESTRICTED_SETTINGS allow")
+                    Code(AdbCommands.AllowRestrictedSettings.line)
                 }
             }
         }

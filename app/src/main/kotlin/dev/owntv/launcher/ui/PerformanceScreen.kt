@@ -49,7 +49,7 @@ fun metricsSummary(mode: MetricsMode): String = when (mode) {
     MetricsMode.Live -> "Live overlay on · see the results"
 }
 
-/** Settings > Performance metrics: the mode, and the report of what was measured so far. */
+/** Settings > Developer > Performance metrics: the mode, and the report of what was measured so far. */
 @Composable
 fun PerformanceScreen(container: AppContainer) {
     val perf = container.perf
