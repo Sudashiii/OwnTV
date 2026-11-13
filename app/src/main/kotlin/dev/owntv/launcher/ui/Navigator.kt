@@ -30,6 +30,15 @@ sealed interface Screen {
     data class Preview(val result: DecodeResult, val source: String, val builtIn: BuiltInRef? = null) : Screen
 }
 
+/** Screens that open in the Settings pane next to the sidebar; the others (editor, previews, app drawer) take the whole screen. */
+val Screen.opensInSettingsPane: Boolean
+    get() = when (this) {
+        Screen.Import, Screen.Templates, Screen.Looks, Screen.History, Screen.Help, Screen.Updates, Screen.Performance,
+        Screen.RemoteButtons, Screen.SelfAdb, Screen.AdbCommands, Screen.HiddenApps,
+        -> true
+        else -> false
+    }
+
 /** A small back stack. Home is always at the bottom. */
 class Navigator {
     val stack = mutableStateListOf<Screen>(Screen.Home)
@@ -52,6 +61,22 @@ class Navigator {
         // Opened afresh (not returning to it), Settings starts in the sidebar.
         if (screen == Screen.Settings) settingsRow = null
         stack.add(screen)
+    }
+
+    /** Closes the screens open in the Settings pane, back to the group's rows. */
+    fun closeSettingsDetail() {
+        if (settingsDetail() == null) return
+        while (current != Screen.Settings) stack.removeAt(stack.lastIndex)
+    }
+
+    /**
+     * The screen shown in the Settings pane, beside the sidebar: the current screen, when Settings is below it with
+     * only pane screens in between. Null when Settings shows its rows, or the current screen needs the whole screen.
+     */
+    fun settingsDetail(): Screen? {
+        val settings = stack.lastIndexOf(Screen.Settings)
+        if (settings < 0 || settings == stack.lastIndex) return null
+        return current.takeIf { stack.subList(settings + 1, stack.size).all { it.opensInSettingsPane } }
     }
 
     fun showPreview(result: DecodeResult, source: String, builtIn: BuiltInRef? = null) {

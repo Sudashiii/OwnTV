@@ -61,6 +61,14 @@ fun rememberInitialFocus(): Modifier {
 
 @Composable
 fun SettingsScaffold(title: String, subtitle: String? = null, content: @Composable ColumnScope.() -> Unit) {
+    if (LocalInSettingsPane.current) {
+        Column(Modifier.fillMaxSize()) {
+            SettingsPaneHeader(title, subtitle)
+            Spacer(Modifier.height(18.dp))
+            content()
+        }
+        return
+    }
     Column(
         Modifier
             .fillMaxSize()

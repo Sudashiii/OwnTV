@@ -6,6 +6,7 @@ import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -64,7 +65,7 @@ fun UpdatesScreen(container: AppContainer) {
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { updater.onResume() }
 
     SettingsScaffold("Updates", "Installed: OwnTV ${updater.installedVersionName}") {
-        Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(48.dp)) {
+        Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(if (LocalInSettingsPane.current) 28.dp else 48.dp)) {
             // A new key per kind of state, so the button that replaces a focused one takes focus again.
             Column(Modifier.weight(1f)) {
                 key(state::class) { UpdateStatus(state, updater) }
@@ -185,7 +186,8 @@ private fun DownloadSize(bytes: Long?) {
 
 @Composable
 private fun Actions(content: @Composable () -> Unit) {
-    Row(Modifier.padding(top = 24.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) { content() }
+    // Wraps in the narrower Settings pane instead of squeezing a button.
+    FlowRow(Modifier.padding(top = 24.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) { content() }
 }
 
 @Composable

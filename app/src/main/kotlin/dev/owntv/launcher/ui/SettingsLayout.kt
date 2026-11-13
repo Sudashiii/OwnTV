@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Settings
@@ -43,6 +44,7 @@ import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
@@ -125,9 +127,15 @@ private class SettingsRowHost(restoreKey: String?, val onOpen: (String) -> Unit)
 
 private val LocalSettingsRowHost = staticCompositionLocalOf<SettingsRowHost?> { null }
 
+/** True inside the right pane of Settings: [SettingsScaffold] then draws a sub-page header instead of a full screen. */
+val LocalInSettingsPane = staticCompositionLocalOf { false }
+
 /**
  * Two panes like a Mac's System Settings: groups on the left, the selected group's rows on the right.
  * Focusing a group shows it; Right or OK moves into its rows and Left goes back to the group.
+ *
+ * A screen opened from a row ([detail], identified by [detailKey]) takes the place of the rows, with the sidebar
+ * still showing; Back closes it again. Moving to another group in the sidebar closes it too.
  */
 @Composable
 fun SettingsSplitView(
@@ -135,19 +143,23 @@ fun SettingsSplitView(
     title: String,
     subtitle: String,
     badges: Set<SettingsGroup>,
+    detailKey: Any?,
+    detail: @Composable () -> Unit,
     content: @Composable ColumnScope.(SettingsGroup) -> Unit,
 ) {
     val group = nav.settingsGroup
-    // Read once: after Back from a screen opened here, focus goes to the row that opened it; otherwise to the group.
-    val restoreKey = remember { nav.settingsRow }
-    val initialGroup = remember { group }
+    val showingRows = detailKey == null
+    // After Back from a screen opened here, focus goes to the row that opened it; otherwise (opened afresh) to the group.
+    val firstRestore = remember { nav.settingsRow }
+    val focusSidebarFirst = remember { firstRestore == null && showingRows }
     val sidebarFocus = remember { SettingsGroup.entries.associateWith { FocusRequester() } }
     val paneFocus = remember { FocusRequester() }
-    val host = remember(nav) { SettingsRowHost(restoreKey) { nav.settingsRow = it } }
+    // New each time the rows come back, holding the row to focus again.
+    val host = remember(showingRows) { SettingsRowHost(nav.settingsRow.takeIf { showingRows }) { nav.settingsRow = it } }
     var hasFocus by remember { mutableStateOf(false) }
-    if (restoreKey != null) {
+    if (host.restoreKey != null) {
         // The row may be gone (a disabled history, an update that was applied); then the sidebar takes focus.
-        LaunchedEffect(Unit) {
+        LaunchedEffect(host) {
             repeat(3) { withFrameNanos { } }
             host.restoreKey = null
             if (!hasFocus) runCatching { sidebarFocus.getValue(group).requestFocus() }
@@ -176,6 +188,8 @@ fun SettingsSplitView(
                     }
                 }
                 .focusProperties { onExit = { if (requestedFocusDirection.isVertical()) cancelFocusChange() } }
+                // Coming back from an open screen with Left lands on the selected group, not the nearest one.
+                .focusRestorer(sidebarFocus.getValue(group))
                 .focusGroup(),
         ) {
             SidebarHeader(title, subtitle)
@@ -188,14 +202,37 @@ fun SettingsSplitView(
                         badge = entry in badges,
                         modifier = Modifier
                             .focusRequester(sidebarFocus.getValue(entry))
-                            .then(if (restoreKey == null && entry == initialGroup) rememberInitialFocus() else Modifier),
-                        onFocus = { nav.settingsGroup = entry },
+                            .then(if (focusSidebarFirst && entry == group) rememberInitialFocus() else Modifier),
+                        onFocus = {
+                            if (entry != nav.settingsGroup) {
+                                nav.closeSettingsDetail()
+                                nav.settingsGroup = entry
+                            }
+                        },
                         onClick = { runCatching { paneFocus.requestFocus() } },
                     )
                 }
             }
         }
         Spacer(Modifier.width(24.dp))
+        if (!showingRows) {
+            // The open screen: Left and Right move as the screen needs; Left from its left edge reaches the sidebar.
+            key(detailKey) {
+                Column(
+                    Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .focusRequester(paneFocus)
+                        .focusProperties { onExit = { if (requestedFocusDirection.isVertical()) cancelFocusChange() } }
+                        .focusRestorer()
+                        .focusGroup()
+                        .padding(horizontal = 8.dp),
+                ) {
+                    CompositionLocalProvider(LocalInSettingsPane provides true) { detail() }
+                }
+            }
+            return@Row
+        }
         CompositionLocalProvider(LocalSettingsRowHost provides host) {
             key(group) {
                 Column(
@@ -223,6 +260,33 @@ fun SettingsSplitView(
                 }
             }
         }
+    }
+}
+
+/**
+ * The header of a screen opened in the Settings pane, like a Mac's sub-page: a back chevron (Back on the remote)
+ * and the title, then [subtitle].
+ */
+@Composable
+fun SettingsPaneHeader(title: String, subtitle: String?) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            Modifier.size(32.dp).background(SettingsColors.Card, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Back", tint = SettingsColors.Muted, modifier = Modifier.size(24.dp))
+        }
+        Text(
+            title,
+            style = MaterialTheme.typography.titleLarge,
+            color = SettingsColors.Text,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(start = 12.dp),
+        )
+    }
+    if (subtitle != null) {
+        Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = SettingsColors.Muted, modifier = Modifier.padding(top = 10.dp))
     }
 }
 
