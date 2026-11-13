@@ -223,7 +223,7 @@ class EditTest {
         val descriptor = dev.owntv.layout.model.KeyBinding.serializer().descriptor
         val binding = LayoutCodec.json.decodeFromJsonElement(dev.owntv.layout.model.KeyBinding.serializer(), Fields.newObject(descriptor))
         assertEquals(dev.owntv.layout.model.KeyPress.Short, binding.press)
-        assertEquals(listOf("key", "press", "action"), Fields.forDescriptor(descriptor).map { it.name })
+        assertEquals(listOf("key", "press", "action", "keyCode"), Fields.forDescriptor(descriptor).map { it.name })
         assertEquals(FieldKind.ObjectList, Fields.forDescriptor(LayoutDocument.serializer().descriptor).first { it.name == "keyBindings" }.kind)
     }
 
@@ -254,6 +254,29 @@ class EditTest {
 
         assertNull(LayoutOps.setKeyBinding(removed, red, long, drawer))
         assertNull(LayoutOps.setKeyBinding(removed, red, short, null))
+    }
+
+    @Test
+    fun `custom buttons can be edited independently and match named aliases`() {
+        val base = LayoutCodec.decode(
+            """{ "schemaVersion": 3, "keyBindings": [
+                 { "key": "custom", "keyCode": 15, "action": { "type": "open_app_drawer" } },
+                 { "key": "custom", "keyCode": 289, "action": { "type": "standby" } },
+                 { "key": "custom", "keyCode": 183, "action": { "type": "open_app_drawer" } } ],
+               "pages": [ { "id": "home", "root": { "type": "shortcut", "id": "s", "label": "S", "action": { "type": "open_launcher_settings" } } } ] }""",
+        ).requireDocument()
+        val custom = dev.owntv.layout.model.RemoteKey.Custom
+        val short = dev.owntv.layout.model.KeyPress.Short
+        val quick = dev.owntv.layout.model.OpenQuickSettingsAction
+        val replaced = LayoutOps.setKeyBinding(base, custom, short, quick, 15)!!
+        assertEquals(listOf(15, 289, 183), replaced.keyBindings.map { it.androidKeyCode })
+        assertEquals(quick, replaced.keyBindings.first().action)
+        val named = LayoutOps.setKeyBinding(replaced, dev.owntv.layout.model.RemoteKey.Red, short, quick)!!
+        assertEquals(3, named.keyBindings.size)
+        assertEquals(dev.owntv.layout.model.RemoteKey.Red, named.keyBindings.last().key)
+        val removed = LayoutOps.setKeyBinding(named, custom, short, null, 289)!!
+        assertEquals(listOf(15, 183), removed.keyBindings.map { it.androidKeyCode })
+        assertNull(LayoutOps.setKeyBinding(removed, custom, short, quick, 4))
     }
 
     @Test

@@ -6,11 +6,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /** The button the user pressed last, shown by the Remote buttons screen. */
-data class PressedKey(val keyCode: Int, val name: String, val remappable: Boolean, val count: Int)
+data class PressedKey(val keyCode: Int, val name: String, val count: Int)
 
 /**
- * Feeds the "press a button" test on the Remote buttons screen. Key presses are only looked at while that
- * screen is open ([listening]) and only the last one is kept in memory: nothing is logged or stored.
+ * Feeds the "press a button" test on the Remote buttons screen. While the screen is active, bindable
+ * buttons are consumed so they cannot launch their original action. Navigation buttons pass through.
  */
 object KeyProbe {
     @Volatile
@@ -18,15 +18,24 @@ object KeyProbe {
 
     private val lastKey = MutableStateFlow<PressedKey?>(null)
     val last: StateFlow<PressedKey?> = lastKey.asStateFlow()
+    private val seenKeys = MutableStateFlow<Set<Int>>(emptySet())
+    val seen: StateFlow<Set<Int>> = seenKeys.asStateFlow()
 
-    /** [event] is a key-down that reached OwnTV or its remote service. */
-    fun report(event: KeyEvent) {
-        if (!listening || event.action != KeyEvent.ACTION_DOWN || event.repeatCount != 0) return
-        val count = (lastKey.value?.takeIf { it.keyCode == event.keyCode }?.count ?: 0) + 1
-        lastKey.value = PressedKey(event.keyCode, keyName(event.keyCode), isRemappable(event.keyCode), count)
+    /** Returns true when this event should be kept from the TV and other apps. */
+    fun handle(event: KeyEvent): Boolean = handle(event.keyCode, event.action, event.repeatCount)
+
+    internal fun handle(keyCode: Int, action: Int, repeatCount: Int, nameOf: (Int) -> String = ::keyName): Boolean {
+        if (!listening || !isRemappable(keyCode)) return false
+        if (action == KeyEvent.ACTION_DOWN && repeatCount == 0) {
+            seenKeys.value = seenKeys.value + keyCode
+            val count = (lastKey.value?.takeIf { it.keyCode == keyCode }?.count ?: 0) + 1
+            lastKey.value = PressedKey(keyCode, nameOf(keyCode), count)
+        }
+        return action == KeyEvent.ACTION_DOWN || action == KeyEvent.ACTION_UP
     }
 
     fun clear() {
         lastKey.value = null
+        seenKeys.value = emptySet()
     }
 }

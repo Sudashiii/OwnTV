@@ -274,6 +274,28 @@ class ValidatorTest {
     }
 
     @Test
+    fun `custom key codes validate and preserve distinct buttons and named aliases`() {
+        fun decode(bindings: String) = LayoutCodec.decode(docWithRoot(TILE, extra = "\"keyBindings\": [$bindings],"))
+        val action = "\"action\": { \"type\": \"open_app_drawer\" }"
+        val valid = decode("""{ "key": "custom", "keyCode": 15, $action }, { "key": "custom", "keyCode": 289, $action }""")
+        assertTrue(valid.issues.isEmpty(), valid.issues.joinToString())
+        assertEquals(listOf(15, 289), valid.requireDocument().keyBindings.map { it.androidKeyCode })
+        assertTrue(LayoutCodec.decode(LayoutCodec.encode(valid.requireDocument())).issues.isEmpty())
+
+        val missing = decode("""{ "key": "custom", $action }""")
+        assertEquals(listOf("$.keyBindings[0].keyCode"), missing.paths(Severity.Error))
+        val extra = decode("""{ "key": "red", "keyCode": 15, $action }""")
+        assertEquals(listOf("$.keyBindings[0].keyCode"), extra.paths(Severity.Error))
+        val reserved = decode("""{ "key": "custom", "keyCode": 4, $action }""")
+        assertEquals(listOf("$.keyBindings[0].keyCode"), reserved.paths(Severity.Error))
+        val unknown = decode("""{ "key": "custom", "keyCode": 0, $action }""")
+        assertEquals(listOf("$.keyBindings[0].keyCode"), unknown.paths(Severity.Error))
+
+        val duplicate = decode("""{ "key": "red", $action }, { "key": "custom", "keyCode": 183, $action }""")
+        assertEquals(listOf("$.keyBindings[1]"), duplicate.paths(Severity.Warning))
+    }
+
+    @Test
     fun `a key binding is not a link to OwnTV's settings`() {
         val result = LayoutCodec.decode(
             """

@@ -45,6 +45,9 @@
             <action android:name="android.settings.ACCESSIBILITY_TV_OEM_LINK" />
         </intent>
         <intent>
+            <action android:name="android.settings.ACCESSIBILITY_DETAILS_SETTINGS" />
+        </intent>
+        <intent>
             <action android:name="android.settings.SETTINGS" />
         </intent>
         <intent>

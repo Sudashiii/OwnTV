@@ -19,7 +19,7 @@ fun Action.runsInOwnTv(): Boolean =
  * [onLongPressTimeout] or from a key repeat, whichever comes first; the following key-up is then swallowed.
  * Only bound keys are consumed. Bindings come first-wins per key and press.
  */
-class KeyBindingMatcher(bindings: List<KeyBinding>, keyCodeOf: (dev.owntv.layout.model.RemoteKey) -> Int = { it.keyCode() }) {
+class KeyBindingMatcher(bindings: List<KeyBinding>) {
     sealed interface Result {
         /** Not a bound key: leave the event to the system and the apps. */
         data object PassThrough : Result
@@ -35,7 +35,8 @@ class KeyBindingMatcher(bindings: List<KeyBinding>, keyCodeOf: (dev.owntv.layout
 
     private class Press(val downAt: Long, var longFired: Boolean = false)
 
-    private val entries: Map<Int, Entry> = bindings.groupBy { keyCodeOf(it.key) }.mapValues { (_, group) ->
+    private val entries: Map<Int, Entry> = bindings.filter { it.androidKeyCode != null }
+        .groupBy { it.androidKeyCode!! }.mapValues { (_, group) ->
         Entry(
             short = group.firstOrNull { it.press == KeyPress.Short }?.action,
             long = group.firstOrNull { it.press == KeyPress.Long }?.action,
