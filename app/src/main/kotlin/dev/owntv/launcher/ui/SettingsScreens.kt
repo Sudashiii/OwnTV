@@ -64,7 +64,7 @@ fun SettingsScreen(
     SettingsSplitView(
         nav,
         "OwnTV",
-        "Layout: ${state.document.name}",
+        state.document.name,
         badges,
         detailKey = detail,
         detail = { detail?.let { detailContent(it) } },
@@ -184,7 +184,7 @@ private fun AppsSettings(container: AppContainer, nav: Navigator) {
     // Read each time the group shows: usage access is granted outside the app.
     val usageAccess = remember { container.recent.hasUsageAccess() }
     val cleanupRecord by container.cleanup.record.collectAsStateWithLifecycle()
-    SettingsCard {
+    SettingsCard("Library") {
         row { SettingsRow("all-apps", "All apps", "Every installed app", SettingsIcons.Apps, SettingsColors.Green) { nav.push(Screen.AppDrawer) } }
         row {
             SettingsRow("hidden-apps", "Hidden apps", "Apps left out of your rows and grids", SettingsIcons.HiddenApps, SettingsColors.Graphite) {
@@ -197,7 +197,7 @@ private fun AppsSettings(container: AppContainer, nav: Navigator) {
             }
         }
     }
-    SettingsCard {
+    SettingsCard("Activity") {
         row {
             SettingsRow("recent", "Recent apps", recentSummary(remoteOn, usageAccess), SettingsIcons.History, SettingsColors.Blue) {
                 when {
@@ -214,14 +214,14 @@ private fun AppsSettings(container: AppContainer, nav: Navigator) {
 private fun RemoteSettings(container: AppContainer, nav: Navigator, state: LayoutState) {
     val standbyOn by StandbyService.enabled.collectAsStateWithLifecycle()
     val remoteOn by RemoteService.enabled.collectAsStateWithLifecycle()
-    SettingsCard {
+    SettingsCard("Buttons") {
         row {
             SettingsRow("remote-buttons", "Remote buttons", remoteButtonsSummary(remoteOn, state.document.keyBindings.size), SettingsIcons.Remote, SettingsColors.Purple) {
                 nav.push(Screen.RemoteButtons)
             }
         }
     }
-    SettingsCard {
+    SettingsCard("Power") {
         row {
             SettingsRow(
                 "standby",
@@ -267,7 +267,7 @@ private fun GeneralSettings(container: AppContainer, nav: Navigator, update: Upd
             ) { nav.push(Screen.Updates) }
         }
     }
-    SettingsCard {
+    SettingsCard("System") {
         row {
             SettingsRow("home-screen", "Make OwnTV your Home screen", "What to do on Google TV", Icons.Filled.Home, SettingsColors.Blue) {
                 nav.push(Screen.Help)
@@ -307,7 +307,7 @@ private fun GeneralSettings(container: AppContainer, nav: Navigator, update: Upd
 private fun DeveloperSettings(container: AppContainer, nav: Navigator) {
     val metricsMode by container.perf.mode.collectAsStateWithLifecycle()
     val adbStatus by container.adb.status.collectAsStateWithLifecycle()
-    SettingsCard {
+    SettingsCard("Tools") {
         row { SettingsRow("adb", "ADB on this TV", selfAdbSummary(adbStatus), SettingsIcons.Code, SettingsColors.Graphite) { nav.push(Screen.SelfAdb) } }
         row {
             SettingsRow(

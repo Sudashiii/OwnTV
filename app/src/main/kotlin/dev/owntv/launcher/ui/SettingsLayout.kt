@@ -47,6 +47,8 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -58,10 +60,11 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Icon
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
@@ -71,24 +74,24 @@ import dev.owntv.launcher.R
 enum class SettingsGroup(val title: String, val description: String, val icon: ImageVector, val tint: Color) {
     General(
         "General",
-        "Updates, storage, making OwnTV your Home screen and the TV's own settings.",
+        "Updates, storage and making OwnTV your Home screen.",
         Icons.Filled.Settings,
         SettingsColors.Gray,
     ),
     Layout(
         "Layout",
-        "Edit your home screen, switch to another look or template, import layouts and go back to earlier ones.",
+        "Edit your home screen, change its look, import or restore layouts.",
         SettingsIcons.Dashboard,
         SettingsColors.Blue,
     ),
-    Apps("Apps", "Every installed app, the apps you hid, how recent apps are counted and cleaning up the TV.", SettingsIcons.Apps, SettingsColors.Green),
+    Apps("Apps", "Every installed app, the ones you hid, recent apps and cleaning up the TV.", SettingsIcons.Apps, SettingsColors.Green),
     Remote(
         "Remote & standby",
-        "Give your remote's buttons a job of their own and let layouts switch the TV off.",
+        "Give remote buttons a job and let layouts switch the TV off.",
         SettingsIcons.Remote,
         SettingsColors.Purple,
     ),
-    Developer("Developer", "Run adb commands on this TV, see every command OwnTV uses and measure how smoothly OwnTV runs.", SettingsIcons.Code, SettingsColors.Orange),
+    Developer("Developer", "Run adb on this TV, see OwnTV's commands and measure performance.", SettingsIcons.Code, SettingsColors.Orange),
 }
 
 /** Sidebar blocks, separated by a gap like the sections of a Mac's System Settings. */
@@ -117,6 +120,8 @@ object SettingsColors {
     val Focus = Color(0xFF2F74E8)
     val Text = Color(0xFFF2F3F5)
     val Muted = Color(0xFFA9AFBA)
+    val Caption = Color(0xFF7E8491)
+    val SidebarEdge = Color(0xFF262932)
 }
 
 /** What a row needs from the Settings screen: which row gets focus back, and telling it which row opened something. */
@@ -170,15 +175,19 @@ fun SettingsSplitView(
         Modifier
             .fillMaxSize()
             .onFocusChanged { hasFocus = it.hasFocus }
-            .background(ScreenBackground)
-            .padding(horizontal = 40.dp, vertical = 28.dp),
+            .background(ScreenBackground),
     ) {
+        // Runs the full height of the screen and touches its edges, like the sidebar of a Mac's System Settings.
         Column(
             Modifier
-                .width(248.dp)
+                .width(268.dp)
                 .fillMaxHeight()
-                .background(SettingsColors.Sidebar, RoundedCornerShape(18.dp))
-                .padding(12.dp)
+                .background(SettingsColors.Sidebar)
+                .drawBehind {
+                    val edge = 1.dp.toPx()
+                    drawRect(SettingsColors.SidebarEdge, topLeft = Offset(size.width - edge, 0f), size = Size(edge, size.height))
+                }
+                .padding(start = 14.dp, top = 28.dp, end = 14.dp, bottom = 14.dp)
                 .onPreviewKeyEvent { event ->
                     if (event.type == KeyEventType.KeyDown && event.key == Key.DirectionRight) {
                         runCatching { paneFocus.requestFocus() }
@@ -214,7 +223,6 @@ fun SettingsSplitView(
                 }
             }
         }
-        Spacer(Modifier.width(24.dp))
         if (!showingRows) {
             // The open screen: Left and Right move as the screen needs; Left from its left edge reaches the sidebar.
             key(detailKey) {
@@ -226,7 +234,7 @@ fun SettingsSplitView(
                         .focusProperties { onExit = { if (requestedFocusDirection.isVertical()) cancelFocusChange() } }
                         .focusRestorer()
                         .focusGroup()
-                        .padding(horizontal = 8.dp),
+                        .padding(start = 28.dp, top = 28.dp, end = 40.dp),
                 ) {
                     CompositionLocalProvider(LocalInSettingsPane provides true) { detail() }
                 }
@@ -251,7 +259,7 @@ fun SettingsSplitView(
                         .focusProperties { onExit = { if (requestedFocusDirection.isVertical()) cancelFocusChange() } }
                         .focusGroup()
                         .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 8.dp),
+                        .padding(start = 28.dp, top = 28.dp, end = 40.dp, bottom = 24.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     GroupHeader(group)
@@ -294,10 +302,10 @@ private fun FocusDirection.isVertical() = this == FocusDirection.Up || this == F
 
 @Composable
 private fun SidebarHeader(title: String, subtitle: String) {
-    Row(Modifier.padding(start = 4.dp, top = 4.dp, bottom = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.padding(start = 6.dp, end = 6.dp, bottom = 18.dp), verticalAlignment = Alignment.CenterVertically) {
         Image(painterResource(R.drawable.ic_launcher), contentDescription = null, modifier = Modifier.size(44.dp))
         Column(Modifier.padding(start = 12.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, color = SettingsColors.Text, maxLines = 1)
+            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = SettingsColors.Text, maxLines = 1)
             Text(subtitle, style = MaterialTheme.typography.bodySmall, color = SettingsColors.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
@@ -335,6 +343,7 @@ private fun SidebarItem(
         Text(
             group.title,
             style = MaterialTheme.typography.bodyLarge,
+            fontWeight = if (selected || focused) FontWeight.SemiBold else FontWeight.Normal,
             color = SettingsColors.Text,
             maxLines = 1,
             modifier = Modifier.weight(1f).padding(start = 12.dp),
@@ -345,22 +354,23 @@ private fun SidebarItem(
 
 @Composable
 private fun GroupHeader(group: SettingsGroup) {
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .background(SettingsColors.Card, RoundedCornerShape(16.dp))
-            .padding(horizontal = 24.dp, vertical = 18.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        IconBadge(group.icon, group.tint, 48.dp)
-        Text(group.title, style = MaterialTheme.typography.headlineSmall, color = SettingsColors.Text, modifier = Modifier.padding(top = 8.dp))
-        Text(
-            group.description,
-            style = MaterialTheme.typography.bodyMedium,
-            color = SettingsColors.Muted,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 2.dp),
-        )
+    // Left-aligned and without a card, so the rows below get the weight (like the title of a Mac's settings page).
+    Row(Modifier.fillMaxWidth().padding(start = 4.dp, top = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        IconBadge(group.icon, group.tint, 52.dp)
+        Column(Modifier.padding(start = 16.dp)) {
+            Text(
+                group.title,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = SettingsColors.Text,
+            )
+            Text(
+                group.description,
+                style = MaterialTheme.typography.bodyMedium,
+                color = SettingsColors.Muted,
+                modifier = Modifier.padding(top = 2.dp),
+            )
+        }
     }
 }
 
@@ -391,7 +401,14 @@ fun SettingsCard(caption: String? = null, build: SettingsCardScope.() -> Unit) {
     if (rows.isEmpty()) return
     Column {
         if (caption != null) {
-            Text(caption, style = MaterialTheme.typography.labelLarge, color = SettingsColors.Muted, modifier = Modifier.padding(start = 12.dp, bottom = 6.dp))
+            Text(
+                caption.uppercase(),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 0.8.sp,
+                color = SettingsColors.Caption,
+                modifier = Modifier.padding(start = 12.dp, bottom = 8.dp),
+            )
         }
         Column(Modifier.fillMaxWidth().background(SettingsColors.Card, RoundedCornerShape(14.dp)).padding(4.dp)) {
             rows.forEachIndexed { index, row ->
@@ -466,7 +483,7 @@ fun SettingsRow(
     ) {
         IconBadge(icon, if (enabled) tint else tint.copy(alpha = 0.45f), 30.dp)
         Column(Modifier.weight(1f).padding(start = 14.dp, end = 8.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, color = content)
+            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = content)
             if (subtitle != null) {
                 Text(
                     subtitle,
@@ -498,6 +515,6 @@ private fun Chevron(color: Color) {
         Icons.AutoMirrored.Filled.KeyboardArrowRight,
         contentDescription = null,
         tint = color.copy(alpha = 0.6f),
-        modifier = Modifier.padding(start = 4.dp).size(22.dp),
+        modifier = Modifier.padding(start = 4.dp).size(20.dp),
     )
 }
