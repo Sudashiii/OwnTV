@@ -31,8 +31,14 @@
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
 
+    <!-- Night light's sunset to sunrise: the TV's rough location; OwnTV asks when the user picks that schedule and
+         falls back to the time zone's city. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
     <uses-feature android:name="android.software.leanback" android:required="true" />
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+    <uses-feature android:name="android.hardware.location" android:required="false" />
+    <uses-feature android:name="android.hardware.location.network" android:required="false" />
 
     <!-- Needed on Android 11+ to see the apps the launcher shows, and the settings screens it opens, so it can
          tell Google TV's "no app can do this" placeholders from real screens (actions/IntentHandlers.kt). -->

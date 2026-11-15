@@ -91,7 +91,7 @@ data object StandbyAction : Action
 
 @Serializable
 @SerialName("open_quick_settings")
-@Doc("Opens OwnTV's quick settings: a panel that slides in from the right over whatever is on screen, with brightness, volume, a sleep timer and other shortcuts (see quickSettings). Bound to a remote button it works inside other apps too; pressing the button again closes it.")
+@Doc("Opens OwnTV's quick settings: a panel that slides in from the right over whatever is on screen, with brightness, night light, volume, a sleep timer and other shortcuts (see quickSettings). Bound to a remote button it works inside other apps too; pressing the button again closes it.")
 data object OpenQuickSettingsAction : Action
 
 @Serializable

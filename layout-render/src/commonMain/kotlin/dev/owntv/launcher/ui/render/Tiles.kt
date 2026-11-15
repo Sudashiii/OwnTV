@@ -475,6 +475,7 @@ private val namedIcons: Map<String, ImageVector> = mapOf(
     "volume" to ExtraIcons.Volume,
     "volume_off" to ExtraIcons.VolumeOff,
     "bedtime" to ExtraIcons.Bedtime,
+    "night_light" to ExtraIcons.NightLight,
     "bluetooth" to ExtraIcons.Bluetooth,
     "tune" to ExtraIcons.Tune,
 )

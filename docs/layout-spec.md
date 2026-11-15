@@ -39,7 +39,7 @@ An OwnTV layout is one JSON document. The launcher renders it natively; nothing 
 | `pageTabs` | | `true` shows page titles as tabs at the top (only with 2+ pages). Default `false`. |
 | `screensaver` | | Shows one of the pages as a screensaver after the remote has been idle on Home; see Screensaver. Default: none. |
 | `keyBindings` | | Remote buttons that run an action, also while another app is open; see Key bindings. Default: none. |
-| `quickSettings` | | What the quick settings panel (`open_quick_settings`) shows; see Quick settings. Default: brightness, volume, sleep timer, network, Bluetooth, Android settings, OwnTV settings. |
+| `quickSettings` | | What the quick settings panel (`open_quick_settings`) shows; see Quick settings. Default: brightness, night light, volume, sleep timer, network, Bluetooth, Android settings, OwnTV settings. |
 | `pages` | yes | List of pages. The first page is the home page; Back returns to it. |
 
 **Page**: `id` (required, unique), `title` (tab label and `{page}`), `initialFocus` (id of the node focused when the page opens; default: first focusable widget), `background` (overrides the layout background), `root` (required node; it fills the screen).
@@ -142,6 +142,7 @@ Bindings work while another app is in front, which needs OwnTV's remote service:
   "title": "Quick settings",
   "items": [
     { "type": "brightness" },
+    { "type": "night_light" },
     { "type": "volume" },
     { "type": "sleep_timer" },
     { "type": "action", "label": "Kids page", "icon": "star", "action": { "type": "go_to_page", "page": "kids" } },
@@ -154,7 +155,8 @@ The `open_quick_settings` action opens a panel that slides in from the right ove
 
 `quickSettings` is optional: `title` (default "Quick settings") and `items`, the rows from top to bottom. Leave `quickSettings` out for the default rows. Each row has a `type` and may set `label` and `icon` (an icon name as for shortcuts, or an emoji); without them the row uses a name and icon that fit its type:
 
-- `brightness` — left and right dim or brighten the picture (10–100 %). TV boxes cannot change the TV's backlight, so OwnTV lays a dark layer over the picture; with OwnTV's remote service on it covers every app, without it only OwnTV's own screens. The level is kept.
+- `brightness` — left and right dim or brighten the picture (10–100 %). TV boxes cannot change the TV's backlight, so OwnTV lays a dark layer over the picture; with OwnTV's remote service on it covers every app, without it only OwnTV's own screens. The level is kept. While night light is on, the change holds until the night ends.
+- `night_light` — a warm, darker picture in the evening, like Twilight. The schedule (custom times or sunset to sunrise), color temperature, strength and darkening are set on the TV in Settings > Display > Night light, not in the layout. Left and right change the strength, OK switches it on or off; both hold until the night ends. Like `brightness`, it covers every app only with OwnTV's remote service on.
 - `volume` — left and right change the media volume, OK mutes. When the TV controls the volume (HDMI-CEC), the row says so.
 - `sleep_timer` — left and right choose off, 15, 30, 45, 60, 90 or 120 minutes; then the TV goes into standby (needs OwnTV's standby service, see Screensaver; without it the screen goes black).
 - `network` — shows Wi-Fi, Ethernet or offline; OK opens the network settings.
@@ -219,7 +221,7 @@ Widgets:
 - **`watch_next_row`**: a row of what the TV's apps offer to continue watching (Android TV's Watch Next, the data behind Google TV's "Continue watching" row): a poster, a progress bar along the bottom for entries that report how far they are watched, and the entry's title as the tile label. OK resumes the entry in its app. Properties: `title`, `titleIcon`, `tile` (default `banner`; the TV banner is not used, the entry's own artwork is), `spacing` (16), `skip`, `limit`, `exclude` (package names of apps whose entries are left out), `showProgress` (default true), `scrollAlign`, `scrollMargin`, `scrollMotion` (as `app_row`). Entries come most recently watched first. For `{focused}` the entry's title is used, for `{description}` its app and the time left, e.g. `Nuvio · 1h 18min left`. The TV asks for the permission to read these entries (it is called "TV listings") the first time: until it is granted the row shows one "Allow access to continue watching" tile, afterwards a row with no entries is hidden and takes no space, so a `showWhenFocused` details column below it with `keepSpace` stays out of the way too. Previews (editor, looks, web) show sample entries. OwnTV only reads the entries: an app removes its own entries when you finish watching.
 - **`app_tile`**: one app. `package` (required), `label`, `tile`, `missing` (`placeholder` default, or `hide`).
 - **`folder`**: a tile with small app images (a 3 × 3 grid of mini banners, or six icons with an `icon` tile) that opens a panel with its apps. `label` and `source` (both required), `tile`, `itemTile` (tiles in the panel), `columns` (default 4), `color` (tile color; a translucent color such as `#33FFFFFF` looks like tvOS glass).
-- **`shortcut`**: a custom tile. `label` and `action` (both required), `icon`, `image` (URL or `asset:`), `color` (tile color), `iconColor` (icon and label on the tile, default `@text`), `focusColor` and `focusIconColor` (the same while focused, e.g. a light tile that turns dark), `tile` (default `card`), and `description` / `backdrop` for a hero or the `{description}` placeholder. Icons: `settings`, `home`, `search`, `star`, `info`, `info_outline`, `play`, `favorite`, `apps`, `add`, `add_circle`, `refresh`, `notifications`, `person`, `lock`, `menu`, `tv`, `live_tv`, `input`, `hdmi`, `smartphone`, `display`, `system`, `accessibility`, `android`, `wallpaper`, `wifi`, `wifi_off`, `ethernet`, `power`, `brightness`, `volume`, `volume_off`, `bedtime`, `bluetooth`, `tune`, or any emoji such as `"🎬"`. `card`/`banner` tiles show icon and label inside (`"showLabel": "never"` leaves only the icon); `icon` tiles show the label below.
+- **`shortcut`**: a custom tile. `label` and `action` (both required), `icon`, `image` (URL or `asset:`), `color` (tile color), `iconColor` (icon and label on the tile, default `@text`), `focusColor` and `focusIconColor` (the same while focused, e.g. a light tile that turns dark), `tile` (default `card`), and `description` / `backdrop` for a hero or the `{description}` placeholder. Icons: `settings`, `home`, `search`, `star`, `info`, `info_outline`, `play`, `favorite`, `apps`, `add`, `add_circle`, `refresh`, `notifications`, `person`, `lock`, `menu`, `tv`, `live_tv`, `input`, `hdmi`, `smartphone`, `display`, `system`, `accessibility`, `android`, `wallpaper`, `wifi`, `wifi_off`, `ethernet`, `power`, `brightness`, `volume`, `volume_off`, `bedtime`, `night_light`, `bluetooth`, `tune`, or any emoji such as `"🎬"`. `card`/`banner` tiles show icon and label inside (`"showLabel": "never"` leaves only the icon); `icon` tiles show the label below.
 
 ## Hero (Top Shelf / carousel)
 

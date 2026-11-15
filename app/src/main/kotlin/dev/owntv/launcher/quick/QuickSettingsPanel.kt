@@ -155,7 +155,7 @@ fun QuickSettingsPanel(container: AppContainer, visible: MutableTransitionState<
                 }
             }
         }
-        DimLayer(container.dimmer)
+        DimLayer(container.nightLight)
     }
 }
 
@@ -163,14 +163,43 @@ fun QuickSettingsPanel(container: AppContainer, visible: MutableTransitionState<
 private fun QuickSettingRow(container: AppContainer, item: QuickSetting, colors: PanelColors, run: (Action) -> Unit, modifier: Modifier) {
     when (item.type) {
         QuickSettingType.Brightness -> {
-            val level by container.dimmer.level.collectAsStateWithLifecycle()
+            val filter by container.nightLight.filter.collectAsStateWithLifecycle()
             val serviceOn by RemoteService.enabled.collectAsStateWithLifecycle()
+            val context = LocalContext.current
+            val level = filter.brightness
             QuickRow(
                 colors, item.icon ?: "brightness", item.label ?: "Brightness", "$level %",
                 progress = level / 100f,
-                note = if (serviceOn || level == BrightnessSteps.MAX) null else "Dims OwnTV only. Turn on \"OwnTV remote\" in Accessibility to dim every app.",
+                note = when {
+                    !serviceOn && level < BrightnessSteps.MAX -> "Dims OwnTV only. Turn on \"OwnTV remote\" in Accessibility to dim every app."
+                    filter.on && filter.overridden -> "Kept ${nightUntil(context, filter.nextSwitch)}"
+                    else -> null
+                },
                 modifier = modifier,
-                onStep = { container.dimmer.set(BrightnessSteps.step(level, it)) },
+                onStep = { container.nightLight.setBrightness(BrightnessSteps.step(level, it)) },
+            )
+        }
+        QuickSettingType.NightLight -> {
+            val filter by container.nightLight.filter.collectAsStateWithLifecycle()
+            val serviceOn by RemoteService.enabled.collectAsStateWithLifecycle()
+            val context = LocalContext.current
+            QuickRow(
+                colors, item.icon ?: "night_light", item.label ?: "Night light", if (filter.on) "${filter.intensity} %" else "Off",
+                progress = if (filter.on) filter.intensity / 100f else 0f,
+                note = when {
+                    filter.on && !serviceOn -> "Tints OwnTV only. Turn on \"OwnTV remote\" in Accessibility to tint every app."
+                    filter.on -> "On ${nightUntil(context, filter.nextSwitch)}"
+                    filter.nextSwitch != null -> "Turns on at ${formatClock(context, filter.nextSwitch!!)}"
+                    else -> "OK turns it on. Set a schedule in OwnTV's settings."
+                },
+                modifier = modifier,
+                onStep = { direction ->
+                    when {
+                        filter.on -> container.nightLight.setIntensity(NightSteps.percent(filter.intensity, direction))
+                        direction > 0 -> container.nightLight.toggle()
+                    }
+                },
+                onClick = { container.nightLight.toggle() },
             )
         }
         QuickSettingType.Volume -> VolumeRow(item, colors, modifier)
@@ -351,6 +380,13 @@ private fun QuickRow(
     }
 }
 
+/** [epochMs] in the TV's 12 or 24 hour format. */
+fun formatClock(context: Context, epochMs: Long): String = DateFormat.getTimeFormat(context).format(Date(epochMs))
+
+/** "until 07:00", or "until you turn it off" for night light switched on by hand without a schedule. */
+fun nightUntil(context: Context, nextSwitch: Long?): String =
+    if (nextSwitch == null || nextSwitch == Long.MAX_VALUE) "until you turn it off" else "until ${formatClock(context, nextSwitch)}"
+
 /** The time in the TV's 12 or 24 hour format, updated on the minute. */
 @Composable
 private fun rememberClockText(): String {
@@ -367,14 +403,15 @@ private fun rememberClockText(): String {
 }
 
 /**
- * The brightness layer inside OwnTV's own screens, used while the remote service is off (with it on, the
- * service dims every app, OwnTV included).
+ * Night light's warm layer and the brightness layer inside OwnTV's own screens, used while the remote service is
+ * off (with it on, the service covers every app, OwnTV included).
  */
 @Composable
-fun DimLayer(dimmer: ScreenDimmer) {
+fun DimLayer(nightLight: NightLight) {
     val serviceOn by RemoteService.enabled.collectAsStateWithLifecycle()
-    val level by dimmer.level.collectAsStateWithLifecycle()
-    val alpha = BrightnessSteps.dimAlpha(level)
-    if (serviceOn || alpha <= 0f) return
-    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = alpha)))
+    val filter by nightLight.filter.collectAsStateWithLifecycle()
+    if (serviceOn) return
+    if (filter.tintAlpha > 0f) Box(Modifier.fillMaxSize().background(Color(0xFF000000.toInt() or filter.tintRgb).copy(alpha = filter.tintAlpha)))
+    val alpha = BrightnessSteps.dimAlpha(filter.brightness)
+    if (alpha > 0f) Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = alpha)))
 }
