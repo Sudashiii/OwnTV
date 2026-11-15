@@ -23,7 +23,9 @@ import dev.owntv.launcher.importexport.FileImporter
 import dev.owntv.launcher.importexport.PasteSession
 import dev.owntv.launcher.importexport.UrlImporter
 import dev.owntv.launcher.metrics.PerformanceMonitor
+import dev.owntv.launcher.quick.NightLight
 import dev.owntv.launcher.quick.ScreenDimmer
+import dev.owntv.launcher.quick.SunLocation
 import dev.owntv.launcher.quick.SleepTimer
 import dev.owntv.launcher.update.Updater
 import dev.owntv.layout.ai.AiPromptBuilder
@@ -77,8 +79,9 @@ class AppContainer(context: Context) {
      */
     val remoteActions = Channel<Action>(Channel.UNLIMITED)
 
-    /** Quick settings brightness (a dim layer) and sleep timer. */
+    /** Quick settings brightness (a dim layer), night light and sleep timer. */
     val dimmer = ScreenDimmer(context)
+    val nightLight = NightLight(context, scope, dimmer, SunLocation(context, scope))
     val sleepTimer = SleepTimer(scope) { runAnywhere(StandbyAction) }
 
     /**

@@ -15,6 +15,7 @@ import dev.owntv.launcher.AppContainer
 import dev.owntv.launcher.OwnTvApp
 import dev.owntv.launcher.data.apps.ForegroundFilter
 import dev.owntv.launcher.quick.BrightnessSteps
+import dev.owntv.launcher.quick.ScreenFilter
 import dev.owntv.layout.model.Action
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -42,6 +43,7 @@ class RemoteService : AccessibilityService() {
     private var bindingsJob: Job? = null
     private var dimJob: Job? = null
     private var dimView: View? = null
+    private var tintView: View? = null
     private val longPresses = mutableMapOf<Int, Runnable>()
 
     override fun onServiceConnected() {
@@ -56,7 +58,7 @@ class RemoteService : AccessibilityService() {
         bindingsJob = container.scope.launch {
             container.layouts.state.map { it.document.keyBindings }.distinctUntilChanged().collect { matcher = KeyBindingMatcher(it) }
         }
-        dimJob = container.scope.launch { container.dimmer.level.collect(::showDim) }
+        dimJob = container.scope.launch { container.nightLight.filter.collect(::showFilter) }
         running.value = true
     }
 
@@ -76,7 +78,7 @@ class RemoteService : AccessibilityService() {
             running.value = false
             bindingsJob?.cancel()
             dimJob?.cancel()
-            removeDim()
+            removeFilter()
             cancelLongPresses()
         }
     }
@@ -129,18 +131,25 @@ class RemoteService : AccessibilityService() {
     private fun run(action: Action) = container.runAnywhere(action)
 
     /**
-     * The quick settings brightness over every app: a black, untouchable, unfocusable accessibility overlay.
-     * At full brightness there is no window at all.
+     * The quick settings brightness and night light over every app: untouchable, unfocusable accessibility
+     * overlays, night light's warm layer below the black one. A layer that shows nothing has no window at all.
      */
-    private fun showDim(level: Int) {
-        val alpha = BrightnessSteps.dimAlpha(level)
-        val windows = getSystemService(WindowManager::class.java) ?: return
-        if (alpha <= 0f) {
-            removeDim()
-            return
+    private fun showFilter(filter: ScreenFilter) {
+        // Removing the black layer first keeps the warm layer below it when both are added again.
+        val dimAlpha = BrightnessSteps.dimAlpha(filter.brightness)
+        if (dimAlpha <= 0f) dimView = removeLayer(dimView)
+        if (filter.tintAlpha <= 0f) {
+            tintView = removeLayer(tintView)
+        } else {
+            if (tintView == null) dimView = removeLayer(dimView)
+            tintView = showLayer(tintView, Color.rgb(filter.tintRgb shr 16 and 0xFF, filter.tintRgb shr 8 and 0xFF, filter.tintRgb and 0xFF), filter.tintAlpha)
         }
-        val view = dimView ?: View(this).also { view ->
-            view.setBackgroundColor(Color.BLACK)
+        if (dimAlpha > 0f) dimView = showLayer(dimView, Color.BLACK, dimAlpha)
+    }
+
+    private fun showLayer(existing: View?, color: Int, alpha: Float): View? {
+        val view = existing ?: run {
+            val windows = getSystemService(WindowManager::class.java) ?: return null
             val params = WindowManager.LayoutParams(
                 WindowManager.LayoutParams.MATCH_PARENT,
                 WindowManager.LayoutParams.MATCH_PARENT,
@@ -149,15 +158,22 @@ class RemoteService : AccessibilityService() {
                     WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
                 PixelFormat.TRANSLUCENT,
             )
-            runCatching { windows.addView(view, params) }.onFailure { return }
-            dimView = view
+            View(this).takeIf { view -> runCatching { windows.addView(view, params) }.isSuccess } ?: return null
         }
+        view.setBackgroundColor(color)
         view.alpha = alpha
+        return view
     }
 
-    private fun removeDim() {
-        dimView?.let { view -> runCatching { getSystemService(WindowManager::class.java)?.removeView(view) } }
-        dimView = null
+    /** Removes [view]'s window; returns null for the field that held it. */
+    private fun removeLayer(view: View?): View? {
+        view?.let { runCatching { getSystemService(WindowManager::class.java)?.removeView(it) } }
+        return null
+    }
+
+    private fun removeFilter() {
+        dimView = removeLayer(dimView)
+        tintView = removeLayer(tintView)
     }
 
     override fun onInterrupt() = Unit

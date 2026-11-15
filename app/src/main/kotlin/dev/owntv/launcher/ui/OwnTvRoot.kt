@@ -103,6 +103,7 @@ fun OwnTvRoot(container: AppContainer, nav: Navigator, idle: IdleTracker) {
                         is Screen.ListEditor -> ListEditorScreen(container, screen.name, screen.title, catalog)
                         Screen.HiddenApps -> HiddenAppsScreen(container, catalog)
                         Screen.Cleanup -> CleanupScreen(container, nav, catalog)
+                        Screen.NightLight -> NightLightScreen(container)
                         is Screen.Preview -> PreviewScreen(container, nav, screen.result, screen.source, screen.builtIn, catalog)
                     }
                 }
@@ -113,8 +114,8 @@ fun OwnTvRoot(container: AppContainer, nav: Navigator, idle: IdleTracker) {
                 } else {
                     screenContent(nav.current)
                 }
-                // Quick settings brightness while the remote service is off (with it on, the service dims every app).
-                DimLayer(container.dimmer)
+                // Quick settings brightness and night light while the remote service is off (with it on, the service covers every app).
+                DimLayer(container.nightLight)
                 if (metricsMode == MetricsMode.Live) {
                     PerformanceOverlay(container.perf, Modifier.align(Alignment.BottomEnd).padding(12.dp))
                 }

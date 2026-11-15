@@ -9,6 +9,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import dev.owntv.launcher.actions.KeyProbe
 import dev.owntv.launcher.data.apps.WatchNextRepository
 import dev.owntv.launcher.data.layout.WallpaperFolderRepository
+import dev.owntv.launcher.quick.SunLocation
 import dev.owntv.launcher.ui.IdleTracker
 import dev.owntv.launcher.ui.Navigator
 import dev.owntv.launcher.ui.OwnTvRoot
@@ -24,6 +25,9 @@ class MainActivity : ComponentActivity() {
     private val wallpaperPermission = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         container.wallpaperFolders.onPermissionResult()
     }
+    private val locationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        container.nightLight.location.onPermissionResult(granted)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -31,6 +35,7 @@ class MainActivity : ComponentActivity() {
         container.perf.attach(this)
         container.watchNext.permissionLauncher = { watchNextPermission.launch(WatchNextRepository.PERMISSION) }
         container.wallpaperFolders.permissionLauncher = { wallpaperPermission.launch(WallpaperFolderRepository.PERMISSIONS) }
+        container.nightLight.location.permissionLauncher = { locationPermission.launch(SunLocation.PERMISSION) }
         setContent { OwnTvRoot(container, nav, idle) }
     }
 
@@ -48,6 +53,7 @@ class MainActivity : ComponentActivity() {
         container.perf.detach(this)
         container.watchNext.permissionLauncher = null
         container.wallpaperFolders.permissionLauncher = null
+        container.nightLight.location.permissionLauncher = null
         super.onDestroy()
     }
 

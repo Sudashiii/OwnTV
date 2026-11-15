@@ -88,7 +88,7 @@
           }
         },
         "quickSettings": {
-          "description": "What OwnTV's quick settings panel (the open_quick_settings action) shows. Default: brightness, volume, sleep timer, network, Bluetooth, Android settings and OwnTV settings.",
+          "description": "What OwnTV's quick settings panel (the open_quick_settings action) shows. Default: brightness, night light, volume, sleep timer, network, Bluetooth, Android settings and OwnTV settings.",
           "$ref": "#/$defs/QuickSettings"
         },
         "pages": {
@@ -959,7 +959,7 @@
     },
     "Action.open_quick_settings": {
       "type": "object",
-      "description": "Opens OwnTV's quick settings: a panel that slides in from the right over whatever is on screen, with brightness, volume, a sleep timer and other shortcuts (see quickSettings). Bound to a remote button it works inside other apps too; pressing the button again closes it.",
+      "description": "Opens OwnTV's quick settings: a panel that slides in from the right over whatever is on screen, with brightness, night light, volume, a sleep timer and other shortcuts (see quickSettings). Bound to a remote button it works inside other apps too; pressing the button again closes it.",
       "properties": {
         "type": {
           "const": "open_quick_settings"
@@ -1037,7 +1037,7 @@
           "type": "string"
         },
         "items": {
-          "description": "The rows of the panel, top to bottom. Default: brightness, volume, sleep_timer, network, bluetooth, android_settings, owntv_settings.",
+          "description": "The rows of the panel, top to bottom. Default: brightness, night_light, volume, sleep_timer, network, bluetooth, android_settings, owntv_settings.",
           "type": "array",
           "items": {
             "$ref": "#/$defs/QuickSetting"
@@ -1051,10 +1051,11 @@
       "description": "One row of the quick settings panel.",
       "properties": {
         "type": {
-          "description": "What the row does. brightness: dims the picture (left/right). volume: media volume (left/right, OK mutes). sleep_timer: standby after 15 to 120 minutes (left/right). network: connection state, OK opens network settings. bluetooth: OK opens Bluetooth settings. standby: OK puts the TV into standby. android_settings and owntv_settings: OK opens them. action: OK runs \"action\".",
+          "description": "What the row does. brightness: dims the picture (left/right). night_light: warm, darker picture on a schedule set in OwnTV's settings; left/right change its strength and OK switches it on or off, both until the night ends. volume: media volume (left/right, OK mutes). sleep_timer: standby after 15 to 120 minutes (left/right). network: connection state, OK opens network settings. bluetooth: OK opens Bluetooth settings. standby: OK puts the TV into standby. android_settings and owntv_settings: OK opens them. action: OK runs \"action\".",
           "type": "string",
           "enum": [
             "brightness",
+            "night_light",
             "volume",
             "sleep_timer",
             "network",

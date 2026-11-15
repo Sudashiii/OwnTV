@@ -8,12 +8,13 @@ import kotlinx.serialization.Serializable
 data class QuickSettings(
     @Doc("Title at the top of the panel. Default \"Quick settings\".")
     val title: String = "Quick settings",
-    @Doc("The rows of the panel, top to bottom. Default: brightness, volume, sleep_timer, network, bluetooth, android_settings, owntv_settings.")
+    @Doc("The rows of the panel, top to bottom. Default: brightness, night_light, volume, sleep_timer, network, bluetooth, android_settings, owntv_settings.")
     val items: List<QuickSetting> = DEFAULT_ITEMS,
 ) {
     companion object {
         val DEFAULT_ITEMS: List<QuickSetting> = listOf(
             QuickSetting(QuickSettingType.Brightness),
+            QuickSetting(QuickSettingType.NightLight),
             QuickSetting(QuickSettingType.Volume),
             QuickSetting(QuickSettingType.SleepTimer),
             QuickSetting(QuickSettingType.Network),
@@ -27,7 +28,7 @@ data class QuickSettings(
 @Serializable
 @Doc("One row of the quick settings panel.")
 data class QuickSetting(
-    @Doc("What the row does. brightness: dims the picture (left/right). volume: media volume (left/right, OK mutes). sleep_timer: standby after 15 to 120 minutes (left/right). network: connection state, OK opens network settings. bluetooth: OK opens Bluetooth settings. standby: OK puts the TV into standby. android_settings and owntv_settings: OK opens them. action: OK runs \"action\".")
+    @Doc("What the row does. brightness: dims the picture (left/right). night_light: warm, darker picture on a schedule set in OwnTV's settings; left/right change its strength and OK switches it on or off, both until the night ends. volume: media volume (left/right, OK mutes). sleep_timer: standby after 15 to 120 minutes (left/right). network: connection state, OK opens network settings. bluetooth: OK opens Bluetooth settings. standby: OK puts the TV into standby. android_settings and owntv_settings: OK opens them. action: OK runs \"action\".")
     val type: QuickSettingType,
     @Doc("Text of the row. Default: a name that fits the type; needed for type action.")
     val label: String? = null,
@@ -40,6 +41,7 @@ data class QuickSetting(
 @Serializable
 enum class QuickSettingType {
     @SerialName("brightness") Brightness,
+    @SerialName("night_light") NightLight,
     @SerialName("volume") Volume,
     @SerialName("sleep_timer") SleepTimer,
     @SerialName("network") Network,

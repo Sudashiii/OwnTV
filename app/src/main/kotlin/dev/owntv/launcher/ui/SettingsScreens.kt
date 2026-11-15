@@ -70,6 +70,7 @@ fun SettingsScreen(
         detail = { detail?.let { detailContent(it) } },
     ) { group ->
         when (group) {
+            SettingsGroup.Display -> DisplaySettings(container, nav)
             SettingsGroup.Layout -> LayoutSettings(container, nav, state, idle)
             SettingsGroup.Apps -> AppsSettings(container, nav)
             SettingsGroup.Remote -> RemoteSettings(container, nav, state)

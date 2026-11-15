@@ -84,6 +84,7 @@ enum class SettingsGroup(val title: String, val description: String, val icon: I
         SettingsIcons.Dashboard,
         SettingsColors.Blue,
     ),
+    Display("Display", "Night light: a warmer, darker picture in the evening.", SettingsIcons.NightLight, SettingsColors.Orange),
     Apps("Apps", "Every installed app, the ones you hid, recent apps and cleaning up the TV.", SettingsIcons.Apps, SettingsColors.Green),
     Remote(
         "Remote & standby",
@@ -97,7 +98,7 @@ enum class SettingsGroup(val title: String, val description: String, val icon: I
 /** Sidebar blocks, separated by a gap like the sections of a Mac's System Settings. */
 private val SidebarBlocks = listOf(
     listOf(SettingsGroup.General),
-    listOf(SettingsGroup.Layout, SettingsGroup.Apps, SettingsGroup.Remote),
+    listOf(SettingsGroup.Display, SettingsGroup.Layout, SettingsGroup.Apps, SettingsGroup.Remote),
     listOf(SettingsGroup.Developer),
 )
 
@@ -439,6 +440,9 @@ sealed interface RowEnd {
 /**
  * A row of a [SettingsCard]. [key] identifies it: after Back from the screen it opened, it gets focus again.
  * Disabled rows still take focus (so the list does not jump) and show an outline.
+ *
+ * With [onStep], Left and Right change the row's value (-1 or +1, repeating while held) and a [RowEnd.Value]
+ * shows as "‹ value ›" while focused, like the quick settings rows.
  */
 @Composable
 fun SettingsRow(
@@ -450,6 +454,7 @@ fun SettingsRow(
     end: RowEnd = RowEnd.Chevron,
     enabled: Boolean = true,
     modifier: Modifier = Modifier,
+    onStep: ((Int) -> Unit)? = null,
     onClick: () -> Unit,
 ) {
     val host = LocalSettingsRowHost.current
@@ -471,6 +476,21 @@ fun SettingsRow(
                 },
             )
             .onFocusChanged { focused = it.isFocused }
+            .then(
+                if (onStep == null || !enabled) {
+                    Modifier
+                } else {
+                    Modifier.onPreviewKeyEvent { event ->
+                        val direction = when (event.key) {
+                            Key.DirectionLeft -> -1
+                            Key.DirectionRight -> 1
+                            else -> return@onPreviewKeyEvent false
+                        }
+                        if (event.type == KeyEventType.KeyDown) onStep(direction)
+                        true
+                    }
+                },
+            )
             .clickable(interactionSource = null, indication = null) {
                 if (enabled) {
                     host?.onOpen?.invoke(key)
@@ -503,7 +523,11 @@ fun SettingsRow(
                 )
                 Chevron(content)
             }
-            is RowEnd.Value -> Text(end.text, style = MaterialTheme.typography.bodyMedium, color = if (focused) content else SettingsColors.Muted)
+            is RowEnd.Value -> Text(
+                if (focused && enabled && onStep != null) "‹  ${end.text}  ›" else end.text,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (focused) content else SettingsColors.Muted,
+            )
             RowEnd.None -> {}
         }
     }
