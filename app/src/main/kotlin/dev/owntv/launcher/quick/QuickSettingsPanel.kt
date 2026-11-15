@@ -62,7 +62,6 @@ import androidx.tv.material3.Text
 import androidx.tv.material3.darkColorScheme
 import dev.owntv.launcher.AppContainer
 import dev.owntv.launcher.actions.RemoteService
-import dev.owntv.launcher.actions.StandbyService
 import dev.owntv.launcher.ui.describe
 import dev.owntv.launcher.ui.rememberInitialFocus
 import dev.owntv.launcher.ui.rememberNetworkState
@@ -164,34 +163,19 @@ private fun QuickSettingRow(container: AppContainer, item: QuickSetting, colors:
     when (item.type) {
         QuickSettingType.Brightness -> {
             val filter by container.nightLight.filter.collectAsStateWithLifecycle()
-            val serviceOn by RemoteService.enabled.collectAsStateWithLifecycle()
-            val context = LocalContext.current
             val level = filter.brightness
             QuickRow(
                 colors, item.icon ?: "brightness", item.label ?: "Brightness", "$level %",
                 progress = level / 100f,
-                note = when {
-                    !serviceOn && level < BrightnessSteps.MAX -> "Dims OwnTV only. Turn on \"OwnTV remote\" in Accessibility to dim every app."
-                    filter.on && filter.overridden -> "Kept ${nightUntil(context, filter.nextSwitch)}"
-                    else -> null
-                },
                 modifier = modifier,
                 onStep = { container.nightLight.setBrightness(BrightnessSteps.step(level, it)) },
             )
         }
         QuickSettingType.NightLight -> {
             val filter by container.nightLight.filter.collectAsStateWithLifecycle()
-            val serviceOn by RemoteService.enabled.collectAsStateWithLifecycle()
-            val context = LocalContext.current
             QuickRow(
                 colors, item.icon ?: "night_light", item.label ?: "Night light", if (filter.on) "${filter.intensity} %" else "Off",
                 progress = if (filter.on) filter.intensity / 100f else 0f,
-                note = when {
-                    filter.on && !serviceOn -> "Tints OwnTV only. Turn on \"OwnTV remote\" in Accessibility to tint every app."
-                    filter.on -> "On ${nightUntil(context, filter.nextSwitch)}"
-                    filter.nextSwitch != null -> "Turns on at ${formatClock(context, filter.nextSwitch!!)}"
-                    else -> "OK turns it on. Set a schedule in OwnTV's settings."
-                },
                 modifier = modifier,
                 onStep = { direction ->
                     when {
@@ -214,10 +198,8 @@ private fun QuickSettingRow(container: AppContainer, item: QuickSetting, colors:
                 }
             }
             val remaining = endsAt?.let { SleepSteps.remainingMinutes((it - now).coerceAtLeast(0)) }
-            val standbyOn by StandbyService.enabled.collectAsStateWithLifecycle()
             QuickRow(
                 colors, item.icon ?: "bedtime", item.label ?: "Sleep timer", SleepSteps.format(remaining),
-                note = if (remaining != null && !standbyOn) "Without \"OwnTV standby\" in Accessibility the screen only goes black." else null,
                 modifier = modifier,
                 onStep = { container.sleepTimer.set(SleepSteps.step(remaining, it)) },
                 onClick = { container.sleepTimer.set(SleepSteps.step(remaining, +1)) },
@@ -276,7 +258,7 @@ private fun VolumeRow(item: QuickSetting, colors: PanelColors, modifier: Modifie
         onDispose { context.unregisterReceiver(receiver) }
     }
     if (audio.isVolumeFixed || max <= 0) {
-        QuickRow(colors, item.icon ?: "volume", item.label ?: "Volume", "On the TV", note = "Use the volume buttons of the remote.", modifier = modifier)
+        QuickRow(colors, item.icon ?: "volume", item.label ?: "Volume", "On the TV", modifier = modifier)
         return
     }
     fun refresh() {
@@ -315,7 +297,6 @@ private fun QuickRow(
     label: String,
     value: String?,
     progress: Float? = null,
-    note: String? = null,
     modifier: Modifier = Modifier,
     onStep: ((Int) -> Unit)? = null,
     onClick: () -> Unit = {},
@@ -368,14 +349,6 @@ private fun QuickRow(
                         .background(if (focused) content else colors.accent, RoundedCornerShape(2.dp)),
                 )
             }
-        }
-        if (note != null) {
-            Text(
-                note,
-                style = MaterialTheme.typography.bodySmall,
-                color = if (focused) content.copy(alpha = 0.75f) else colors.muted,
-                modifier = Modifier.padding(start = 38.dp, top = 6.dp),
-            )
         }
     }
 }

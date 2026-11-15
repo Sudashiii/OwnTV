@@ -24,6 +24,12 @@ enum class NightMode {
     @SerialName("sun") Sun,
 }
 
+/**
+ * Night light right now, as chosen in Settings: [UntilSchedule] is on until the schedule's next end (what
+ * quick settings switches on), [On] stays on until switched off, whatever the schedule says.
+ */
+enum class NightState { Off, UntilSchedule, On }
+
 /** Night light as set in Settings > Display > Night light. */
 @Serializable
 data class NightLightConfig(
@@ -50,7 +56,7 @@ data class NightLightConfig(
 }
 
 /**
- * A change made by hand (quick settings or the Settings screen's on/off row). It holds until [until], the end of
+ * A change made by hand (quick settings or the Settings screen's state row, see [NightState]). It holds until [until], the end of
  * the night it was made in (or the next scheduled end when switched on by day), then the schedule takes over again.
  * While [forcedOn] is true, [intensity] and [brightness] are fixed values that no fade changes before [until].
  */
@@ -258,6 +264,49 @@ object NightLightLogic {
             } else {
                 NightLightOverride(until = onUntil(period, now), forcedOn = true)
             }
+        }
+    }
+
+    /** The state shown in Settings: [NightState.On] only for an "on" made by hand that never ends. */
+    fun state(override: NightLightOverride?, now: Long, filter: ScreenFilter): NightState = when {
+        active(override, now)?.let { it.forcedOn && it.until == Long.MAX_VALUE } == true -> NightState.On
+        filter.on -> NightState.UntilSchedule
+        else -> NightState.Off
+    }
+
+    /** The choices for Settings' state row: without a schedule there is nothing to wait for. */
+    fun states(config: NightLightConfig): List<NightState> =
+        if (config.mode == NightMode.Off) listOf(NightState.Off, NightState.On) else NightState.entries
+
+    /**
+     * Switches to [state] by hand. Off holds until the next night (a scheduled night is skipped); on until the
+     * schedule ends at the end of the current or next night; [NightState.On] until switched off. Values fixed in
+     * quick settings are kept when switching between the two kinds of on.
+     */
+    fun withState(
+        now: Long,
+        zone: ZoneId,
+        config: NightLightConfig,
+        override: NightLightOverride?,
+        location: GeoPoint?,
+        filter: ScreenFilter,
+        state: NightState,
+    ): NightLightOverride? {
+        val period = NightSchedule.period(now, zone, config, location)
+        val scheduledOn = period != null && now in period
+        val manualOn = active(override, now)?.takeIf { it.forcedOn }
+        return when (state) {
+            NightState.Off -> when {
+                !filter.on -> override
+                scheduledOn -> NightLightOverride(until = period!!.end, forcedOn = false)
+                else -> null
+            }
+            NightState.UntilSchedule -> when {
+                manualOn != null -> manualOn.copy(until = onUntil(period, now))
+                scheduledOn && filter.on -> override
+                else -> NightLightOverride(until = onUntil(period, now), forcedOn = true)
+            }
+            NightState.On -> manualOn?.copy(until = Long.MAX_VALUE) ?: NightLightOverride(until = Long.MAX_VALUE, forcedOn = true)
         }
     }
 
