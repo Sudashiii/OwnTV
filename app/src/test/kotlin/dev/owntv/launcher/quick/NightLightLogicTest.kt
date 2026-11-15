@@ -151,6 +151,57 @@ class NightLightLogicTest {
         val override = NightLightLogic.withIntensity(now, zone, custom, null, vienna, eval(now), 51)
         assertTrue(override.forcedOn)
         assertEquals(51, eval(at(14, 13), override = override).intensity)
+        // With a schedule it switches off by itself when the next night ends.
+        assertEquals(at(15, 7), override.until)
+        assertTrue(eval(at(15, 6, 59), override = override).on)
+        assertFalse(eval(at(15, 7), override = override).on)
+        assertEquals(at(15, 22), eval(at(15, 7), override = override).nextSwitch)
+    }
+
+    private fun withState(now: Long, state: NightState, override: NightLightOverride? = null, config: NightLightConfig = custom) =
+        NightLightLogic.withState(now, zone, config, override, vienna, eval(now, config, override), state)
+
+    @Test
+    fun `settings states off, on until the schedule ends and on for good`() {
+        val day = at(14, 12)
+        assertEquals(NightState.Off, NightLightLogic.state(null, day, eval(day)))
+        // On until the schedule: like quick settings, off when the next night ends.
+        val untilSchedule = assertNotNull(withState(day, NightState.UntilSchedule))
+        assertEquals(at(15, 7), untilSchedule.until)
+        assertEquals(NightState.UntilSchedule, NightLightLogic.state(untilSchedule, day, eval(day, override = untilSchedule)))
+        // On: stays on through the morning and the next days.
+        val on = assertNotNull(withState(day, NightState.On))
+        assertEquals(NightState.On, NightLightLogic.state(on, day, eval(day, override = on)))
+        assertTrue(eval(at(15, 12), override = on).on)
+        assertTrue(eval(at(20, 9), override = on).on)
+        // Off by day: back to the schedule.
+        assertNull(withState(at(15, 12), NightState.Off, on))
+        // Off at night: off until the next night.
+        val night = at(14, 23)
+        val off = withState(night, NightState.Off)
+        assertFalse(eval(at(15, 3), override = off).on)
+        assertTrue(eval(at(15, 23), override = off).on)
+        // The scheduled night needs no change for "until schedule"; turned off, it switches back on.
+        assertNull(withState(night, NightState.UntilSchedule))
+        assertTrue(eval(at(15, 3), override = withState(night, NightState.UntilSchedule, off)).on)
+    }
+
+    @Test
+    fun `values fixed in quick settings stay when switching between the kinds of on`() {
+        val now = at(14, 23)
+        val fixed = NightLightLogic.withIntensity(now, zone, custom, null, vienna, eval(now), 70)
+        val on = assertNotNull(withState(now, NightState.On, fixed))
+        assertEquals(70, eval(at(15, 12), override = on).intensity)
+        val back = assertNotNull(withState(at(15, 12), NightState.UntilSchedule, on))
+        assertEquals(70, back.intensity)
+        assertEquals(at(16, 7), back.until)
+    }
+
+    @Test
+    fun `without a schedule there is no until schedule`() {
+        val off = custom.copy(mode = NightMode.Off)
+        assertEquals(listOf(NightState.Off, NightState.On), NightLightLogic.states(off))
+        assertEquals(NightState.entries, NightLightLogic.states(custom))
     }
 
     @Test

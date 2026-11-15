@@ -67,7 +67,9 @@ class NightLight(
         save(KEY_CONFIG, NightLightConfig.serializer(), new)
         val override = _override.value ?: return
         when {
-            new.mode != old.mode || new.startMinute != old.startMinute || new.endMinute != old.endMinute -> setOverride(null)
+            // A permanent "on" does not depend on the schedule.
+            new.mode != old.mode || new.startMinute != old.startMinute || new.endMinute != old.endMinute ->
+                if (override.until != Long.MAX_VALUE) setOverride(null)
             new.intensity != old.intensity && override.intensity != null -> setOverride(override.copy(intensity = null))
             new.darkening != old.darkening && override.brightness != null -> setOverride(override.copy(brightness = null))
         }
@@ -90,11 +92,13 @@ class NightLight(
         if (override == null) dimmer.set(level) else setOverride(override)
     }
 
-    /** Back to the schedule. */
-    fun clearOverride() = setOverride(null)
+    /** Off, on until the schedule ends, or on for good (Settings' state row). */
+    fun setState(state: NightState) = change { now, zone, override, place, filter ->
+        NightLightLogic.withState(now, zone, _config.value, override, place, filter, state)
+    }
 
-    /** True while a hand-made change holds. */
-    val overridden: Boolean get() = NightLightLogic.active(_override.value, System.currentTimeMillis()) != null
+    /** What [setState] last chose, as far as it still holds. */
+    fun state(filter: ScreenFilter): NightState = NightLightLogic.state(_override.value, System.currentTimeMillis(), filter)
 
     fun refresh() {
         val now = System.currentTimeMillis()
