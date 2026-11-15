@@ -21,7 +21,9 @@ import androidx.tv.material3.Text
 import dev.owntv.launcher.AppContainer
 import dev.owntv.launcher.actions.RemoteService
 import dev.owntv.launcher.quick.NightLightConfig
+import dev.owntv.launcher.quick.NightLightLogic
 import dev.owntv.launcher.quick.NightMode
+import dev.owntv.launcher.quick.NightState
 import dev.owntv.launcher.quick.NightSteps
 import dev.owntv.launcher.quick.ScreenFilter
 import dev.owntv.launcher.quick.SunPlace
@@ -70,31 +72,22 @@ fun NightLightScreen(container: AppContainer) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             SettingsCard {
                 row {
+                    val state = night.state(filter)
+                    val states = NightLightLogic.states(config)
+                    fun step(direction: Int) {
+                        val index = states.indexOf(state).coerceAtLeast(0)
+                        night.setState(states[(index + direction).mod(states.size)])
+                    }
                     SettingsRow(
                         "night-now",
-                        if (filter.on) "Turn off" else "Turn on",
-                        when {
-                            config.mode == NightMode.Off -> if (filter.on) null else "Stays on until you turn it off"
-                            filter.on -> "Stays off until the next night"
-                            else -> "Stays on until the schedule turns it off"
-                        },
+                        "Night light",
+                        nightLightSummary(context, filter),
                         SettingsIcons.NightLight,
                         SettingsColors.Orange,
-                        RowEnd.Value(nightLightSummary(context, filter)),
+                        RowEnd.Value(stateLabel(state, config.mode)),
                         modifier = rememberInitialFocus(),
-                    ) { night.toggle() }
-                }
-                if (filter.overridden) {
-                    row {
-                        SettingsRow(
-                            "night-reset",
-                            "Back to the schedule",
-                            "Undo the changes made by hand, which otherwise hold ${nightUntil(context, filter.nextSwitch)}",
-                            SettingsIcons.Undo,
-                            SettingsColors.Graphite,
-                            RowEnd.None,
-                        ) { night.clearOverride() }
-                    }
+                        onStep = ::step,
+                    ) { step(+1) }
                 }
             }
             SettingsCard("Schedule") {
@@ -183,6 +176,12 @@ internal fun nightLightSummary(context: Context, filter: ScreenFilter): String =
     filter.on -> "On ${nightUntil(context, filter.nextSwitch)}"
     filter.nextSwitch != null -> "Off · on at ${formatClock(context, filter.nextSwitch)}"
     else -> "Off"
+}
+
+private fun stateLabel(state: NightState, mode: NightMode) = when (state) {
+    NightState.Off -> "Off"
+    NightState.UntilSchedule -> if (mode == NightMode.Sun) "On until sunrise" else "On until schedule"
+    NightState.On -> "On"
 }
 
 private fun modeLabel(mode: NightMode) = when (mode) {
