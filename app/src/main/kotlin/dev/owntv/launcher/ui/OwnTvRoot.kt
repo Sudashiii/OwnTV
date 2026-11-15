@@ -104,6 +104,7 @@ fun OwnTvRoot(container: AppContainer, nav: Navigator, idle: IdleTracker) {
                         Screen.HiddenApps -> HiddenAppsScreen(container, catalog)
                         Screen.Cleanup -> CleanupScreen(container, nav, catalog)
                         Screen.NightLight -> NightLightScreen(container)
+                        Screen.TimeZone -> TimeZoneScreen(container, nav)
                         is Screen.Preview -> PreviewScreen(container, nav, screen.result, screen.source, screen.builtIn, catalog)
                     }
                 }

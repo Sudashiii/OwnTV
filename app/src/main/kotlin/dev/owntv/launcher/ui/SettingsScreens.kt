@@ -67,9 +67,13 @@ fun SettingsScreen(
         state.document.name,
         badges,
         detailKey = detail,
+        onOpenAndroidSettings = container.actions::openSystemSettings,
         detail = { detail?.let { detailContent(it) } },
     ) { group ->
         when (group) {
+            SettingsGroup.AndroidNetwork, SettingsGroup.AndroidDisplay, SettingsGroup.AndroidAccessories,
+            SettingsGroup.AndroidAccess, SettingsGroup.AndroidSystem,
+            -> AndroidSettingsGroup(container, nav, group)
             SettingsGroup.Display -> DisplaySettings(container, nav)
             SettingsGroup.Layout -> LayoutSettings(container, nav, state, idle)
             SettingsGroup.Apps -> AppsSettings(container, nav)
@@ -272,11 +276,6 @@ private fun GeneralSettings(container: AppContainer, nav: Navigator, update: Upd
         row {
             SettingsRow("home-screen", "Make OwnTV your Home screen", "What to do on Google TV", Icons.Filled.Home, SettingsColors.Blue) {
                 nav.push(Screen.Help)
-            }
-        }
-        row {
-            SettingsRow("android-settings", "Android settings", "Open the TV's system settings", SettingsIcons.Android, SettingsColors.Green, RowEnd.None) {
-                container.actions.openSystemSettings()
             }
         }
     }

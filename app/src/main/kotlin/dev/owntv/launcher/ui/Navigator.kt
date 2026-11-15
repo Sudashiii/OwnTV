@@ -28,6 +28,7 @@ sealed interface Screen {
     data object HiddenApps : Screen
     data object Cleanup : Screen
     data object NightLight : Screen
+    data object TimeZone : Screen
     /** [builtIn] is set for a look or template, so applying it is remembered (see `LayoutRepository.apply`). */
     data class Preview(val result: DecodeResult, val source: String, val builtIn: BuiltInRef? = null) : Screen
 }
@@ -37,6 +38,7 @@ val Screen.opensInSettingsPane: Boolean
     get() = when (this) {
         Screen.Import, Screen.Templates, Screen.Looks, Screen.History, Screen.Help, Screen.Updates, Screen.Performance,
         Screen.RemoteButtons, Screen.SelfAdb, Screen.AdbCommands, Screen.HiddenApps, Screen.Cleanup, Screen.NightLight,
+        Screen.TimeZone,
         -> true
         else -> false
     }
@@ -55,6 +57,20 @@ class Navigator {
 
     /** Settings group shown in the sidebar; kept while Settings is closed, like a Mac's System Settings. */
     var settingsGroup by mutableStateOf(SettingsGroup.General)
+
+    /** The tab of [settingsGroup]: OwnTV's settings (what Settings opens on) or the TV's Android settings. */
+    val settingsTab: SettingsTab get() = settingsGroup.tab
+
+    /** The group each tab showed last, so coming back to a tab finds it as it was. */
+    private val lastGroup = mutableMapOf<SettingsTab, SettingsGroup>()
+
+    /** Shows [tab], with the group it showed last (its first one the first time). */
+    fun selectSettingsTab(tab: SettingsTab) {
+        if (tab == settingsTab) return
+        lastGroup[settingsTab] = settingsGroup
+        settingsGroup = lastGroup[tab] ?: firstGroup(tab)
+        settingsRow = null
+    }
 
     /** Row of [settingsGroup] that opened the screen on top of Settings, so Back puts focus on it again. */
     var settingsRow by mutableStateOf<String?>(null)
