@@ -4,7 +4,7 @@ package dev.owntv.launcher.quick
 object BrightnessSteps {
     const val MIN = 10
     const val MAX = 100
-    const val STEP = 10
+    const val STEP = 1
 
     /** The level one remote press in [direction] (-1 or +1) away from [level]. */
     fun step(level: Int, direction: Int): Int = (level + direction * STEP).coerceIn(MIN, MAX)
@@ -38,12 +38,9 @@ object SleepSteps {
     }
 }
 
-/** Media volume steps: one press moves about 5 % of the range, at least one step. */
+/** Media volume steps: one press moves one step of the system volume, which is 1 % when the TV has 100 steps. */
 object VolumeSteps {
-    fun step(volume: Int, max: Int, direction: Int): Int {
-        val size = (max / 20).coerceAtLeast(1)
-        return (volume + direction * size).coerceIn(0, max)
-    }
+    fun step(volume: Int, max: Int, direction: Int): Int = (volume + direction).coerceIn(0, max)
 
     fun percent(volume: Int, max: Int): Int = if (max <= 0) 0 else (volume * 100 + max / 2) / max
 }

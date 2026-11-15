@@ -5,8 +5,8 @@ import kotlin.test.assertEquals
 
 class QuickSettingsLogicTest {
     @Test
-    fun `brightness steps by ten and never goes fully dark`() {
-        assertEquals(90, BrightnessSteps.step(100, -1))
+    fun `brightness steps by one percent and never goes fully dark`() {
+        assertEquals(99, BrightnessSteps.step(100, -1))
         assertEquals(100, BrightnessSteps.step(100, +1))
         assertEquals(10, BrightnessSteps.step(10, -1))
         assertEquals(0f, BrightnessSteps.dimAlpha(100))
@@ -37,11 +37,11 @@ class QuickSettingsLogicTest {
     }
 
     @Test
-    fun `volume moves about five percent and stays in range`() {
+    fun `volume moves one system step and stays in range`() {
         assertEquals(1, VolumeSteps.step(0, 15, +1))
         assertEquals(0, VolumeSteps.step(0, 15, -1))
-        assertEquals(25, VolumeSteps.step(20, 100, +1))
-        assertEquals(100, VolumeSteps.step(98, 100, +1))
+        assertEquals(21, VolumeSteps.step(20, 100, +1))
+        assertEquals(100, VolumeSteps.step(100, 100, +1))
         assertEquals(53, VolumeSteps.percent(8, 15))
         assertEquals(0, VolumeSteps.percent(3, 0))
     }
