@@ -40,6 +40,8 @@ import dev.owntv.launcher.androidsettings.ScreenTimeout
 import dev.owntv.launcher.androidsettings.SettingsTable
 import dev.owntv.launcher.androidsettings.SurroundMode
 import dev.owntv.launcher.androidsettings.TimeZones
+import dev.owntv.layout.model.OpenSystemSettingsAction
+import dev.owntv.layout.model.SettingsScreen
 import kotlinx.coroutines.launch
 import java.util.TimeZone
 
@@ -55,23 +57,34 @@ internal fun AndroidSettingsGroup(container: AppContainer, nav: Navigator, group
     val state by settings.state.collectAsStateWithLifecycle()
     LaunchedEffect(group) { settings.refresh() }
     val scope = rememberCoroutineScope()
-    // Runs a change and says so when it did not work (no debugging yet, the TV said no).
-    val change: (suspend () -> String?) -> Unit = { block -> scope.launch { block()?.let(container.actions::toast) } }
+    val actions = container.actions
+    val openAndroid: (SettingsScreen) -> Unit = { actions.execute(OpenSystemSettingsAction(it)) }
+    // Runs a change. When it did not work (no debugging yet, the TV said no) OwnTV says why and opens the
+    // matching Android screen, so nothing is a dead end.
+    val change: Change = { screen, block ->
+        scope.launch {
+            block()?.let { problem ->
+                actions.toast(problem)
+                if (screen != null) openAndroid(screen)
+            }
+        }
+    }
     when (group) {
-        SettingsGroup.AndroidNetwork -> NetworkRows(state, change, settings::setWifi)
-        SettingsGroup.AndroidDisplay -> DisplayRows(state, change) { table, key, value -> settings.put(table, key, value) }
-        SettingsGroup.AndroidAccessories -> AccessoryRows(state, change, settings::setBluetooth, settings::grantBluetooth)
+        SettingsGroup.AndroidNetwork -> NetworkRows(state, change, openAndroid, settings::setWifi)
+        SettingsGroup.AndroidDisplay -> DisplayRows(state, change, openAndroid) { table, key, value -> settings.put(table, key, value) }
+        SettingsGroup.AndroidAccessories -> AccessoryRows(state, change, openAndroid, settings::setBluetooth, settings::grantBluetooth)
         SettingsGroup.AndroidAccess -> AccessRows(container, state, change)
-        SettingsGroup.AndroidSystem -> SystemRows(nav, state, change) { table, key, value -> settings.put(table, key, value) }
+        SettingsGroup.AndroidSystem -> SystemRows(container, nav, state, change, openAndroid) { table, key, value -> settings.put(table, key, value) }
         else -> {}
     }
 }
 
 private typealias Put = suspend (SettingsTable, String, String) -> String?
-private typealias Change = (suspend () -> String?) -> Unit
+/** Runs a change; when it fails, the Android screen of the first argument opens (none for null). */
+private typealias Change = (SettingsScreen?, suspend () -> String?) -> Unit
 
 @Composable
-private fun NetworkRows(state: AndroidState, change: Change, setWifi: suspend (Boolean) -> String?) {
+private fun NetworkRows(state: AndroidState, change: Change, openAndroid: (SettingsScreen) -> Unit, setWifi: suspend (Boolean) -> String?) {
     SettingsCard {
         row {
             val summary = when {
@@ -81,8 +94,20 @@ private fun NetworkRows(state: AndroidState, change: Change, setWifi: suspend (B
                 else -> "Connected to ${state.wifiConnection}"
             }
             SettingsRow("wifi", "Wi-Fi", summary, SettingsIcons.Wifi, SettingsColors.Blue, RowEnd.Switch(state.wifiOn)) {
-                change { setWifi(!state.wifiOn) }
+                change(SettingsScreen.Network) { setWifi(!state.wifiOn) }
             }
+        }
+    }
+    SettingsCard("Networks") {
+        row {
+            SettingsRow(
+                "wifi-networks",
+                "Choose a network",
+                "Pick or add a Wi-Fi network in Android's own screen",
+                SettingsIcons.Wifi,
+                SettingsColors.Blue,
+                RowEnd.External,
+            ) { openAndroid(SettingsScreen.Network) }
         }
     }
     SettingsCard("Connection") {
@@ -103,22 +128,22 @@ private fun NetworkRows(state: AndroidState, change: Change, setWifi: suspend (B
 }
 
 @Composable
-private fun DisplayRows(state: AndroidState, change: Change, put: Put) {
+private fun DisplayRows(state: AndroidState, change: Change, openAndroid: (SettingsScreen) -> Unit, put: Put) {
     SettingsCard("Picture") {
         row {
             SettingsRow(
                 "resolution",
                 "Resolution",
-                "What the TV uses now; the TV's picture settings choose it",
+                "Now ${state.resolution ?: "unknown"}. Resolution, HDR and frame rate change in Android's own screen",
                 SettingsIcons.Tv,
                 SettingsColors.Orange,
-                RowEnd.Value(state.resolution ?: "Unknown"),
-            ) {}
+                RowEnd.External,
+            ) { openAndroid(SettingsScreen.Display) }
         }
     }
     SettingsCard("Screen") {
         row {
-            fun step(delta: Int) = change { put(SettingsTable.System, "screen_off_timeout", ScreenTimeout.step(state.screenOffMillis, delta).toString()) }
+            fun step(delta: Int) = change(SettingsScreen.Display) { put(SettingsTable.System, "screen_off_timeout", ScreenTimeout.step(state.screenOffMillis, delta).toString()) }
             SettingsRow(
                 "screen-off",
                 "Turn the screen off after",
@@ -132,7 +157,7 @@ private fun DisplayRows(state: AndroidState, change: Change, put: Put) {
     }
     SettingsCard("Sound") {
         row {
-            fun step(delta: Int) = change { put(SettingsTable.Global, "encoded_surround_output", SurroundMode.step(state.surround, delta).value.toString()) }
+            fun step(delta: Int) = change(SettingsScreen.Sound) { put(SettingsTable.Global, "encoded_surround_output", SurroundMode.step(state.surround, delta).value.toString()) }
             SettingsRow(
                 "surround",
                 "Surround sound",
@@ -151,13 +176,19 @@ private fun DisplayRows(state: AndroidState, change: Change, put: Put) {
                 SettingsIcons.MusicNote,
                 SettingsColors.Purple,
                 RowEnd.Switch(state.systemSounds),
-            ) { change { put(SettingsTable.System, "sound_effects_enabled", if (state.systemSounds) "0" else "1") } }
+            ) { change(SettingsScreen.Sound) { put(SettingsTable.System, "sound_effects_enabled", if (state.systemSounds) "0" else "1") } }
         }
     }
 }
 
 @Composable
-private fun AccessoryRows(state: AndroidState, change: Change, setBluetooth: suspend (Boolean) -> String?, grantBluetooth: suspend () -> String?) {
+private fun AccessoryRows(
+    state: AndroidState,
+    change: Change,
+    openAndroid: (SettingsScreen) -> Unit,
+    setBluetooth: suspend (Boolean) -> String?,
+    grantBluetooth: suspend () -> String?,
+) {
     SettingsCard {
         row {
             val paired = state.pairedDevices
@@ -172,7 +203,19 @@ private fun AccessoryRows(state: AndroidState, change: Change, setBluetooth: sus
                 SettingsIcons.Bluetooth,
                 SettingsColors.Purple,
                 RowEnd.Switch(state.bluetoothOn),
-            ) { change { setBluetooth(!state.bluetoothOn) } }
+            ) { change(SettingsScreen.Bluetooth) { setBluetooth(!state.bluetoothOn) } }
+        }
+    }
+    SettingsCard {
+        row {
+            SettingsRow(
+                "pair-device",
+                "Pair a new device",
+                "Pairing happens in Android's own screen",
+                SettingsIcons.Bluetooth,
+                SettingsColors.Blue,
+                RowEnd.External,
+            ) { openAndroid(SettingsScreen.Bluetooth) }
         }
     }
     val paired = state.pairedDevices
@@ -186,7 +229,7 @@ private fun AccessoryRows(state: AndroidState, change: Change, setBluetooth: sus
                     SettingsIcons.Bluetooth,
                     SettingsColors.Blue,
                     RowEnd.None,
-                ) { change { grantBluetooth() } }
+                ) { change(SettingsScreen.Bluetooth) { grantBluetooth() } }
             }
         }
     } else if (paired.isNotEmpty()) {
@@ -205,7 +248,7 @@ private fun AccessRows(container: AppContainer, state: AndroidState, change: Cha
     val usageAccess = remember(tick, state) { container.recent.hasUsageAccess() }
     val settings = container.androidSettings
     // Turning a service on or off needs the secure settings; the first time OwnTV asks the TV for them.
-    fun toggle(component: String, on: Boolean) = change {
+    fun toggle(component: String, on: Boolean) = change(SettingsScreen.Accessibility) {
         val problem = if (container.accessibility.canChange()) null else settings.grantAccess()
         if (problem == null && !container.accessibility.setEnabled(component, on)) {
             "Could not change the service. Turn it on or off in Android's Accessibility settings."
@@ -257,7 +300,7 @@ private fun AccessRows(container: AppContainer, state: AndroidState, change: Cha
                 SettingsIcons.Shield,
                 SettingsColors.Green,
                 RowEnd.Value(if (allowed) "Allowed" else "Not allowed"),
-            ) { if (!allowed) change { settings.grantAccess() } }
+            ) { if (!allowed) change(null) { settings.grantAccess() } }
         }
         row {
             SettingsRow(
@@ -267,13 +310,17 @@ private fun AccessRows(container: AppContainer, state: AndroidState, change: Cha
                 SettingsIcons.History,
                 SettingsColors.Blue,
                 RowEnd.Value(if (usageAccess) "Allowed" else "Not allowed"),
-            ) { if (!usageAccess) change { settings.grantUsageAccess().also { tick++ } } }
+            ) {
+                if (!usageAccess) {
+                    change(null) { settings.grantUsageAccess().also { tick++ } }
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun SystemRows(nav: Navigator, state: AndroidState, change: Change, put: Put) {
+private fun SystemRows(container: AppContainer, nav: Navigator, state: AndroidState, change: Change, openAndroid: (SettingsScreen) -> Unit, put: Put) {
     val context = LocalContext.current
     SettingsCard("Date and time") {
         row {
@@ -286,7 +333,7 @@ private fun SystemRows(nav: Navigator, state: AndroidState, change: Change, put:
                 RowEnd.Switch(state.autoTime),
             ) {
                 val value = if (state.autoTime) "0" else "1"
-                change { put(SettingsTable.Global, "auto_time", value) ?: put(SettingsTable.Global, "auto_time_zone", value) }
+                change(SettingsScreen.DateTime) { put(SettingsTable.Global, "auto_time", value) ?: put(SettingsTable.Global, "auto_time_zone", value) }
             }
         }
         row {
@@ -308,7 +355,19 @@ private fun SystemRows(nav: Navigator, state: AndroidState, change: Change, put:
                 SettingsIcons.Schedule,
                 SettingsColors.Graphite,
                 RowEnd.Switch(state.is24Hour),
-            ) { change { put(SettingsTable.System, "time_12_24", if (state.is24Hour) "12" else "24") } }
+            ) { change(SettingsScreen.DateTime) { put(SettingsTable.System, "time_12_24", if (state.is24Hour) "12" else "24") } }
+        }
+    }
+    SettingsCard("Language") {
+        row {
+            SettingsRow(
+                "language",
+                "Language",
+                "Changes in Android's own screen",
+                SettingsIcons.Public,
+                SettingsColors.Pink,
+                RowEnd.External,
+            ) { container.actions.openLanguageSettings() }
         }
     }
     StorageCard(state, context)
@@ -328,7 +387,7 @@ private fun SystemRows(nav: Navigator, state: AndroidState, change: Change, put:
                 SettingsIcons.Code,
                 SettingsColors.Graphite,
                 RowEnd.Switch(state.developerOptions),
-            ) { change { put(SettingsTable.Global, "development_settings_enabled", if (state.developerOptions) "0" else "1") } }
+            ) { change(SettingsScreen.Main) { put(SettingsTable.Global, "development_settings_enabled", if (state.developerOptions) "0" else "1") } }
         }
         row {
             SettingsRow(
@@ -339,7 +398,7 @@ private fun SystemRows(nav: Navigator, state: AndroidState, change: Change, put:
                 SettingsColors.Orange,
                 RowEnd.Switch(state.usbDebugging),
                 enabled = state.developerOptions,
-            ) { change { put(SettingsTable.Global, "adb_enabled", if (state.usbDebugging) "0" else "1") } }
+            ) { change(SettingsScreen.Main) { put(SettingsTable.Global, "adb_enabled", if (state.usbDebugging) "0" else "1") } }
         }
     }
 }
@@ -395,7 +454,12 @@ fun TimeZoneScreen(container: AppContainer, nav: Navigator) {
                 ) {
                     scope.launch {
                         val problem = container.androidSettings.setTimeZone(id)
-                        if (problem != null) container.actions.toast(problem) else nav.back()
+                        if (problem == null) {
+                            nav.back()
+                        } else {
+                            container.actions.toast(problem)
+                            container.actions.execute(OpenSystemSettingsAction(SettingsScreen.DateTime))
+                        }
                     }
                 }
             }

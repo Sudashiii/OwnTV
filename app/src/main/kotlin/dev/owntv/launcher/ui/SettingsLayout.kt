@@ -627,6 +627,9 @@ sealed interface RowEnd {
     /** A value instead of a chevron; the row does something in place or nothing. */
     data class Value(val text: String) : RowEnd
 
+    /** The row leaves OwnTV for one of Android's own screens. */
+    data object External : RowEnd
+
     /** An on/off switch; the row's action flips it. */
     data class Switch(val on: Boolean) : RowEnd
 
@@ -723,6 +726,12 @@ fun SettingsRow(
                 if (focused && enabled && onStep != null) "‹  ${end.text}  ›" else end.text,
                 style = MaterialTheme.typography.bodyMedium,
                 color = if (focused) content else SettingsColors.Muted,
+            )
+            RowEnd.External -> Icon(
+                SettingsIcons.OpenInNew,
+                contentDescription = "Opens Android settings",
+                tint = content.copy(alpha = 0.6f),
+                modifier = Modifier.padding(start = 4.dp).size(18.dp),
             )
             is RowEnd.Switch -> SwitchTrack(end.on, enabled)
             RowEnd.None -> {}
