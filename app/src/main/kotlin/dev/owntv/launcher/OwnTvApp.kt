@@ -7,6 +7,7 @@ import coil3.SingletonImageLoader
 import dev.owntv.launcher.actions.AccessibilitySettings
 import dev.owntv.launcher.actions.ActionExecutor
 import dev.owntv.launcher.adb.SelfAdb
+import dev.owntv.launcher.androidsettings.AndroidSettings
 import dev.owntv.launcher.cleanup.CleanupRepository
 import dev.owntv.launcher.actions.StandbyService
 import dev.owntv.launcher.actions.runsInOwnTv
@@ -69,6 +70,9 @@ class AppContainer(context: Context) {
 
     /** Runs the `adb shell` commands OwnTV shows on this TV itself (Settings > Developer > ADB on this TV). */
     val adb = SelfAdb(context)
+
+    /** Settings > Android: the TV's own settings, changed from inside OwnTV (directly once allowed, else through [adb]). */
+    val androidSettings = AndroidSettings(context, adb)
 
     /** Settings > Apps > Clean up this TV: turns preinstalled packages off through [adb]. */
     val cleanup = CleanupRepository(context, scope, assets, adb)

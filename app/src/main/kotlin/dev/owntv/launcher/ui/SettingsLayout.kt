@@ -2,6 +2,7 @@ package dev.owntv.launcher.ui
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
@@ -26,6 +27,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -70,8 +72,20 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import dev.owntv.launcher.R
 
+/** The two tabs on top of the Settings sidebar: OwnTV's own settings (the default) and the TV's Android settings. */
+enum class SettingsTab(val title: String) {
+    OwnTv("OwnTV"),
+    Android("Android"),
+}
+
 /** The groups in the Settings sidebar. Each one fills the pane on the right with its rows. */
-enum class SettingsGroup(val title: String, val description: String, val icon: ImageVector, val tint: Color) {
+enum class SettingsGroup(
+    val title: String,
+    val description: String,
+    val icon: ImageVector,
+    val tint: Color,
+    val tab: SettingsTab = SettingsTab.OwnTv,
+) {
     General(
         "General",
         "Updates, storage and making OwnTV your Home screen.",
@@ -93,14 +107,60 @@ enum class SettingsGroup(val title: String, val description: String, val icon: I
         SettingsColors.Purple,
     ),
     Developer("Developer", "Run adb on this TV, see OwnTV's commands and measure performance.", SettingsIcons.Code, SettingsColors.Orange),
+
+    // The Android tab: the TV's own settings, changed from inside OwnTV.
+    AndroidNetwork(
+        "Network & internet",
+        "Wi-Fi and the connection of this TV.",
+        SettingsIcons.Wifi,
+        SettingsColors.Blue,
+        SettingsTab.Android,
+    ),
+    AndroidDisplay(
+        "Display & sound",
+        "Picture, when the screen turns off and audio.",
+        SettingsIcons.Tv,
+        SettingsColors.Orange,
+        SettingsTab.Android,
+    ),
+    AndroidAccessories(
+        "Accessories",
+        "Bluetooth remotes, controllers and speakers.",
+        SettingsIcons.Bluetooth,
+        SettingsColors.Purple,
+        SettingsTab.Android,
+    ),
+    AndroidAccess(
+        "Apps & access",
+        "Accessibility services and what OwnTV may do.",
+        SettingsIcons.Shield,
+        SettingsColors.Green,
+        SettingsTab.Android,
+    ),
+    AndroidSystem(
+        "System",
+        "Date and time, storage, this TV and developer options.",
+        Icons.Filled.Info,
+        SettingsColors.Gray,
+        SettingsTab.Android,
+    ),
 }
 
-/** Sidebar blocks, separated by a gap like the sections of a Mac's System Settings. */
-private val SidebarBlocks = listOf(
-    listOf(SettingsGroup.General),
-    listOf(SettingsGroup.Display, SettingsGroup.Layout, SettingsGroup.Apps, SettingsGroup.Remote),
-    listOf(SettingsGroup.Developer),
-)
+/** Sidebar blocks of a tab, separated by a gap like the sections of a Mac's System Settings. */
+fun sidebarBlocks(tab: SettingsTab): List<List<SettingsGroup>> = when (tab) {
+    SettingsTab.OwnTv -> listOf(
+        listOf(SettingsGroup.General),
+        listOf(SettingsGroup.Display, SettingsGroup.Layout, SettingsGroup.Apps, SettingsGroup.Remote),
+        listOf(SettingsGroup.Developer),
+    )
+    SettingsTab.Android -> listOf(
+        listOf(SettingsGroup.AndroidNetwork, SettingsGroup.AndroidDisplay, SettingsGroup.AndroidAccessories, SettingsGroup.AndroidAccess),
+        listOf(SettingsGroup.AndroidSystem),
+    )
+}
+
+/** The group a tab shows first. */
+fun firstGroup(tab: SettingsTab): SettingsGroup = sidebarBlocks(tab).first().first()
 
 object SettingsColors {
     val Blue = Color(0xFF3A82F7)
@@ -150,11 +210,15 @@ fun SettingsSplitView(
     subtitle: String,
     badges: Set<SettingsGroup>,
     detailKey: Any?,
+    onOpenAndroidSettings: () -> Unit,
     detail: @Composable () -> Unit,
     content: @Composable ColumnScope.(SettingsGroup) -> Unit,
 ) {
     val group = nav.settingsGroup
+    val tab = group.tab
     val showingRows = detailKey == null
+    val tabFocus = remember { SettingsTab.entries.associateWith { FocusRequester() } }
+    var tabHasFocus by remember { mutableStateOf(false) }
     // After Back from a screen opened here, focus goes to the row that opened it; otherwise (opened afresh) to the group.
     val firstRestore = remember { nav.settingsRow }
     val focusSidebarFirst = remember { firstRestore == null && showingRows }
@@ -190,7 +254,8 @@ fun SettingsSplitView(
                 }
                 .padding(start = 14.dp, top = 28.dp, end = 14.dp, bottom = 14.dp)
                 .onPreviewKeyEvent { event ->
-                    if (event.type == KeyEventType.KeyDown && event.key == Key.DirectionRight) {
+                    // On the tabs Right picks the next tab; it only leaves for the rows from a group.
+                    if (!tabHasFocus && event.type == KeyEventType.KeyDown && event.key == Key.DirectionRight) {
                         runCatching { paneFocus.requestFocus() }
                         true
                     } else {
@@ -203,7 +268,22 @@ fun SettingsSplitView(
                 .focusGroup(),
         ) {
             SidebarHeader(title, subtitle)
-            SidebarBlocks.forEachIndexed { index, block ->
+            SidebarTabs(
+                selected = tab,
+                requesters = tabFocus,
+                selectedGroup = sidebarFocus.getValue(group),
+                onFocusChange = { tabHasFocus = it },
+                onSelect = { picked ->
+                    if (picked != nav.settingsTab) {
+                        nav.closeSettingsDetail()
+                        nav.selectSettingsTab(picked)
+                    }
+                },
+                onClick = { runCatching { sidebarFocus.getValue(nav.settingsGroup).requestFocus() } },
+            )
+            Spacer(Modifier.height(12.dp))
+            val blocks = sidebarBlocks(tab)
+            blocks.forEachIndexed { index, block ->
                 if (index > 0) Spacer(Modifier.height(14.dp))
                 block.forEach { entry ->
                     SidebarItem(
@@ -212,6 +292,14 @@ fun SettingsSplitView(
                         badge = entry in badges,
                         modifier = Modifier
                             .focusRequester(sidebarFocus.getValue(entry))
+                            // Up from the first group goes to the tab that is showing, not to the nearer one.
+                            .then(
+                                if (entry == blocks.first().first()) {
+                                    Modifier.focusProperties { up = tabFocus.getValue(tab) }
+                                } else {
+                                    Modifier
+                                },
+                            )
                             .then(if (focusSidebarFirst && entry == group) rememberInitialFocus() else Modifier),
                         onFocus = {
                             if (entry != nav.settingsGroup) {
@@ -222,6 +310,11 @@ fun SettingsSplitView(
                         onClick = { runCatching { paneFocus.requestFocus() } },
                     )
                 }
+            }
+            if (tab == SettingsTab.Android) {
+                // The way out for anything OwnTV does not cover yet.
+                Spacer(Modifier.weight(1f))
+                SidebarAction("Open Android settings", SettingsIcons.OpenInNew, onOpenAndroidSettings)
             }
         }
         if (!showingRows) {
@@ -309,6 +402,106 @@ private fun SidebarHeader(title: String, subtitle: String) {
             Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = SettingsColors.Text, maxLines = 1)
             Text(subtitle, style = MaterialTheme.typography.bodySmall, color = SettingsColors.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
+    }
+}
+
+/** OwnTV | Android, above the groups. Focusing a tab shows it, like focusing a group does. */
+@Composable
+private fun SidebarTabs(
+    selected: SettingsTab,
+    requesters: Map<SettingsTab, FocusRequester>,
+    selectedGroup: FocusRequester,
+    onFocusChange: (Boolean) -> Unit,
+    onSelect: (SettingsTab) -> Unit,
+    onClick: () -> Unit,
+) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .height(38.dp)
+            .background(ScreenBackground, RoundedCornerShape(11.dp))
+            .padding(3.dp),
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        SettingsTab.entries.forEachIndexed { index, tab ->
+            TabSegment(
+                tab,
+                selected = tab == selected,
+                modifier = Modifier
+                    .weight(1f)
+                    .focusRequester(requesters.getValue(tab))
+                    .focusProperties {
+                        down = selectedGroup
+                        // Nothing beyond either end: Left and Right only swap the tabs.
+                        if (index == 0) left = FocusRequester.Cancel else right = FocusRequester.Cancel
+                    },
+                onFocus = { focused ->
+                    onFocusChange(focused)
+                    if (focused) onSelect(tab)
+                },
+                onClick = onClick,
+            )
+        }
+    }
+}
+
+@Composable
+private fun TabSegment(tab: SettingsTab, selected: Boolean, modifier: Modifier, onFocus: (Boolean) -> Unit, onClick: () -> Unit) {
+    var focused by remember { mutableStateOf(false) }
+    val fill = when {
+        focused -> SettingsColors.Focus
+        selected -> SettingsColors.SidebarSelected
+        else -> Color.Transparent
+    }
+    Row(
+        modifier
+            .fillMaxHeight()
+            .background(fill, RoundedCornerShape(8.dp))
+            .onFocusChanged {
+                focused = it.isFocused
+                onFocus(it.isFocused)
+            }
+            .clickable(interactionSource = null, indication = null, onClick = onClick),
+        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        when (tab) {
+            SettingsTab.OwnTv -> Box(Modifier.size(12.dp).border(3.dp, Color(0xFF6EA2FF), CircleShape))
+            SettingsTab.Android -> Icon(SettingsIcons.Android, contentDescription = null, tint = Color(0xFF7BD88F), modifier = Modifier.size(16.dp))
+        }
+        Text(
+            tab.title,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = if (selected || focused) SettingsColors.Text else SettingsColors.Muted,
+            maxLines = 1,
+        )
+    }
+}
+
+/** A button at the foot of the sidebar that does something instead of showing a group. */
+@Composable
+private fun SidebarAction(title: String, icon: ImageVector, onClick: () -> Unit) {
+    var focused by remember { mutableStateOf(false) }
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .height(42.dp)
+            .background(if (focused) SettingsColors.Focus else SettingsColors.Card, RoundedCornerShape(10.dp))
+            .onFocusChanged { focused = it.isFocused }
+            .clickable(interactionSource = null, indication = null, onClick = onClick)
+            .padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, contentDescription = null, tint = if (focused) SettingsColors.Text else SettingsColors.Muted, modifier = Modifier.size(18.dp))
+        Text(
+            title,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = if (focused) SettingsColors.Text else SettingsColors.Muted,
+            maxLines = 1,
+            modifier = Modifier.padding(start = 10.dp),
+        )
     }
 }
 
@@ -434,6 +627,12 @@ sealed interface RowEnd {
     /** A value instead of a chevron; the row does something in place or nothing. */
     data class Value(val text: String) : RowEnd
 
+    /** The row leaves OwnTV for one of Android's own screens. */
+    data object External : RowEnd
+
+    /** An on/off switch; the row's action flips it. */
+    data class Switch(val on: Boolean) : RowEnd
+
     data object None : RowEnd
 }
 
@@ -528,8 +727,29 @@ fun SettingsRow(
                 style = MaterialTheme.typography.bodyMedium,
                 color = if (focused) content else SettingsColors.Muted,
             )
+            RowEnd.External -> Icon(
+                SettingsIcons.OpenInNew,
+                contentDescription = "Opens Android settings",
+                tint = content.copy(alpha = 0.6f),
+                modifier = Modifier.padding(start = 4.dp).size(18.dp),
+            )
+            is RowEnd.Switch -> SwitchTrack(end.on, enabled)
             RowEnd.None -> {}
         }
+    }
+}
+
+/** The switch of a [RowEnd.Switch] row, 44 x 26 dp: green when on, grey when off. */
+@Composable
+private fun SwitchTrack(on: Boolean, enabled: Boolean) {
+    Box(
+        Modifier
+            .size(width = 44.dp, height = 26.dp)
+            .background((if (on) SettingsColors.Green else SettingsColors.Graphite).copy(alpha = if (enabled) 1f else 0.45f), CircleShape)
+            .padding(3.dp),
+        contentAlignment = if (on) Alignment.CenterEnd else Alignment.CenterStart,
+    ) {
+        Box(Modifier.size(20.dp).background(Color.White, CircleShape))
     }
 }
 

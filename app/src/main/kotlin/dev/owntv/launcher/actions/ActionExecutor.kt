@@ -108,6 +108,11 @@ class ActionExecutor(
         toast("Open System > Accessibility, then turn on the OwnTV service")
     }
 
+    /** Opens the language screen; the main settings when this device has none. */
+    fun openLanguageSettings() {
+        if (!start(Intent(Settings.ACTION_LOCALE_SETTINGS), null)) openSystemSettings()
+    }
+
     /** Opens Developer options, where USB and network debugging are; else the main settings with the way there. */
     fun openDeveloperSettings() {
         if (start(Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS), null)) return

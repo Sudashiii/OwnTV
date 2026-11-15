@@ -43,6 +43,35 @@ class SettingsNavigationTest {
     }
 
     @Test
+    fun `Settings opens on the OwnTV tab`() {
+        val nav = Navigator()
+        assertEquals(SettingsTab.OwnTv, nav.settingsTab)
+        assertEquals(SettingsGroup.General, nav.settingsGroup)
+    }
+
+    @Test
+    fun `each tab remembers the group it showed`() {
+        val nav = Navigator()
+        nav.settingsGroup = SettingsGroup.Layout
+        nav.selectSettingsTab(SettingsTab.Android)
+        assertEquals(SettingsGroup.AndroidNetwork, nav.settingsGroup)
+        nav.settingsGroup = SettingsGroup.AndroidSystem
+        nav.selectSettingsTab(SettingsTab.OwnTv)
+        assertEquals(SettingsGroup.Layout, nav.settingsGroup)
+        nav.selectSettingsTab(SettingsTab.Android)
+        assertEquals(SettingsGroup.AndroidSystem, nav.settingsGroup)
+    }
+
+    @Test
+    fun `every group is in the sidebar of its own tab exactly once`() {
+        SettingsTab.entries.forEach { tab ->
+            val listed = sidebarBlocks(tab).flatten()
+            assertEquals(SettingsGroup.entries.filter { it.tab == tab }.toSet(), listed.toSet())
+            assertEquals(listed.size, listed.toSet().size)
+        }
+    }
+
+    @Test
     fun `durations read naturally`() {
         assertEquals("45 seconds", duration(45))
         assertEquals("1 minute", duration(60))
